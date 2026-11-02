@@ -133,11 +133,18 @@ export function AddressBookSearch({
                         onClick={() => onPreviewSelect(target)}
                       >
                         {showPreviewProfileImage && <MemberAvatar member={target} />}
-                        <div className="min-w-0">
-                          <p className="font-semibold text-slate-800">
+                        {/* 프로필 이미지를 끄면 이름과 정보를 한 줄로(길면 정보만 … 처리) */}
+                        <div
+                          className={
+                            showPreviewProfileImage
+                              ? "min-w-0"
+                              : "flex min-w-0 flex-1 items-baseline gap-2"
+                          }
+                        >
+                          <p className="shrink-0 font-semibold text-slate-800">
                             <HighlightText value={target.displayName} keyword={keyword} />
                           </p>
-                          <p className="truncate text-xs text-slate-500">
+                          <p className="min-w-0 truncate text-xs text-slate-500">
                             <HighlightText
                               value={[
                                 target.jobTitle,
