@@ -393,9 +393,14 @@ export function HomeDashboard({
                           <FavoriteBadge />
                         </span>
                         <span className="block truncate text-xs text-slate-500">
-                          {[target.jobGradeName ?? target.jobTitle, target.departmentName]
+                          {/* 직급 · 부서 · 회사(다른 회사 구성원도 구분되게) */}
+                          {[
+                            target.jobGradeName ?? target.jobTitle,
+                            target.departmentName,
+                            target.companyName,
+                          ]
                             .filter(Boolean)
-                            .join(" · ") || target.companyName}
+                            .join(" · ")}
                         </span>
                       </span>
                       <button
