@@ -422,20 +422,15 @@ export function GlobalHeader({
                 />
               )}
               {label === "전체 서비스" && isServicePanelOpen && (
-                // 알림 패널과 같은 자리·폭·머리 모양. 상단바 메뉴(전체 서비스 자신 제외)를 3열 타일로,
+                // 알림 패널과 같은 자리(오른쪽 끝)의 작은 패널. 상단바 메뉴(전체 서비스 자신 제외)를 아이콘+이름 3열로,
                 // 누르면 상단바 아이콘과 같은 동작. 마우스를 올리면 커서 옆에 설명.
                 <section
                   role="menu"
                   aria-label="전체 서비스"
-                  className="fixed right-3 top-[60px] z-[60] flex max-h-[calc(100vh-76px)] w-[400px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white text-slate-800 shadow-2xl"
+                  className="fixed right-3 top-[60px] z-[60] flex max-h-[calc(100vh-76px)] w-[300px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white text-slate-800 shadow-xl"
                 >
-                  <div className="px-5 pb-3 pt-4">
-                    <strong className="text-lg">전체 서비스</strong>
-                    <p className="mt-0.5 text-xs text-slate-500">
-                      자주 쓰는 서비스로 바로 이동합니다.
-                    </p>
-                  </div>
-                  <div className="grid grid-cols-3 gap-1 overflow-y-auto border-t border-slate-100 px-4 py-4">
+                  <strong className="px-4 pb-1 pt-3.5 text-sm font-semibold">전체 서비스</strong>
+                  <div className="grid grid-cols-3 gap-0.5 overflow-y-auto p-2">
                     {visibleActions
                       .filter((action) => action.label !== "전체 서비스")
                       .map(({ label: itemLabel, icon: ItemIcon, description }) => (
@@ -447,11 +442,14 @@ export function GlobalHeader({
                               setIsServicePanelOpen(false);
                               runAction(itemLabel);
                             }}
-                            className="group flex w-full cursor-pointer flex-col items-center gap-2 rounded-xl px-1 py-4 text-sm text-slate-700 transition hover:bg-slate-50 active:scale-95"
+                            className="group flex w-full cursor-pointer flex-col items-center gap-1.5 rounded-lg px-1 py-3 text-xs text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 active:scale-95"
                           >
-                            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-700 transition group-hover:bg-blue-50 group-hover:text-blue-600">
-                              <ItemIcon size={21} strokeWidth={1.9} aria-hidden="true" />
-                            </span>
+                            <ItemIcon
+                              size={20}
+                              strokeWidth={1.7}
+                              aria-hidden="true"
+                              className="text-slate-500 transition group-hover:text-blue-600"
+                            />
                             <span className="whitespace-nowrap">{itemLabel}</span>
                           </button>
                         </CursorTooltip>
