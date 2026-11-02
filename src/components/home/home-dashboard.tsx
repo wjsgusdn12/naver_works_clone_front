@@ -221,7 +221,7 @@ export function HomeDashboard({
             같은 행 카드는 높이가 자동으로 같아져 위·아래선이 맞음. 좁은 화면에서는 한 줄씩 쌓임. */}
         <section className="grid gap-5 xl:grid-cols-3 xl:grid-rows-[360px_360px]">
           {/* 인사말 카드(두 줄 높이): 내 프로필·날짜·인사말·상태, 알림 목록, 바로가기 4개 */}
-          <article className="flex flex-col rounded-xl border border-slate-200 bg-white p-5 shadow-sm xl:col-start-1 xl:row-span-2 xl:row-start-1">
+          <article className="flex flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm xl:col-start-1 xl:row-span-2 xl:row-start-1">
             <div className="flex items-center gap-4">
               <UserAvatar
                 size="lg"
@@ -245,7 +245,7 @@ export function HomeDashboard({
             </div>
 
             {/* 알림: 제목 옆 읽지 않은 알림 수, 오른쪽에 모두 읽음(상단바 패널과 같은 동작)·알림 설정 */}
-            <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4">
+            <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
               <div>
                 <p className="flex items-center gap-2 text-base font-bold text-slate-900">
                   알림
@@ -281,7 +281,7 @@ export function HomeDashboard({
                     <li key={item.id}>
                       <button
                         type="button"
-                        className="flex w-full cursor-pointer items-start gap-3 rounded-lg px-2 py-3 text-left transition hover:bg-slate-50"
+                        className="flex w-full cursor-pointer items-start gap-3 rounded-lg px-2 py-2 text-left transition hover:bg-slate-50"
                         onClick={() => openNotification(item)}
                       >
                         <span
@@ -308,7 +308,7 @@ export function HomeDashboard({
             </div>
 
             {/* 바로가기는 카드 아래쪽에 붙임 */}
-            <div className="mt-3 grid grid-cols-4 gap-1 border-t border-slate-100 pt-3">
+            <div className="mt-2 grid grid-cols-4 gap-1 border-t border-slate-100 pt-2">
               <QuickButton icon={MessageCircleMore} onClick={() => router.push("/message")}>
                 메시지
               </QuickButton>
@@ -357,7 +357,7 @@ export function HomeDashboard({
                     memberStatusByMembershipId,
                   );
                   return (
-                    <li key={target.membershipId} className="flex items-center gap-3 px-2 py-2.5">
+                    <li key={target.membershipId} className="flex items-center gap-3 px-2 py-2">
                       <UserAvatar
                         size="md"
                         name={target.displayName}
@@ -437,7 +437,7 @@ export function HomeDashboard({
                   <li key={room.id}>
                     <button
                       type="button"
-                      className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-2 py-3 text-left transition hover:bg-slate-50"
+                      className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-2 py-2 text-left transition hover:bg-slate-50"
                       onClick={() => router.push(`/message?roomId=${room.id}`)}
                     >
                       {room.type === "GROUP" ? (
@@ -555,7 +555,7 @@ function BoardPostList({
         <li key={post.id}>
           <button
             type="button"
-            className="flex w-full cursor-pointer flex-col gap-1 rounded-lg px-2 py-2.5 text-left transition hover:bg-slate-50"
+            className="flex w-full cursor-pointer flex-col gap-1 rounded-lg px-2 py-2 text-left transition hover:bg-slate-50"
             onClick={() => onOpen(post)}
           >
             <span className="flex w-full min-w-0 items-center gap-1.5">
@@ -684,7 +684,7 @@ function Card({
 }) {
   return (
     <article
-      className={`rounded-xl border border-slate-200 bg-white p-5 shadow-sm ${fill ? "flex flex-col" : ""} ${className}`}
+      className={`rounded-xl border border-slate-200 bg-white p-4 shadow-sm ${fill ? "flex flex-col" : ""} ${className}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -709,12 +709,12 @@ function Card({
             )}
             {badge}
           </div>
-          <p className="mt-1 truncate text-sm text-slate-500">{description}</p>
+          <p className="mt-0.5 truncate text-sm text-slate-500">{description}</p>
         </div>
       </div>
-      <div className={fill ? "relative mt-3 min-h-0 flex-1" : "mt-3"}>{children}</div>
+      <div className={fill ? "relative mt-2 min-h-0 flex-1" : "mt-2"}>{children}</div>
       {footer && (
-        <div className="mt-3 flex shrink-0 gap-2 border-t border-slate-100 pt-3">{footer}</div>
+        <div className="mt-2 flex shrink-0 gap-2 border-t border-slate-100 pt-2">{footer}</div>
       )}
     </article>
   );
