@@ -1,6 +1,6 @@
 "use client";
 
-import { AnswerBadge, ImportantFlagButton, PostBadges } from "@/components/board/board-post-list";
+import { AnswerBadge, ImportantButton, PostBadges } from "@/components/board/board-post-list";
 import { RichContent } from "@/components/board/rich-content";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useChatNotification } from "@/components/chat/chat-notification-provider";
@@ -32,6 +32,7 @@ import {
   RotateCcw,
   Trash2,
   UsersRound,
+  type LucideIcon,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -256,19 +257,9 @@ export function BoardPostDetailView({
             {post.board.type === "INQUIRY" && <AnswerBadge answered={!!post.answeredAt} />}
           </div>
         )}
-        {/* 제목 앞 깃발: 나만 보는 중요 표시(사이드바 "중요" 목록) */}
-        <div className="flex items-start gap-1">
-          <span className="mt-0.5 -ml-1.5">
-            <ImportantFlagButton
-              important={post.important}
-              onToggle={() => void toggleImportant()}
-              size={18}
-            />
-          </span>
-          <h2 className="min-w-0 flex-1 break-all text-2xl font-semibold leading-snug text-slate-950">
-            {post.title}
-          </h2>
-        </div>
+        <h2 className="break-all text-2xl font-semibold leading-snug text-slate-950">
+          {post.title}
+        </h2>
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-4">
           <div className="flex min-w-0 items-center gap-2 text-sm text-slate-500">
             <PersonAvatar membershipId={post.authorMembershipId} name={post.authorName} />
@@ -284,26 +275,26 @@ export function BoardPostDetailView({
               {post.viewCount}
             </span>
           </div>
-          {/* 오른쪽 ⋮: 읽음 현황·수정·삭제 */}
-          <MoreMenu
-            label="글 메뉴"
-            items={[
-              ...(post.canSeeReaders
-                ? [{ label: "읽음 현황", icon: UsersRound, onClick: () => setReadersOpen(true) }]
-                : []),
-              ...(post.canEdit ? [{ label: "수정", icon: Pencil, onClick: onEdit }] : []),
-              ...(post.canDelete
-                ? [
-                    {
-                      label: "삭제",
-                      icon: Trash2,
-                      danger: true,
-                      onClick: () => setConfirmDelete(true),
-                    },
-                  ]
-                : []),
-            ]}
-          />
+          {/* 오른쪽 아이콘 버튼(올리면 툴팁): 중요(별)·읽음 현황·수정·삭제 */}
+          <div className="flex items-center gap-0.5">
+            <ImportantButton important={post.important} onToggle={() => void toggleImportant()} />
+            {post.canSeeReaders && (
+              <HeaderAction
+                label="읽음 현황"
+                icon={UsersRound}
+                onClick={() => setReadersOpen(true)}
+              />
+            )}
+            {post.canEdit && <HeaderAction label="수정" icon={Pencil} onClick={onEdit} />}
+            {post.canDelete && (
+              <HeaderAction
+                label="삭제"
+                icon={Trash2}
+                danger
+                onClick={() => setConfirmDelete(true)}
+              />
+            )}
+          </div>
         </div>
       </header>
 
@@ -611,6 +602,32 @@ function ReadersDialog({
       failed={failed}
       onClose={onClose}
     />
+  );
+}
+
+// 글 머리줄 오른쪽 아이콘 버튼. 올리면 공통 툴팁으로 이름을 보여 줌.
+function HeaderAction({
+  label,
+  icon: Icon,
+  danger = false,
+  onClick,
+}: {
+  label: string;
+  icon: LucideIcon;
+  danger?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <Tooltip label={label} className="shrink-0">
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label={label}
+        className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-md text-slate-400 transition hover:bg-slate-100 active:scale-90 ${danger ? "hover:text-red-600" : "hover:text-slate-800"}`}
+      >
+        <Icon size={16} aria-hidden="true" />
+      </button>
+    </Tooltip>
   );
 }
 

@@ -3,42 +3,45 @@
 import { dateLabel, Highlight } from "@/components/chat/message-search-panel";
 import { CustomCheckbox } from "@/components/common/custom-checkbox";
 import { LoadingState } from "@/components/common/loading";
+import { Tooltip } from "@/components/common/tooltip";
 import type { BoardPostSummary, BoardSearchScope } from "@/lib/api/board-api";
 import {
   ChevronRight,
   Eye,
-  Flag,
   MessageSquare,
   Paperclip,
   RotateCw,
   SmilePlus,
+  Star,
 } from "lucide-react";
 
-// 중요 표시(개인 깃발) 켜기·끄기 버튼. 표시하면 주황 깃발, 아니면 옅은 회색 깃발.
-export function ImportantFlagButton({
+// 중요 표시(개인) 켜기·끄기 버튼. 표시하면 노란 별, 아니면 옅은 회색 별. 올리면 공통 툴팁.
+export function ImportantButton({
   important,
   onToggle,
-  size = 15,
+  size = 16,
 }: {
   important: boolean;
   onToggle: () => void;
   size?: number;
 }) {
+  const label = important ? "중요 해제" : "중요 표시";
   return (
-    <button
-      type="button"
-      onClick={onToggle}
-      aria-pressed={important}
-      aria-label={important ? "중요 표시 해제" : "중요 표시"}
-      title={important ? "중요 표시 해제" : "중요 표시(나만 보임)"}
-      className={`flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-md transition hover:bg-slate-100 active:scale-90 ${important ? "text-amber-500" : "text-slate-300 hover:text-slate-500"}`}
-    >
-      <Flag size={size} fill={important ? "currentColor" : "none"} aria-hidden="true" />
-    </button>
+    <Tooltip label={label} className="shrink-0">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-pressed={important}
+        aria-label={label}
+        className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-md transition hover:bg-slate-100 active:scale-90 ${important ? "text-amber-400" : "text-slate-300 hover:text-slate-500"}`}
+      >
+        <Star size={size} fill={important ? "currentColor" : "none"} aria-hidden="true" />
+      </button>
+    </Tooltip>
   );
 }
 
-// 필독 딱지 + 내가 중요 표시한 글이면 작은 주황 깃발(showImportant가 false면 깃발은 따로 그리는 곳)
+// 필독 딱지 + 내가 중요 표시한 글이면 작은 노란 별(showImportant가 false면 별은 따로 그리는 곳)
 export function PostBadges({
   post,
   showImportant = true,
@@ -49,10 +52,10 @@ export function PostBadges({
   return (
     <>
       {showImportant && post.important && (
-        <Flag
+        <Star
           size={13}
           fill="currentColor"
-          className="shrink-0 text-amber-500"
+          className="shrink-0 text-amber-400"
           aria-label="중요 표시한 글"
         />
       )}
@@ -93,7 +96,7 @@ export function PostRow({
 }: {
   post: BoardPostSummary;
   search?: PostSearchMark;
-  // 있으면 줄 앞에 중요 표시(깃발) 버튼
+  // 있으면 줄 앞에 중요 표시(별) 버튼
   onToggleImportant?: () => void;
   // onCheck가 있으면 줄 앞에 체크박스(읽음 처리할 글 고르기)
   checked?: boolean;
@@ -118,7 +121,7 @@ export function PostRow({
         />
       )}
       {onToggleImportant && (
-        <ImportantFlagButton important={post.important} onToggle={onToggleImportant} />
+        <ImportantButton important={post.important} onToggle={onToggleImportant} />
       )}
       <button
         type="button"
@@ -320,7 +323,7 @@ export function PostListBody({
 }: {
   // 검색 결과 화면이면 검색어 강조
   search?: PostSearchMark;
-  // 있으면 줄마다 중요 표시(깃발) 버튼
+  // 있으면 줄마다 중요 표시(별) 버튼
   onToggleImportant?: (post: BoardPostSummary) => void;
   status: "loading" | "loaded" | "failed";
   pinned: BoardPostSummary[];
