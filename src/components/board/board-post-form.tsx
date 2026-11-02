@@ -222,7 +222,7 @@ export function BoardPostForm({
 
   return (
     <form
-      className="mx-auto flex w-full max-w-4xl flex-col"
+      className="flex w-full flex-col"
       onSubmit={(event) => {
         event.preventDefault();
         void save("PUBLISH");

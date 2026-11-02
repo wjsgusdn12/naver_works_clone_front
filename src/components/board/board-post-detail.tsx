@@ -16,7 +16,7 @@ import {
   type BoardReaders,
 } from "@/lib/api/board-api";
 import { fileIconOf, formatFileSize, saveBlob } from "@/lib/attachment-files";
-import { Download, Eye, Pencil, RotateCcw, Trash2, Users } from "lucide-react";
+import { Download, Eye, Paperclip, RotateCcw, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const dateTime = (value: string) =>
@@ -28,7 +28,7 @@ const dateTime = (value: string) =>
     minute: "2-digit",
   });
 
-// 글 보기: 머리(게시판·제목·글쓴이), 본문, 첨부, 댓글. 수정·휴지통·복구·필독 읽음 현황 버튼.
+// 글 보기(미니멀): 머리(딱지·제목·글쓴이 한 줄), 본문, 첨부, 댓글. 수정·삭제·읽음 현황은 글자 버튼.
 export function BoardPostDetailView({
   post,
   accessToken,
@@ -101,69 +101,75 @@ export function BoardPostDetailView({
     }
   };
 
+  // 머리줄 오른쪽 글자 버튼(읽음 현황·수정·삭제)
+  const textAction =
+    "cursor-pointer rounded px-1.5 py-1 text-sm text-slate-500 transition hover:bg-slate-100 hover:text-slate-900";
+
   return (
     <article className="w-full">
       {post.deletedAt && (
-        <div className="mb-4 flex items-center justify-between rounded-lg bg-slate-100 px-4 py-3 text-sm text-slate-600">
+        // 휴지통 글: 회색 한 줄 안내 + 글자 버튼 복구
+        <p className="mb-6 flex items-center gap-3 border-l-2 border-slate-300 pl-3 text-sm text-slate-500">
           휴지통에 있는 글입니다. 옮긴 지 30일이 지나면 휴지통에서도 보이지 않습니다.
           {post.canRestore && (
             <button
               type="button"
               onClick={() => void restore()}
               disabled={restoring}
-              className="flex cursor-pointer items-center gap-1.5 rounded-md bg-blue-600 px-3 py-1.5 font-medium text-white transition hover:bg-blue-700 disabled:opacity-60"
+              className="flex cursor-pointer items-center gap-1 font-medium text-blue-600 transition hover:text-blue-700 disabled:opacity-60"
             >
-              {restoring ? <Spinner size={13} /> : <RotateCcw size={14} aria-hidden="true" />}
+              {restoring ? <Spinner size={12} /> : <RotateCcw size={13} aria-hidden="true" />}
               복구
             </button>
           )}
-        </div>
+        </p>
       )}
-      <header className="border-b border-slate-200 pb-5">
-        <h2 className="flex flex-wrap items-center gap-2 text-2xl font-bold text-slate-950">
-          <PostBadges post={post} />
-          {post.board.type === "INQUIRY" && <AnswerBadge answered={!!post.answeredAt} />}
-          <span className="break-all">{post.title}</span>
-        </h2>
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <PersonAvatar membershipId={post.authorMembershipId} name={post.authorName} size="lg" />
-            <div>
-              <p className="flex items-center gap-1 text-sm font-semibold text-slate-900">
-                {post.authorMembershipId === myMembershipId && <MeBadge />}
-                {post.authorName}
-                {post.authorDepartmentName && (
-                  <span className="font-normal text-slate-500">· {post.authorDepartmentName}</span>
-                )}
-              </p>
-              <p className="mt-0.5 flex items-center gap-2 text-xs text-slate-500">
-                {dateTime(post.createdAt)}
-                {post.updatedAt && <span>(수정됨 {dateTime(post.updatedAt)})</span>}
-                <span className="flex items-center gap-0.5">
-                  <Eye size={12} aria-hidden="true" />
-                  {post.viewCount}
-                </span>
-              </p>
-            </div>
+
+      {/* 머리: 딱지 · 제목, 그 아래 한 줄(글쓴이 · 날짜 · 조회수 | 글자 버튼) */}
+      <header>
+        {(post.mustRead || post.important || post.board.type === "INQUIRY") && (
+          <div className="mb-2 flex items-center gap-1.5">
+            <PostBadges post={post} />
+            {post.board.type === "INQUIRY" && <AnswerBadge answered={!!post.answeredAt} />}
           </div>
-          <div className="flex items-center gap-1.5">
+        )}
+        <h2 className="break-all text-2xl font-semibold leading-snug text-slate-950">
+          {post.title}
+        </h2>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-4">
+          <div className="flex min-w-0 items-center gap-2 text-sm text-slate-500">
+            <PersonAvatar membershipId={post.authorMembershipId} name={post.authorName} />
+            {post.authorMembershipId === myMembershipId && <MeBadge />}
+            <span className="font-medium text-slate-800">{post.authorName}</span>
+            {post.authorDepartmentName && <span>{post.authorDepartmentName}</span>}
+            <span className="text-slate-300">·</span>
+            <span>{dateTime(post.createdAt)}</span>
+            {post.updatedAt && <span className="text-slate-400">(수정됨)</span>}
+            <span className="text-slate-300">·</span>
+            <span className="flex items-center gap-0.5" title="조회수">
+              <Eye size={13} aria-hidden="true" />
+              {post.viewCount}
+            </span>
+          </div>
+          <div className="flex items-center">
             {post.canSeeReaders && (
-              <ActionButton
-                icon={<Users size={15} />}
-                label="읽음 현황"
-                onClick={() => setReadersOpen(true)}
-              />
+              <button type="button" onClick={() => setReadersOpen(true)} className={textAction}>
+                읽음 현황
+              </button>
             )}
             {post.canEdit && (
-              <ActionButton icon={<Pencil size={15} />} label="수정" onClick={onEdit} />
+              <button type="button" onClick={onEdit} className={textAction}>
+                수정
+              </button>
             )}
             {post.canDelete && (
-              <ActionButton
-                icon={<Trash2 size={15} />}
-                label="삭제"
-                danger
+              <button
+                type="button"
                 onClick={() => setConfirmDelete(true)}
-              />
+                className={`${textAction} hover:text-red-600`}
+              >
+                삭제
+              </button>
             )}
           </div>
         </div>
@@ -174,27 +180,32 @@ export function BoardPostDetailView({
       </div>
 
       {files.length > 0 && (
-        <section className="mb-8 rounded-lg border border-slate-200">
-          <h2 className="border-b border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700">
-            첨부 파일 {files.length}
-          </h2>
-          <ul>
+        // 첨부: 작은 제목 + 줄 목록(박스 없음), 줄을 누르면 내려받기
+        <section className="mb-8">
+          <p className="mb-1 flex items-center gap-1 text-xs text-slate-400">
+            <Paperclip size={12} aria-hidden="true" />
+            첨부 {files.length}
+          </p>
+          <ul className="divide-y divide-slate-100 border-y border-slate-100">
             {files.map((file) => {
               const { Icon, className } = fileIconOf(file.name);
               return (
-                <li key={file.id} className="flex items-center gap-3 px-4 py-2.5">
-                  <Icon size={18} className={className} aria-hidden="true" />
-                  <span className="min-w-0 flex-1 truncate text-sm text-slate-800">
-                    {file.name}
-                  </span>
-                  <span className="text-xs text-slate-400">{formatFileSize(file.size)}</span>
+                <li key={file.id}>
                   <button
                     type="button"
-                    aria-label={`${file.name} 내려받기`}
                     onClick={() => void download(file)}
-                    className="flex h-8 w-8 cursor-pointer items-center justify-center rounded text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
+                    className="group flex w-full cursor-pointer items-center gap-2 py-2 text-left"
                   >
-                    <Download size={16} aria-hidden="true" />
+                    <Icon size={15} className={className} aria-hidden="true" />
+                    <span className="min-w-0 flex-1 truncate text-sm text-slate-700 group-hover:text-slate-950 group-hover:underline">
+                      {file.name}
+                    </span>
+                    <span className="text-xs text-slate-400">{formatFileSize(file.size)}</span>
+                    <Download
+                      size={14}
+                      aria-label={`${file.name} 내려받기`}
+                      className="text-slate-300 transition group-hover:text-slate-700"
+                    />
                   </button>
                 </li>
               );
@@ -203,50 +214,49 @@ export function BoardPostDetailView({
         </section>
       )}
 
-      <section className="border-t border-slate-200 pt-6">
-        <h2 className="mb-4 text-base font-bold text-slate-900">
-          댓글 <span className="text-blue-600">{post.comments.length}</span>
-        </h2>
-        <ul className="flex flex-col gap-4">
-          {post.comments.map((item) => (
-            <li key={item.id} className="flex gap-3">
-              <PersonAvatar membershipId={item.authorMembershipId} name={item.authorName} />
-              <div className="min-w-0 flex-1">
-                <p className="flex items-center gap-1.5 text-sm">
-                  {item.authorMembershipId === myMembershipId && <MeBadge />}
-                  <b className="text-slate-900">{item.authorName}</b>
-                  {item.authorAdmin && (
-                    <span className="rounded bg-violet-50 px-1.5 py-0.5 text-[11px] font-semibold text-violet-600">
-                      관리자
-                    </span>
-                  )}
-                  <span className="text-xs text-slate-400">{dateTime(item.createdAt)}</span>
-                  {item.canDelete && (
-                    <button
-                      type="button"
-                      onClick={() => void removeComment(item.id)}
-                      disabled={deletingCommentId === item.id}
-                      className="ml-1 cursor-pointer text-xs text-slate-400 transition hover:text-red-500 disabled:opacity-50"
-                    >
-                      {deletingCommentId === item.id ? "삭제 중..." : "삭제"}
-                    </button>
-                  )}
-                </p>
-                <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-6 text-slate-700">
-                  {item.content}
-                </p>
-              </div>
-            </li>
-          ))}
-        </ul>
+      {/* 댓글: 작은 제목, 줄 사이 옅은 선, 입력은 밑줄 한 줄 + 글자 버튼 */}
+      <section className="border-t border-slate-100 pt-6">
+        <p className="text-sm font-semibold text-slate-900">
+          댓글 <span className="font-normal text-slate-400">{post.comments.length}</span>
+        </p>
+        {post.comments.length > 0 && (
+          <ul className="mt-2 divide-y divide-slate-100">
+            {post.comments.map((item) => (
+              <li key={item.id} className="flex gap-3 py-3">
+                <PersonAvatar membershipId={item.authorMembershipId} name={item.authorName} />
+                <div className="min-w-0 flex-1">
+                  <p className="flex items-center gap-1.5 text-xs text-slate-400">
+                    {item.authorMembershipId === myMembershipId && <MeBadge />}
+                    <span className="text-sm font-medium text-slate-800">{item.authorName}</span>
+                    {item.authorAdmin && <span className="text-violet-600">관리자</span>}
+                    <span>{dateTime(item.createdAt)}</span>
+                    {item.canDelete && (
+                      <button
+                        type="button"
+                        onClick={() => void removeComment(item.id)}
+                        disabled={deletingCommentId === item.id}
+                        className="ml-auto cursor-pointer transition hover:text-red-600 disabled:opacity-50"
+                      >
+                        {deletingCommentId === item.id ? "삭제 중..." : "삭제"}
+                      </button>
+                    )}
+                  </p>
+                  <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-6 text-slate-700">
+                    {item.content}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
         {!post.allowComment && !post.deletedAt && (
-          <p className="mt-5 text-sm text-slate-400">
+          <p className="mt-3 text-sm text-slate-400">
             글쓴이가 댓글을 받지 않도록 설정한 글입니다.
           </p>
         )}
         {post.canComment && (
           <form
-            className="mt-5 rounded-lg border border-slate-300 focus-within:border-blue-500"
+            className="mt-3 flex items-end gap-2 border-b border-slate-200 pb-2 transition focus-within:border-slate-900"
             onSubmit={(event) => {
               event.preventDefault();
               void submitComment();
@@ -256,26 +266,26 @@ export function BoardPostDetailView({
               value={comment}
               onChange={(event) => setComment(event.target.value)}
               maxLength={1000}
-              rows={3}
+              rows={2}
               placeholder={
                 post.board.type === "INQUIRY"
                   ? "답변이나 추가 문의를 남겨 주세요."
                   : "댓글을 남겨 주세요."
               }
               aria-label="댓글"
-              className="block w-full resize-none rounded-t-lg px-4 py-3 text-sm outline-none"
+              className="min-w-0 flex-1 resize-none bg-transparent py-1 text-sm outline-none placeholder:text-slate-300"
             />
-            <div className="flex items-center justify-between border-t border-slate-100 px-3 py-2">
-              <span className="text-xs text-slate-400">{comment.length}/1000</span>
-              <button
-                type="submit"
-                disabled={!comment.trim() || sending}
-                className="flex cursor-pointer items-center gap-1.5 rounded-md bg-blue-600 px-4 py-1.5 text-sm font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {sending && <Spinner size={13} />}
-                등록
-              </button>
-            </div>
+            {comment.length > 0 && (
+              <span className="pb-1.5 text-xs text-slate-300">{comment.length}/1000</span>
+            )}
+            <button
+              type="submit"
+              disabled={!comment.trim() || sending}
+              className="flex shrink-0 cursor-pointer items-center gap-1 rounded-md px-3 py-1.5 text-sm font-semibold text-blue-600 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent"
+            >
+              {sending && <Spinner size={12} />}
+              등록
+            </button>
           </form>
         )}
       </section>
@@ -301,29 +311,6 @@ export function BoardPostDetailView({
         />
       )}
     </article>
-  );
-}
-
-function ActionButton({
-  icon,
-  label,
-  danger = false,
-  onClick,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  danger?: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`flex cursor-pointer items-center gap-1.5 rounded-md border border-slate-200 px-3 py-1.5 text-sm transition active:scale-95 ${danger ? "text-red-500 hover:border-red-200 hover:bg-red-50" : "text-slate-600 hover:bg-slate-50"}`}
-    >
-      {icon}
-      {label}
-    </button>
   );
 }
 
