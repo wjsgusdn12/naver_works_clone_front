@@ -8,6 +8,7 @@ import { GroupAvatar } from "@/components/chat/group-avatar";
 import { useChatNotification } from "@/components/chat/chat-notification-provider";
 import { LoadingInline, Spinner } from "@/components/common/loading";
 import { MeBadge } from "@/components/common/me-badge";
+import { MyStatusPicker } from "@/components/common/my-status-picker";
 import { NotificationModeMenu } from "@/components/common/notification-mode-menu";
 import { UserAvatar } from "@/components/common/user-avatar";
 import { addressBookApi, type AddressBookMember } from "@/lib/api/address-book-api";
@@ -37,9 +38,9 @@ type HomeDashboardProps = {
 const RECENT_ROOM_LIMIT = 30;
 // 주소록 카드는 전체 구성원을 보여 주되, 서버 한 페이지 최대치(100명)까지만 받음.
 const MEMBER_LIMIT = 100;
-// 작은 카드(주소록·공지·최신글) 목록 높이. 카드끼리 같은 값으로 통일, 넘치면 그 안에서 스크롤.
-// 구성원 4명(한 줄 60px × 4 + 구분선 3px = 243px)까지는 스크롤바가 생기지 않는 높이.
-const LIST_HEIGHT = "max-h-[248px]";
+// 한 줄 카드(주소록·최근 대화) 목록 높이. 두 카드가 같은 높이라 위·아래 줄이 맞고, 넘치면 그 안에서 스크롤.
+// 구성원 5명(한 줄 60px × 5 + 구분선 4px = 304px) 남짓 보이는 높이.
+const LIST_HEIGHT = "h-[320px]";
 
 // 상대 시각. 오늘이면 시각, 올해면 월·일, 그 외는 연·월·일.
 const formatRelative = (value: string | null) => {
@@ -104,6 +105,8 @@ export function HomeDashboard({
           size: String(MEMBER_LIMIT),
           sort: "name",
           direction: "asc",
+          // 회사 구분 없이 모든 회사 구성원
+          allCompany: "true",
         }),
       )
       .then((result) => {
@@ -208,7 +211,7 @@ export function HomeDashboard({
   return (
     <main className="min-h-0 flex-1 overflow-y-auto">
       <div className="mx-auto w-full max-w-7xl px-5 py-8 sm:px-8 lg:px-10">
-        {/* 3열 × 2행: 인사말·알림(왼쪽 두 줄 차지) | 주소록 | 공지사항 / 최근 대화 | 게시판 최신글.
+        {/* 3열 × 2행: 인사말·알림(왼쪽 두 줄) | 주소록 / 최근 대화 | 게시판 최신글(오른쪽 두 줄).
             같은 행 카드는 높이가 자동으로 같아져 위·아래선이 맞음. 좁은 화면에서는 한 줄씩 쌓임. */}
         <section className="grid gap-5 xl:grid-cols-3">
           {/* 인사말 카드(두 줄 높이): 내 프로필·날짜·인사말, 숫자 3칸, 알림 목록, 바로가기 4개 */}
@@ -220,11 +223,18 @@ export function HomeDashboard({
                 presenceStatus={presenceByMembershipId[membershipId] ?? "ONLINE"}
                 statusType={myStatusType}
               />
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className="text-sm text-slate-500">{today}</p>
                 <h1 className="mt-1 truncate text-2xl font-bold tracking-tight text-slate-900">
                   {displayName}님, 안녕하세요.
                 </h1>
+                {/* 내 상태(프로필 패널과 같은 설정) */}
+                <MyStatusPicker
+                  accessToken={accessToken}
+                  membershipId={membershipId}
+                  onToast={showToast}
+                  className="mt-2 w-full max-w-[260px]"
+                />
               </div>
             </div>
             <div className="mt-5 grid grid-cols-3 divide-x divide-slate-100">
@@ -382,19 +392,6 @@ export function HomeDashboard({
           </Card>
 
           <Card
-            title="공지사항"
-            description="회사 공지사항 최근 글입니다."
-            onTitleClick={() => router.push("/board?type=NOTICE")}
-          >
-            <BoardPostList
-              posts={board ? board.notices.slice(0, 5) : null}
-              emptyText="공지사항이 없습니다."
-              onOpen={(post) => router.push(`/board?postId=${post.id}`)}
-            />
-          </Card>
-
-          <Card
-            fill
             title="최근 대화"
             description="마지막 메시지가 최근인 순서입니다."
             onTitleClick={() => router.push("/message")}
@@ -408,7 +405,7 @@ export function HomeDashboard({
                 onAction={() => router.push("/addressBook")}
               />
             ) : (
-              <ul className="max-h-[389px] divide-y divide-slate-100 overflow-y-auto xl:absolute xl:inset-0 xl:max-h-none">
+              <ul className={`${LIST_HEIGHT} divide-y divide-slate-100 overflow-y-auto`}>
                 {recentRooms.map((room) => (
                   <li key={room.id}>
                     <button
@@ -474,12 +471,14 @@ export function HomeDashboard({
           </Card>
 
           <Card
+            fill
+            className="xl:row-span-2"
             title="게시판 최신글"
-            description="볼 수 있는 모든 게시판의 새 글입니다."
+            description="볼 수 있는 모든 게시판의 새 글입니다(공지사항 포함)."
             onTitleClick={() => router.push("/board?menu=latest")}
           >
             <BoardPostList
-              posts={board ? board.latest.slice(0, 5) : null}
+              posts={board ? board.latest : null}
               emptyText="아직 올라온 글이 없습니다."
               showBoard
               onOpen={(post) => router.push(`/board?postId=${post.id}`)}
@@ -494,7 +493,7 @@ export function HomeDashboard({
   );
 }
 
-// 홈 게시판 카드의 글 목록(최대 5개). 안 읽은 글은 굵게, showBoard면 게시판 이름도.
+// 홈 게시판 카드의 글 목록. 안 읽은 글은 굵게, showBoard면 게시판 이름도.
 function BoardPostList({
   posts,
   emptyText,
@@ -510,19 +509,22 @@ function BoardPostList({
     return <LoadingInline message="게시판을 불러오는 중입니다." className="py-8 text-sm" />;
   if (posts.length === 0) return <Empty message={emptyText} />;
   return (
-    <ul className={`${LIST_HEIGHT} divide-y divide-slate-100 overflow-y-auto`}>
+    // 한 글을 두 줄로: 위는 딱지·제목, 아래는 (게시판 ·) 작성자 · 날짜 · 조회수 · 댓글 수
+    <ul className="max-h-[480px] divide-y divide-slate-100 overflow-y-auto xl:absolute xl:inset-0 xl:max-h-none">
       {posts.map((post) => (
         <li key={post.id}>
           <button
             type="button"
-            className="flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-2.5 text-left transition hover:bg-slate-50"
+            className="flex w-full cursor-pointer flex-col gap-1 rounded-lg px-2 py-2.5 text-left transition hover:bg-slate-50"
             onClick={() => onOpen(post)}
           >
-            <PostBadges post={post} />
-            <span
-              className={`min-w-0 flex-1 truncate text-sm ${post.read ? "text-slate-600" : "font-semibold text-slate-900"}`}
-            >
-              {post.title}
+            <span className="flex w-full min-w-0 items-center gap-1.5">
+              <PostBadges post={post} />
+              <span
+                className={`min-w-0 flex-1 truncate text-sm ${post.read ? "text-slate-600" : "font-semibold text-slate-900"}`}
+              >
+                {post.title}
+              </span>
             </span>
             <PostMeta
               post={post}
