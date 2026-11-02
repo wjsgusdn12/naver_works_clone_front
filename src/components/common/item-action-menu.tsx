@@ -1,6 +1,6 @@
 "use client";
 
-import type { LucideIcon } from "lucide-react";
+import { Check, type LucideIcon } from "lucide-react";
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
 
@@ -9,6 +9,8 @@ export type ActionMenuItem = {
   label: string;
   icon: LucideIcon;
   onSelect: () => void;
+  // 지금 고른 항목(종류 고르기 메뉴 등)이면 파란 글씨 + 체크
+  active?: boolean;
 };
 
 // 목록 한 줄의 ⋮ 메뉴(모아보기 사진·파일·링크, 그룹 멤버 등 공용). 화면 맨 위(body)에 띄워 스크롤에 잘리지 않음.
@@ -52,15 +54,17 @@ export function ItemActionMenu({
         <button
           key={item.key}
           type="button"
-          role="menuitem"
+          role={item.active === undefined ? "menuitem" : "menuitemradio"}
+          aria-checked={item.active}
           onClick={() => {
             onClose();
             item.onSelect();
           }}
-          className="flex w-full cursor-pointer items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50"
+          className={`flex w-full cursor-pointer items-center gap-2 px-4 py-2.5 text-left text-sm hover:bg-slate-50 ${item.active ? "font-semibold text-blue-600" : "text-slate-700"}`}
         >
           <item.icon size={15} aria-hidden="true" />
-          {item.label}
+          <span className="flex-1">{item.label}</span>
+          {item.active && <Check size={15} aria-hidden="true" />}
         </button>
       ))}
     </div>,
