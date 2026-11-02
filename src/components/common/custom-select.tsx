@@ -20,6 +20,8 @@ type CustomSelectProps = {
   className?: string;
   // 목록 도구 줄처럼 좁은 곳에 쓰는 작은 크기(높이 32px)
   compact?: boolean;
+  // ghost: 테두리 없이 글자 + 작은 화살표만(보기 설정처럼 가벼운 선택). 목록은 글자 길이에 맞춰 오른쪽 정렬.
+  variant?: "default" | "ghost";
 };
 
 export function CustomSelect({
@@ -31,7 +33,9 @@ export function CustomSelect({
   label,
   className = "",
   compact = false,
+  variant = "default",
 }: CustomSelectProps) {
+  const ghost = variant === "ghost";
   const [open, setOpen] = useState(false);
   // 키보드로 훑는 항목 위치.
   const [highlight, setHighlight] = useState(0);
@@ -95,7 +99,7 @@ export function CustomSelect({
   };
 
   return (
-    <div ref={rootRef} className={`relative ${className}`}>
+    <div ref={rootRef} className={`relative ${ghost ? "inline-block" : ""} ${className}`}>
       <button
         type="button"
         role="combobox"
@@ -106,13 +110,17 @@ export function CustomSelect({
         disabled={disabled}
         onClick={() => (open ? setOpen(false) : openList())}
         onKeyDown={onButtonKeyDown}
-        className={`flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg border bg-white text-left text-sm ${compact ? "h-8 px-2.5" : "h-12 px-3.5"} outline-none transition focus:ring-4 disabled:cursor-not-allowed disabled:bg-slate-50 ${open ? "border-blue-600 ring-4 ring-blue-100" : "border-slate-300 hover:border-blue-400 focus:border-blue-600 focus:ring-blue-100"}`}
+        className={
+          ghost
+            ? `flex h-8 cursor-pointer items-center gap-1 rounded-md px-2 text-left text-sm outline-none transition hover:bg-slate-100 focus-visible:bg-slate-100 disabled:cursor-not-allowed ${open ? "bg-slate-100 text-slate-900" : "text-slate-600"}`
+            : `flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg border bg-white text-left text-sm ${compact ? "h-8 px-2.5" : "h-12 px-3.5"} outline-none transition focus:ring-4 disabled:cursor-not-allowed disabled:bg-slate-50 ${open ? "border-blue-600 ring-4 ring-blue-100" : "border-slate-300 hover:border-blue-400 focus:border-blue-600 focus:ring-blue-100"}`
+        }
       >
-        <span className={`truncate ${selected ? "text-slate-900" : "text-slate-400"}`}>
+        <span className={`truncate ${ghost ? "" : selected ? "text-slate-900" : "text-slate-400"}`}>
           {selected ? (selected.selectedLabel ?? selected.label) : placeholder}
         </span>
         <ChevronDown
-          size={16}
+          size={ghost ? 14 : 16}
           aria-hidden="true"
           className={`shrink-0 text-slate-500 transition ${open ? "rotate-180" : ""}`}
         />
@@ -122,7 +130,7 @@ export function CustomSelect({
           id={listId}
           role="listbox"
           aria-label={label}
-          className="absolute left-0 right-0 top-full z-20 mt-1 max-h-60 overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 text-sm shadow-lg"
+          className={`absolute top-full z-20 mt-1 max-h-60 overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 text-sm shadow-lg ${ghost ? "right-0 w-max min-w-full" : "left-0 right-0"}`}
         >
           {options.map((option, index) => {
             const isSelected = option.value === value;

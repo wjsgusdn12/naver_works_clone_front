@@ -521,7 +521,8 @@ function BoardContent() {
           onToggleFavorite={(board) => void toggleFavorite(board)}
           onRename={setRenaming}
         />
-        <section ref={contentRef} className="min-w-0 flex-1 overflow-y-auto bg-white">
+        {/* 위 머리줄과 아래 쪽 번호는 붙어 있고 가운데만 스크롤. 글이 적어도 쪽 번호는 맨 아래 */}
+        <section ref={contentRef} className="flex min-w-0 flex-1 flex-col overflow-y-auto bg-white">
           {/* 게시판 홈에는 머리줄 없이 영역 목록만 */}
           {!isHome && (
             <BoardContentHeader
@@ -542,7 +543,7 @@ function BoardContent() {
               }
             />
           )}
-          <div className="p-6">
+          <div className="flex-1 p-6">
             {screen.kind === "write" ? (
               boards === null ? (
                 <LoadingState message="게시판을 불러오는 중입니다..." className="min-h-64" />
@@ -661,30 +662,27 @@ function BoardContent() {
                   )}
                   <div className="ml-auto flex items-center gap-2">
                     <CustomSelect
-                      compact
+                      variant="ghost"
                       label="n개씩 보기"
                       value={String(prefs.size)}
                       onChange={(value) => changePrefs({ size: Number(value) })}
                       options={SIZE_OPTIONS}
-                      className="w-32"
                     />
                     {!personalBox && (
                       <>
                         <CustomSelect
-                          compact
+                          variant="ghost"
                           label="보기 정렬"
                           value={prefs.sort}
                           onChange={(value) => changePrefs({ sort: value as BoardListSort })}
                           options={SORT_OPTIONS}
-                          className="w-44"
                         />
                         <CustomSelect
-                          compact
+                          variant="ghost"
                           label="필터"
                           value={prefs.unread ? "unread" : "all"}
                           onChange={(value) => changePrefs({ unread: value === "unread" })}
                           options={FILTER_OPTIONS}
-                          className="w-24"
                         />
                       </>
                     )}
@@ -722,19 +720,20 @@ function BoardContent() {
                   }
                   onOpen={openPost}
                 />
-                {/* 쪽 번호는 글이 한 쪽뿐이어도 항상 아래에 */}
-                {currentList?.status === "loaded" && (
-                  <Pagination
-                    page={listPage}
-                    totalPages={Math.max(currentList.totalPages, 1)}
-                    onChange={(page) => go(listHref(menu, page, listKeyword))}
-                    label="글 목록 페이지"
-                    className="mt-6"
-                  />
-                )}
               </div>
             )}
           </div>
+          {/* 쪽 번호: 목록 화면 맨 아래 고정, 위에 회색 선(한 쪽뿐이어도 항상) */}
+          {listKey && currentList?.status === "loaded" && (
+            <div className="sticky bottom-0 z-10 shrink-0 border-t border-slate-200 bg-white py-3">
+              <Pagination
+                page={listPage}
+                totalPages={Math.max(currentList.totalPages, 1)}
+                onChange={(page) => go(listHref(menu, page, listKeyword))}
+                label="글 목록 페이지"
+              />
+            </div>
+          )}
         </section>
       </main>
       {renaming && (
