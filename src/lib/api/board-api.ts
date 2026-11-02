@@ -7,7 +7,19 @@ export type BoardType = "NOTICE" | "FREE" | "INQUIRY" | "COMPANY" | "DEPARTMENT"
 // TYPE은 공지·자유·문의 같은 한 종류 전체(type 필요, 관리자는 모든 회사).
 // 목록 정렬: CREATED(글 등록순), ACTIVITY(글/댓글 업데이트 순)
 export type BoardListSort = "CREATED" | "ACTIVITY";
-export type BoardView = "LATEST" | "MUST_READ" | "IMPORTANT" | "MINE" | "BOARD" | "TYPE" | "TRASH";
+// DRAFTS(임시저장함)·SCHEDULED(예약함): 내 글 중 그 상태만
+export type BoardView =
+  | "LATEST"
+  | "MUST_READ"
+  | "IMPORTANT"
+  | "MINE"
+  | "BOARD"
+  | "TYPE"
+  | "TRASH"
+  | "DRAFTS"
+  | "SCHEDULED";
+// 글 상태: 임시저장 · 등록예약(publishAt에 공개) · 등록
+export type BoardPostStatus = "DRAFT" | "SCHEDULED" | "PUBLISHED";
 
 // 사이드바의 게시판 한 줄. myCompany: 내 회사 게시판(관리자는 다른 회사 것도 받음).
 export type BoardItem = {
@@ -27,6 +39,8 @@ export type BoardSidebar = { boards: BoardItem[]; admin: boolean };
 
 // 목록의 글 한 줄. read: 내가 읽었는지, hasFile: 첨부 파일 있음, answered: 문의하기 답변 완료.
 export type BoardPostSummary = {
+  status: BoardPostStatus;
+  publishAt: string | null;
   id: number;
   boardId: number;
   boardName: string;
@@ -90,6 +104,11 @@ export type BoardComment = {
 
 // content: 편집기 문서 JSON 문자열(서버가 허용한 형식만 남긴 것)
 export type BoardPostDetail = {
+  status: BoardPostStatus;
+  publishAt: string | null;
+  // 댓글 허용 · 댓글이 달리면 글쓴이에게 알림(문의하기는 항상 켜짐)
+  allowComment: boolean;
+  commentNotify: boolean;
   id: number;
   board: BoardItem;
   title: string;
@@ -123,12 +142,18 @@ export type BoardReader = {
 };
 export type BoardReaders = { read: BoardReader[]; unread: BoardReader[] };
 
+// mode: PUBLISH(바로 등록) · DRAFT(임시저장, 제목 비워도 됨) · SCHEDULE(publishAt에 등록예약)
+export type BoardSaveMode = "PUBLISH" | "DRAFT" | "SCHEDULE";
 export type BoardPostInput = {
   title: string;
   content: string;
   important: boolean;
   mustRead: boolean;
   attachmentIds: number[];
+  mode: BoardSaveMode;
+  publishAt: string | null;
+  allowComment: boolean;
+  commentNotify: boolean;
 };
 
 const json = (body: unknown): RequestInit => ({ method: "POST", body: JSON.stringify(body) });

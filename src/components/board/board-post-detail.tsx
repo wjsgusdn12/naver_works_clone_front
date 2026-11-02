@@ -239,6 +239,11 @@ export function BoardPostDetailView({
             </li>
           ))}
         </ul>
+        {!post.allowComment && !post.deletedAt && (
+          <p className="mt-5 text-sm text-slate-400">
+            글쓴이가 댓글을 받지 않도록 설정한 글입니다.
+          </p>
+        )}
         {post.canComment && (
           <form
             className="mt-5 rounded-lg border border-slate-300 focus-within:border-blue-500"

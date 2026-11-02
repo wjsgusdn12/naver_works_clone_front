@@ -74,6 +74,13 @@ export function PostRow({
       >
         <span className="min-w-0 flex-1">
           <span className="flex min-w-0 items-center gap-1.5">
+            {post.status !== "PUBLISHED" && (
+              <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-slate-600">
+                {post.status === "DRAFT"
+                  ? "임시저장"
+                  : `예약 ${new Date(post.publishAt ?? "").toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}`}
+              </span>
+            )}
             <PostBadges post={post} />
             {post.boardType === "INQUIRY" && <AnswerBadge answered={post.answered} />}
             <span

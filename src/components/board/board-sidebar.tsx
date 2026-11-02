@@ -7,9 +7,11 @@ import type { BoardItem, BoardType } from "@/lib/api/board-api";
 import {
   BellRing,
   Building2,
+  CalendarClock,
   ChevronDown,
   ChevronRight,
   Clock3,
+  FileClock,
   FilePen,
   Flag,
   House,
@@ -30,7 +32,7 @@ import { useState, type ReactNode } from "react";
 export type CommonBoardType = "NOTICE" | "FREE" | "INQUIRY";
 export type BoardMenu =
   | { kind: "home" }
-  | { kind: "latest" | "mustRead" | "important" | "mine" | "trash" }
+  | { kind: "latest" | "mustRead" | "important" | "mine" | "trash" | "drafts" | "scheduled" }
   | { kind: "type"; type: CommonBoardType }
   | { kind: "board"; boardId: number };
 
@@ -251,15 +253,27 @@ export function BoardSidebar({
         )}
       </nav>
 
-      <button
-        type="button"
-        aria-current={menu.kind === "trash" ? "page" : undefined}
-        onClick={() => onSelect({ kind: "trash" })}
-        className={`mt-2 flex shrink-0 cursor-pointer items-center gap-2 rounded-md border-t border-slate-200 px-2 pt-3 pb-1.5 text-sm transition hover:text-slate-900 ${menu.kind === "trash" ? "font-semibold text-blue-600" : "text-slate-600"}`}
-      >
-        <Trash2 size={16} aria-hidden="true" />
-        휴지통
-      </button>
+      {/* 아래 고정: 임시저장함 · 예약함 · 휴지통(모두 내 글만) */}
+      <div className="mt-2 flex shrink-0 flex-col border-t border-slate-200 pt-2">
+        {(
+          [
+            { kind: "drafts", label: "임시저장함", icon: FileClock },
+            { kind: "scheduled", label: "예약함", icon: CalendarClock },
+            { kind: "trash", label: "휴지통", icon: Trash2 },
+          ] as const
+        ).map(({ kind, label, icon: Icon }) => (
+          <button
+            key={kind}
+            type="button"
+            aria-current={menu.kind === kind ? "page" : undefined}
+            onClick={() => onSelect({ kind })}
+            className={`flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition hover:bg-slate-100 hover:text-slate-900 ${menu.kind === kind ? "font-semibold text-blue-600" : "text-slate-600"}`}
+          >
+            <Icon size={16} aria-hidden="true" />
+            {label}
+          </button>
+        ))}
+      </div>
     </aside>
   );
 }

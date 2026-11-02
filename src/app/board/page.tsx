@@ -3,7 +3,7 @@
 import { useAuth } from "@/components/auth/auth-provider";
 import { BoardContentHeader } from "@/components/board/board-content-header";
 import { BoardPostDetailView } from "@/components/board/board-post-detail";
-import { BoardPostForm } from "@/components/board/board-post-form";
+import { BoardPostForm, formatPublishAt } from "@/components/board/board-post-form";
 import { BoardPostSearch } from "@/components/board/board-post-search";
 import { HomeCard, PostListBody } from "@/components/board/board-post-list";
 import { BoardRenameDialog } from "@/components/board/board-rename-dialog";
@@ -25,6 +25,7 @@ import {
   type BoardHome,
   type BoardItem,
   type BoardListSort,
+  type BoardSaveMode,
   type BoardPostDetail,
   type BoardPostSummary,
   type BoardView,
@@ -44,12 +45,17 @@ type Screen =
   | { kind: "write"; boardId: number | null; type: CommonBoardType | null }
   | { kind: "edit"; postId: number };
 
-const MENU_VIEW: Record<"latest" | "mustRead" | "important" | "mine" | "trash", BoardView> = {
+const MENU_VIEW: Record<
+  "latest" | "mustRead" | "important" | "mine" | "trash" | "drafts" | "scheduled",
+  BoardView
+> = {
   latest: "LATEST",
   mustRead: "MUST_READ",
   important: "IMPORTANT",
   mine: "MINE",
   trash: "TRASH",
+  drafts: "DRAFTS",
+  scheduled: "SCHEDULED",
 };
 const MENU_TITLE: Record<keyof typeof MENU_VIEW, string> = {
   latest: "최신글",
@@ -57,6 +63,8 @@ const MENU_TITLE: Record<keyof typeof MENU_VIEW, string> = {
   important: "중요",
   mine: "내 게시글",
   trash: "휴지통",
+  drafts: "임시저장함",
+  scheduled: "예약함",
 };
 const MENU_EMPTY: Record<keyof typeof MENU_VIEW, string> = {
   latest: "아직 올라온 글이 없습니다.",
@@ -64,6 +72,8 @@ const MENU_EMPTY: Record<keyof typeof MENU_VIEW, string> = {
   important: "중요 글이 없습니다.",
   mine: "내가 쓴 글이 없습니다.",
   trash: "휴지통이 비어 있습니다. 지운 글은 30일 동안 여기에 보관됩니다.",
+  drafts: "임시저장한 글이 없습니다.",
+  scheduled: "등록 예약한 글이 없습니다.",
 };
 
 // 목록 보기 설정(n개씩·정렬·안읽음). 게시판을 옮겨도 유지하고, 이 브라우저에 기억해 둠.
@@ -321,8 +331,29 @@ function BoardContent() {
   const currentPost = post && post.id === postId ? post : null;
 
   const go = (href: string) => router.push(href);
-  const openPost = (target: BoardPostSummary) => go(`/board?postId=${target.id}`);
+  // 임시저장·예약 글은 보기 대신 바로 이어 쓰기(수정 화면)
+  const openPost = (target: BoardPostSummary) =>
+    go(target.status === "PUBLISHED" ? `/board?postId=${target.id}` : `/board?edit=${target.id}`);
   const writableBoards = (boards ?? []).filter((board) => board.canWrite);
+
+  // 저장한 뒤: 임시저장이면 그 글 수정 화면에 남아 이어 쓰기, 예약이면 예약함, 등록·수정이면 글 보기.
+  const afterSave = (saved: BoardPostDetail, mode: BoardSaveMode, verb: "등록" | "수정") => {
+    setPost({ id: saved.id, detail: saved, failed: false });
+    if (mode === "DRAFT") {
+      showToast("임시저장했습니다.");
+      router.replace(`/board?edit=${saved.id}`);
+    } else if (mode === "SCHEDULE") {
+      showToast(`${formatPublishAt(saved.publishAt ?? "")}에 등록하도록 예약했습니다.`);
+      router.replace("/board?menu=scheduled");
+    } else {
+      showToast(
+        saved.status === "PUBLISHED" && verb === "수정"
+          ? "글을 수정했습니다."
+          : "글을 등록했습니다.",
+      );
+      router.replace(`/board?postId=${saved.id}`);
+    }
+  };
 
   const toggleFavorite = async (board: BoardItem) => {
     if (!accessToken) return;
@@ -390,7 +421,9 @@ function BoardContent() {
           : MENU_TITLE[menu.kind];
   const currentList = list && list.key === listKey ? list : null;
   // 읽음 처리할 글 고르기(휴지통 제외). 다른 목록·쪽으로 옮기면 key가 달라져 자동으로 비워짐.
-  const selectable = menu.kind !== "trash" && currentList?.status === "loaded";
+  // 내 글 보관함(휴지통·임시저장함·예약함)은 읽음 처리·정렬·안읽음 거르기가 의미 없어 뺌
+  const personalBox = menu.kind === "trash" || menu.kind === "drafts" || menu.kind === "scheduled";
+  const selectable = !personalBox && currentList?.status === "loaded";
   const listPostIds = currentList
     ? [...currentList.pinned, ...currentList.items].map((item) => item.id)
     : [];
@@ -527,10 +560,7 @@ function BoardContent() {
                   }
                   editing={null}
                   onCancel={() => router.back()}
-                  onSaved={(saved) => {
-                    showToast("글을 등록했습니다.");
-                    router.replace(`/board?postId=${saved.id}`);
-                  }}
+                  onSaved={(saved, mode) => afterSave(saved, mode, "등록")}
                   onToast={showToast}
                 />
               )
@@ -545,11 +575,7 @@ function BoardContent() {
                   initialBoardId={null}
                   editing={currentPost.detail}
                   onCancel={() => router.back()}
-                  onSaved={(saved) => {
-                    showToast("글을 수정했습니다.");
-                    setPost({ id: saved.id, detail: saved, failed: false });
-                    router.replace(`/board?postId=${saved.id}`);
-                  }}
+                  onSaved={(saved, mode) => afterSave(saved, mode, "수정")}
                   onToast={showToast}
                 />
               )
@@ -642,7 +668,7 @@ function BoardContent() {
                       options={SIZE_OPTIONS}
                       className="w-32"
                     />
-                    {menu.kind !== "trash" && (
+                    {!personalBox && (
                       <>
                         <CustomSelect
                           compact
@@ -675,7 +701,7 @@ function BoardContent() {
                   emptyText={
                     listKeyword
                       ? "검색 결과가 없습니다."
-                      : prefs.unread && menu.kind !== "trash"
+                      : prefs.unread && !personalBox
                         ? "안 읽은 글이 없습니다."
                         : menu.kind === "board" || menu.kind === "type"
                           ? "아직 글이 없습니다."
