@@ -114,7 +114,13 @@ export type BoardPostDetail = {
   canComment: boolean;
 };
 
-export type BoardReader = { membershipId: number; name: string; departmentName: string | null };
+// companyName: 공통 게시판 필독은 여러 회사 사람이 섞이므로 함께 표시
+export type BoardReader = {
+  membershipId: number;
+  name: string;
+  departmentName: string | null;
+  companyName: string;
+};
 export type BoardReaders = { read: BoardReader[]; unread: BoardReader[] };
 
 export type BoardPostInput = {

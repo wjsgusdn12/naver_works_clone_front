@@ -424,9 +424,10 @@ function ReadersDialog({
                 <li key={reader.membershipId} className="flex items-center gap-3 py-2">
                   <PersonAvatar membershipId={reader.membershipId} name={reader.name} />
                   <span className="text-sm text-slate-800">{reader.name}</span>
-                  {reader.departmentName && (
-                    <span className="text-xs text-slate-400">{reader.departmentName}</span>
-                  )}
+                  {/* 부서 · 회사 */}
+                  <span className="min-w-0 truncate text-xs text-slate-400">
+                    {[reader.departmentName, reader.companyName].filter(Boolean).join(" · ")}
+                  </span>
                 </li>
               ))
             )}

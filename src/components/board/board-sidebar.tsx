@@ -34,7 +34,7 @@ export type BoardMenu =
   | { kind: "type"; type: CommonBoardType }
   | { kind: "board"; boardId: number };
 
-// 공통 메뉴(회사와 상관없이 한 줄씩). 관리자는 모든 회사 글이 한 목록에 모임.
+// 공통 메뉴: 회사와 상관없는 프로젝트 전체 게시판(모든 사용자가 같은 게시판을 봄).
 export const COMMON_BOARDS: { type: CommonBoardType; label: string }[] = [
   { type: "NOTICE", label: "공지사항" },
   { type: "FREE", label: "자유게시판" },
@@ -90,23 +90,27 @@ export function BoardSidebar({
       (!query || item.label.toLowerCase().includes(query)),
   );
   // 회사별: 회사 게시판 아래에 그 회사의 부서 게시판만
-  const companies = [...new Map(boards.map((board) => [board.companyId, board])).values()].map(
-    (sample) => {
-      const inCompany = boards.filter((board) => board.companyId === sample.companyId);
-      const companyBoard = inCompany.find((board) => board.type === "COMPANY") ?? null;
-      const children = inCompany
-        .filter((board) => board.type === "DEPARTMENT")
-        .sort((a, b) => a.name.localeCompare(b.name, "ko"))
-        .filter(matches);
-      return {
-        companyId: sample.companyId,
-        companyName: sample.companyName,
-        companyBoard,
-        children,
-        visible: (companyBoard && matches(companyBoard)) || children.length > 0,
-      };
-    },
+  // 공통 게시판(공지·자유·문의)은 회사와 상관없으므로 회사 묶음에서 뺌
+  const companyScoped = boards.filter(
+    (board) => board.type === "COMPANY" || board.type === "DEPARTMENT",
   );
+  const companies = [
+    ...new Map(companyScoped.map((board) => [board.companyId, board])).values(),
+  ].map((sample) => {
+    const inCompany = boards.filter((board) => board.companyId === sample.companyId);
+    const companyBoard = inCompany.find((board) => board.type === "COMPANY") ?? null;
+    const children = inCompany
+      .filter((board) => board.type === "DEPARTMENT")
+      .sort((a, b) => a.name.localeCompare(b.name, "ko"))
+      .filter(matches);
+    return {
+      companyId: sample.companyId,
+      companyName: sample.companyName,
+      companyBoard,
+      children,
+      visible: (companyBoard && matches(companyBoard)) || children.length > 0,
+    };
+  });
   const isSelected = (board: BoardItem) => menu.kind === "board" && menu.boardId === board.id;
 
   const row = (board: BoardItem, indent = 0) => (
