@@ -74,6 +74,7 @@ export function HomeDashboard({
     notifications,
     notificationCount,
     notificationsLoaded,
+    markNotificationRead,
   } = useChatNotification();
   const [rooms, setRooms] = useState<ChatRoom[] | null>(null);
   const [favorites, setFavorites] = useState<AddressBookMember[] | null>(null);
@@ -176,7 +177,9 @@ export function HomeDashboard({
     }
   };
 
+  // 알림을 누르면 읽음 처리(상단바 종 숫자·읽지 않은 알림 수도 같이 줄어듦) 후 연결된 화면으로.
   const openNotification = (item: NotificationItem) => {
+    if (!item.read) markNotificationRead(item.id);
     if (item.linkPath) router.push(item.linkPath);
     else showToast("연결된 화면이 없는 알림입니다.");
   };
