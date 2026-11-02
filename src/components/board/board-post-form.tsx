@@ -8,6 +8,7 @@ import { COMMON_BOARDS } from "@/components/board/board-sidebar";
 import { CustomSelect, type SelectOption } from "@/components/common/custom-select";
 import { DateTimePicker } from "@/components/common/date-time-picker";
 import { Spinner } from "@/components/common/loading";
+import { UNDERLINE_FIELD } from "@/components/common/underline-composer";
 import {
   boardApi,
   type BoardItem,
@@ -259,7 +260,7 @@ export function BoardPostForm({
         maxLength={200}
         placeholder="제목"
         aria-label="제목"
-        className="mt-4 border-b border-slate-200 bg-transparent pb-3 text-2xl font-semibold text-slate-900 outline-none transition placeholder:text-slate-300 focus:border-slate-900"
+        className={`mt-4 bg-transparent pb-3 text-2xl font-semibold text-slate-900 outline-none placeholder:text-slate-300 focus:border-blue-500 ${UNDERLINE_FIELD}`}
       />
 
       <div className="mt-4">

@@ -13,6 +13,7 @@ import { MeBadge } from "@/components/common/me-badge";
 import { MoreMenu } from "@/components/common/more-menu";
 import { ReadStatusModal } from "@/components/common/read-status-modal";
 import { Tooltip } from "@/components/common/tooltip";
+import { UnderlineComposer } from "@/components/common/underline-composer";
 import {
   boardApi,
   type BoardAttachment,
@@ -414,42 +415,17 @@ export function BoardPostDetailView({
                     ))}
                     {replyTo === root.id && (
                       <li>
-                        <form
-                          className="mt-1 flex items-end gap-2 border-b border-slate-200 pb-2 transition focus-within:border-slate-900"
-                          onSubmit={(event) => {
-                            event.preventDefault();
-                            void submitReply(root.id);
-                          }}
-                        >
-                          <textarea
-                            value={reply}
-                            onChange={(event) => setReply(event.target.value)}
-                            onKeyDown={(event) => {
-                              if (event.key === "Escape") setReplyTo(null);
-                            }}
-                            maxLength={1000}
-                            rows={1}
-                            autoFocus
-                            placeholder="답글을 남겨 주세요."
-                            aria-label="답글"
-                            className="min-w-0 flex-1 resize-none bg-transparent py-1 text-sm outline-none placeholder:text-slate-300"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setReplyTo(null)}
-                            className="shrink-0 cursor-pointer rounded-md px-2 py-1.5 text-sm text-slate-400 transition hover:text-slate-800"
-                          >
-                            취소
-                          </button>
-                          <button
-                            type="submit"
-                            disabled={!reply.trim() || replySending}
-                            className="flex shrink-0 cursor-pointer items-center gap-1 rounded-md px-3 py-1.5 text-sm font-semibold text-blue-600 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent"
-                          >
-                            {replySending && <Spinner size={12} />}
-                            등록
-                          </button>
-                        </form>
+                        <UnderlineComposer
+                          className="mt-1"
+                          value={reply}
+                          onChange={setReply}
+                          onSubmit={() => void submitReply(root.id)}
+                          onCancel={() => setReplyTo(null)}
+                          sending={replySending}
+                          autoFocus
+                          placeholder="답글을 남겨 주세요."
+                          label="답글"
+                        />
                       </li>
                     )}
                   </ul>
@@ -464,38 +440,20 @@ export function BoardPostDetailView({
           </p>
         )}
         {post.canComment && (
-          <form
-            className="mt-3 flex items-end gap-2 border-b border-slate-200 pb-2 transition focus-within:border-slate-900"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void submitComment();
-            }}
-          >
-            <textarea
-              value={comment}
-              onChange={(event) => setComment(event.target.value)}
-              maxLength={1000}
-              rows={2}
-              placeholder={
-                post.board.type === "INQUIRY"
-                  ? "답변이나 추가 문의를 남겨 주세요."
-                  : "댓글을 남겨 주세요."
-              }
-              aria-label="댓글"
-              className="min-w-0 flex-1 resize-none bg-transparent py-1 text-sm outline-none placeholder:text-slate-300"
-            />
-            {comment.length > 0 && (
-              <span className="pb-1.5 text-xs text-slate-300">{comment.length}/1000</span>
-            )}
-            <button
-              type="submit"
-              disabled={!comment.trim() || sending}
-              className="flex shrink-0 cursor-pointer items-center gap-1 rounded-md px-3 py-1.5 text-sm font-semibold text-blue-600 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent"
-            >
-              {sending && <Spinner size={12} />}
-              등록
-            </button>
-          </form>
+          <UnderlineComposer
+            className="mt-2"
+            value={comment}
+            onChange={setComment}
+            onSubmit={() => void submitComment()}
+            sending={sending}
+            showCount
+            placeholder={
+              post.board.type === "INQUIRY"
+                ? "답변이나 추가 문의를 남겨 주세요."
+                : "댓글을 남겨 주세요."
+            }
+            label="댓글"
+          />
         )}
       </section>
 
