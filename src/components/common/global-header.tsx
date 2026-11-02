@@ -395,9 +395,46 @@ export function GlobalHeader({
                       </span>
                     </span>
                   ) : label === "관리자" && isAdminMode ? (
-                    // 관리자 모드 ON: 아이콘 대신 "ADMIN" 글자. 글자 속 그라데이션이 계속 흘러감.
-                    <span className="admin-mode-text text-[13px] font-black tracking-wider">
-                      ADMIN
+                    // 관리자 모드 ON: 방패 그림 + "ADMIN" 글자. 둘 다 같은 무지개 그라데이션이 계속 흘러감.
+                    <span className="flex items-center gap-1">
+                      {/* 방패 선(stroke)에 칠할 그라데이션. 옆으로 계속 밀려 색이 흐르는 것처럼 보임. */}
+                      <svg width="0" height="0" className="absolute" aria-hidden="true">
+                        <defs>
+                          <linearGradient
+                            id="admin-mode-gradient"
+                            x1="0"
+                            y1="0"
+                            x2="1"
+                            y2="0"
+                            spreadMethod="repeat"
+                          >
+                            <stop offset="0%" stopColor="#fde047" />
+                            <stop offset="20%" stopColor="#f97316" />
+                            <stop offset="40%" stopColor="#ef4444" />
+                            <stop offset="60%" stopColor="#ec4899" />
+                            <stop offset="80%" stopColor="#a855f7" />
+                            <stop offset="100%" stopColor="#fde047" />
+                            <animateTransform
+                              attributeName="gradientTransform"
+                              type="translate"
+                              from="0 0"
+                              to="1 0"
+                              dur="1.2s"
+                              repeatCount="indefinite"
+                            />
+                          </linearGradient>
+                        </defs>
+                      </svg>
+                      <Icon
+                        size={19}
+                        strokeWidth={2.6}
+                        color="url(#admin-mode-gradient)"
+                        aria-hidden="true"
+                        className="admin-mode-glow"
+                      />
+                      <span className="admin-mode-text admin-mode-glow text-[13px] font-black tracking-wider">
+                        ADMIN
+                      </span>
                     </span>
                   ) : label === "알림" ? (
                     <span className="relative">
