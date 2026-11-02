@@ -23,6 +23,7 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { useChatNotification } from "@/components/chat/chat-notification-provider";
 import { Tooltip } from "@/components/common/tooltip";
 import { LoadingState } from "@/components/common/loading";
+import { NotificationModeMenu } from "@/components/common/notification-mode-menu";
 import { ProfileMenu } from "@/components/common/profile-menu";
 import { ProjectGuideModal } from "@/components/common/project-guide-modal";
 import { UserAvatar } from "@/components/common/user-avatar";
@@ -126,15 +127,11 @@ export function GlobalHeader({
     notificationCount,
     notifications,
     notificationsLoaded,
-    notificationEnabled,
-    notificationMode,
     acknowledgeNotifications,
     markNotificationRead,
-    setNotificationMode,
   } = useChatNotification();
   const [now, setNow] = useState(0);
   const [isNotificationPanelOpen, setIsNotificationPanelOpen] = useState(false);
-  const [isNotificationModeOpen, setIsNotificationModeOpen] = useState(false);
   const [isProjectGuideOpen, setIsProjectGuideOpen] = useState(false);
   // 내 상태 설정(바쁨·휴가 등). 프로필 패널이 서버에서 읽어 알려 줌.
   const [myStatusType, setMyStatusType] = useState<MemberStatusType | null>(null);
@@ -152,8 +149,6 @@ export function GlobalHeader({
   // 전체 서비스 패널(상단바 메뉴를 그리드로)
   const servicePanelRef = useRef<HTMLSpanElement>(null);
   const [isServicePanelOpen, setIsServicePanelOpen] = useState(false);
-  // 알림 설정 드롭다운(버튼 + 목록) 영역. 바깥 클릭 판별용.
-  const notificationModeRef = useRef<HTMLDivElement>(null);
   const sessionRemainingSeconds =
     sessionExpiresAt && now > 0
       ? Math.max(0, Math.floor((new Date(sessionExpiresAt).getTime() - now) / 1000))
@@ -239,25 +234,6 @@ export function GlobalHeader({
       document.removeEventListener("keydown", closeOnEscape);
     };
   }, [isServicePanelOpen]);
-
-  // 알림 설정 드롭다운: 바깥 클릭·Esc로 닫음. 알림 패널 안을 눌러도 드롭다운 밖이면 닫힘.
-  useEffect(() => {
-    if (!isNotificationModeOpen) return;
-    const closeOutside = (event: MouseEvent) => {
-      if (!notificationModeRef.current?.contains(event.target as Node)) {
-        setIsNotificationModeOpen(false);
-      }
-    };
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setIsNotificationModeOpen(false);
-    };
-    document.addEventListener("mousedown", closeOutside);
-    document.addEventListener("keydown", closeOnEscape);
-    return () => {
-      document.removeEventListener("mousedown", closeOutside);
-      document.removeEventListener("keydown", closeOnEscape);
-    };
-  }, [isNotificationModeOpen]);
 
   // 상단바 메뉴 하나를 눌렀을 때의 동작. 구현된 서비스는 화면과 무관하게 공통 경로로 이동.
   // 화면 이동이 있는 서비스(로그인 전에는 부모의 안내 동작)
@@ -462,47 +438,7 @@ export function GlobalHeader({
                       >
                         모두 읽음
                       </button>
-                      <div ref={notificationModeRef} className="relative">
-                        {/* 메시지 알림 수신 범위(전체·멘션만·끔) 설정. */}
-                        <button
-                          type="button"
-                          aria-label="알림 설정"
-                          aria-expanded={isNotificationModeOpen}
-                          onClick={() => setIsNotificationModeOpen((current) => !current)}
-                          className={`relative flex h-8 w-8 cursor-pointer items-center justify-center rounded-md transition hover:bg-slate-100 ${notificationEnabled ? "text-slate-700" : "text-slate-400"}`}
-                        >
-                          <Bell size={18} aria-hidden="true" />
-                          <span
-                            className={`absolute right-1 top-1 h-1.5 w-1.5 rounded-full ${notificationMode === "ALL" ? "bg-blue-500" : notificationMode === "MENTION" ? "bg-amber-500" : "bg-slate-300"}`}
-                          />
-                        </button>
-                        {isNotificationModeOpen && (
-                          <div className="absolute right-0 top-9 z-10 w-52 rounded-lg border border-slate-200 bg-white p-1 shadow-lg">
-                            <p className="px-3 pb-1 pt-2 text-[11px] font-semibold text-slate-400">
-                              메시지 알림 받기
-                            </p>
-                            {(
-                              [
-                                ["ALL", "모든 메시지"],
-                                ["MENTION", "내가 멘션된 메시지만"],
-                                ["NONE", "받지 않기"],
-                              ] as const
-                            ).map(([mode, modeLabel]) => (
-                              <button
-                                key={mode}
-                                type="button"
-                                onClick={() => {
-                                  setNotificationMode(mode);
-                                  setIsNotificationModeOpen(false);
-                                }}
-                                className={`w-full cursor-pointer rounded-md px-3 py-2 text-left text-xs transition hover:bg-slate-50 ${notificationMode === mode ? "bg-blue-50 font-semibold text-blue-600" : "text-slate-700"}`}
-                              >
-                                {modeLabel}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                      <NotificationModeMenu />
                     </div>
                   </div>
                   {/* 분류 칩. 고른 칩만 파란색으로 강조. */}
