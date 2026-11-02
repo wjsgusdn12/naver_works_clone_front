@@ -144,6 +144,7 @@ export function ImageViewer({
         <AttachmentImage
           key={current.attachment.id}
           attachment={current.attachment}
+          size="original"
           tone="dark"
           className="h-full w-full"
           imageClassName="max-h-full max-w-full object-contain select-none"

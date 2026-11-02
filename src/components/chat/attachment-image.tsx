@@ -1,7 +1,7 @@
 "use client";
 
 import { Spinner } from "@/components/common/loading";
-import { useAttachmentImage } from "@/hooks/use-attachment";
+import { type AttachmentImageSize, useAttachmentImage } from "@/hooks/use-attachment";
 import type { ChatAttachment } from "@/lib/api/chat-api";
 import { ImageOff, RotateCw } from "lucide-react";
 
@@ -12,14 +12,17 @@ export function AttachmentImage({
   className = "",
   imageClassName = "h-full w-full object-cover",
   tone = "light",
+  size = "thumbnail",
 }: {
   attachment: ChatAttachment;
   className?: string;
   imageClassName?: string;
   // dark: 어두운 사진 뷰어 위에서 쓸 때 글자색을 밝게.
   tone?: "light" | "dark";
+  // 말풍선·모아보기는 작은 사본(기본), 크게 보기는 원본.
+  size?: AttachmentImageSize;
 }) {
-  const { url, failed, retry } = useAttachmentImage(attachment.id);
+  const { url, failed, retry } = useAttachmentImage(attachment.id, size);
   const muted = tone === "dark" ? "text-slate-300" : "text-slate-400";
   return (
     <span className={`relative flex items-center justify-center overflow-hidden ${className}`}>

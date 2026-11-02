@@ -266,12 +266,17 @@ const uploadAttachment = (
   });
 
 // 첨부 내용을 받아 옴. 토큰을 헤더로 보내야 해서 <img src>에 주소를 바로 넣지 않고 Blob으로 받음.
-// inline=true면 사진을 화면 표시용 형식으로 받음.
-const attachmentBlob = async (token: string, attachmentId: number, inline: boolean) => {
+// inline=true면 사진을 화면 표시용 형식으로 받음. thumbnail=true면 말풍선·모아보기용 작은 사본(없으면 서버가 원본).
+const attachmentBlob = async (
+  token: string,
+  attachmentId: number,
+  inline: boolean,
+  thumbnail = false,
+) => {
   let response: Response;
   try {
     response = await fetch(
-      `${apiBaseUrl()}/api/v1/chatRoom/message/attachment/download?attachmentId=${attachmentId}&inline=${inline}`,
+      `${apiBaseUrl()}/api/v1/chatRoom/message/attachment/download?attachmentId=${attachmentId}&inline=${inline}&thumbnail=${thumbnail}`,
       { credentials: "include", headers: { Authorization: `Bearer ${token}` } },
     );
   } catch {

@@ -6,19 +6,21 @@ import { saveBlob } from "@/lib/attachment-files";
 import { useCallback, useEffect, useState } from "react";
 
 // 같은 사진을 말풍선·모아보기·크게 보기에서 여러 번 받지 않도록 화면용 주소를 기억.
-// 너무 많이 쌓이면 가장 먼저 받은 것부터 정리.
-const imageUrlCache = new Map<number, Promise<string>>();
+// 작은 사본(thumbnail)과 원본(original)은 따로 기억. 너무 많이 쌓이면 가장 먼저 받은 것부터 정리.
+export type AttachmentImageSize = "thumbnail" | "original";
+const imageUrlCache = new Map<string, Promise<string>>();
 const MAX_CACHED_IMAGES = 200;
 
-const loadImageUrl = (token: string, attachmentId: number) => {
-  const cached = imageUrlCache.get(attachmentId);
+const loadImageUrl = (token: string, attachmentId: number, size: AttachmentImageSize) => {
+  const cacheKey = `${attachmentId}:${size}`;
+  const cached = imageUrlCache.get(cacheKey);
   if (cached) return cached;
   const promise = chatApi
-    .attachmentBlob(token, attachmentId, true)
+    .attachmentBlob(token, attachmentId, true, size === "thumbnail")
     .then((blob) => URL.createObjectURL(blob));
   // 실패한 요청은 기억하지 않아 다시 시도할 수 있게 함.
-  promise.catch(() => imageUrlCache.delete(attachmentId));
-  imageUrlCache.set(attachmentId, promise);
+  promise.catch(() => imageUrlCache.delete(cacheKey));
+  imageUrlCache.set(cacheKey, promise);
   if (imageUrlCache.size > MAX_CACHED_IMAGES) {
     const oldestId = imageUrlCache.keys().next().value!;
     const oldest = imageUrlCache.get(oldestId);
@@ -28,29 +30,38 @@ const loadImageUrl = (token: string, attachmentId: number) => {
   return promise;
 };
 
-type ImageResult = { attachmentId: number; url: string | null; failed: boolean };
+type ImageResult = {
+  attachmentId: number;
+  size: AttachmentImageSize;
+  url: string | null;
+  failed: boolean;
+};
 
 // 사진 첨부를 받아 <img>에 넣을 주소로 돌려줌. 받는 동안 url=null, 실패하면 failed=true.
-export function useAttachmentImage(attachmentId: number | null) {
+// size: 말풍선·모아보기는 작은 사본(thumbnail), 크게 보기는 원본(original).
+export function useAttachmentImage(
+  attachmentId: number | null,
+  size: AttachmentImageSize = "thumbnail",
+) {
   const { accessToken } = useAuth();
   const [result, setResult] = useState<ImageResult | null>(null);
   const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     if (!accessToken || attachmentId === null) return;
     let alive = true;
-    loadImageUrl(accessToken, attachmentId)
+    loadImageUrl(accessToken, attachmentId, size)
       .then((url) => {
-        if (alive) setResult({ attachmentId, url, failed: false });
+        if (alive) setResult({ attachmentId, size, url, failed: false });
       })
       .catch(() => {
-        if (alive) setResult({ attachmentId, url: null, failed: true });
+        if (alive) setResult({ attachmentId, size, url: null, failed: true });
       });
     return () => {
       alive = false;
     };
-  }, [accessToken, attachmentId, attempt]);
-  // 다른 사진으로 바뀐 직후에는 이전 결과를 보여 주지 않음.
-  const current = result?.attachmentId === attachmentId ? result : null;
+  }, [accessToken, attachmentId, size, attempt]);
+  // 다른 사진(또는 다른 크기)으로 바뀐 직후에는 이전 결과를 보여 주지 않음.
+  const current = result?.attachmentId === attachmentId && result.size === size ? result : null;
   const retry = useCallback(() => {
     setResult(null);
     setAttempt((value) => value + 1);
