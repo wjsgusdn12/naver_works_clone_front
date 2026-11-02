@@ -82,10 +82,6 @@ export function HomeDashboard({
   const [rooms, setRooms] = useState<ChatRoom[] | null>(null);
   // 주소록 카드(전체 구성원). 즐겨찾기는 별 버튼으로 켜고 끔.
   const [members, setMembers] = useState<AddressBookMember[] | null>(null);
-  // 카드별 보기 거르기(투명 버튼): 즐겨찾기만 · 안 읽은 대화만 · 안 읽은 글만
-  const [favoriteOnly, setFavoriteOnly] = useState(false);
-  const [unreadRoomsOnly, setUnreadRoomsOnly] = useState(false);
-  const [unreadPostsOnly, setUnreadPostsOnly] = useState(false);
   // 게시판 홈 요약(공지사항·최신글). 실패하면 빈 값으로 두고 안내만 띄움.
   const [board, setBoard] = useState<BoardHome | null>(null);
 
@@ -158,9 +154,9 @@ export function HomeDashboard({
       withLiveStatus(item, presenceByMembershipId, memberStatusByMembershipId).presenceStatus ===
       "ONLINE",
   ).length;
-  const visibleMembers = (members ?? []).filter((item) => !favoriteOnly || item.favorite);
+  const visibleMembers = members ?? [];
   const recentRooms = [...(rooms ?? [])]
-    .filter((room) => room.lastMessageAt !== null && (!unreadRoomsOnly || room.unreadCount > 0))
+    .filter((room) => room.lastMessageAt !== null)
     .sort((a, b) => (b.lastMessageAt ?? "").localeCompare(a.lastMessageAt ?? ""))
     .slice(0, RECENT_ROOM_LIMIT);
 
@@ -337,9 +333,7 @@ export function HomeDashboard({
             onTitleClick={() => router.push("/addressBook")}
             footer={
               <>
-                <GhostToggle active={favoriteOnly} onClick={() => setFavoriteOnly((on) => !on)}>
-                  즐겨찾기만
-                </GhostToggle>
+                <GhostLink onClick={() => router.push("/addressBook")}>전체보기</GhostLink>
                 <BlueButton onClick={() => router.push("/message?create=group")}>
                   새 대화
                 </BlueButton>
@@ -349,9 +343,7 @@ export function HomeDashboard({
             {members === null ? (
               <LoadingInline message="주소록을 불러오는 중입니다." className="py-8 text-sm" />
             ) : visibleMembers.length === 0 ? (
-              <Empty
-                message={favoriteOnly ? "즐겨찾기한 구성원이 없습니다." : "구성원이 없습니다."}
-              />
+              <Empty message="구성원이 없습니다." />
             ) : (
               <ul className={`${LIST_FILL} divide-y divide-slate-100`}>
                 {visibleMembers.map((item) => {
@@ -420,20 +412,13 @@ export function HomeDashboard({
             onTitleClick={() => router.push("/message")}
             footer={
               <>
-                <GhostToggle
-                  active={unreadRoomsOnly}
-                  onClick={() => setUnreadRoomsOnly((on) => !on)}
-                >
-                  안 읽은 대화만
-                </GhostToggle>
+                <GhostLink onClick={() => router.push("/message")}>전체보기</GhostLink>
                 <BlueButton onClick={() => void openSelf()}>내 메모</BlueButton>
               </>
             }
           >
             {rooms === null ? (
               <LoadingInline message="대화 목록을 불러오는 중입니다." className="py-10 text-sm" />
-            ) : recentRooms.length === 0 && unreadRoomsOnly ? (
-              <Empty message="안 읽은 대화가 없습니다." />
             ) : recentRooms.length === 0 ? (
               <Empty
                 message="아직 대화가 없습니다."
@@ -527,19 +512,14 @@ export function HomeDashboard({
             onTitleClick={() => router.push("/board?menu=latest")}
             footer={
               <>
-                <GhostToggle
-                  active={unreadPostsOnly}
-                  onClick={() => setUnreadPostsOnly((on) => !on)}
-                >
-                  안 읽은 글만
-                </GhostToggle>
+                <GhostLink onClick={() => router.push("/board?menu=latest")}>전체보기</GhostLink>
                 <BlueButton onClick={() => router.push("/board?write=1")}>글쓰기</BlueButton>
               </>
             }
           >
             <BoardPostList
-              posts={board ? board.latest.filter((post) => !unreadPostsOnly || !post.read) : null}
-              emptyText={unreadPostsOnly ? "안 읽은 글이 없습니다." : "아직 올라온 글이 없습니다."}
+              posts={board ? board.latest : null}
+              emptyText="아직 올라온 글이 없습니다."
               showBoard
               onOpen={(post) => router.push(`/board?postId=${post.id}`)}
             />
@@ -642,24 +622,20 @@ function CountChip({
   );
 }
 
-// 카드 맨 아래 버튼(줄을 반씩 나눠 채움). 투명 버튼은 켜고 끄는 보기 거르기(켜지면 연한 파랑), 파란 버튼은 바로 하는 동작.
-function GhostToggle({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: ReactNode;
-}) {
+// 카드 맨 아래 버튼(줄을 반씩 나눠 채움). 투명 버튼은 해당 화면 전체보기 링크, 파란 버튼은 바로 하는 동작.
+function GhostLink({ onClick, children }: { onClick: () => void; children: ReactNode }) {
   return (
     <button
       type="button"
-      aria-pressed={active}
       onClick={onClick}
-      className={`h-10 flex-1 cursor-pointer whitespace-nowrap rounded-lg border px-3 text-[15px] font-medium transition active:scale-95 ${active ? "border-blue-200 bg-blue-50 text-blue-700" : "border-slate-200 bg-transparent text-slate-600 hover:bg-slate-50"}`}
+      className="group flex h-10 flex-1 cursor-pointer items-center justify-center gap-0.5 whitespace-nowrap rounded-lg border border-slate-200 bg-transparent px-3 text-[15px] font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 active:scale-95"
     >
       {children}
+      <ChevronRight
+        size={16}
+        aria-hidden="true"
+        className="text-slate-400 transition group-hover:translate-x-0.5"
+      />
     </button>
   );
 }
