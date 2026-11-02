@@ -351,6 +351,14 @@ function BoardContent() {
       <GlobalHeader
         role={member.role}
         pageTitle="게시판"
+        headerContent={
+          // 목록이면 그 목록 안에서, 홈·글 보기·글쓰기에서는 최신글(볼 수 있는 모든 게시판)에서 찾음
+          <BoardPostSearch
+            key={`${listKey ? menuHref(menu) : "latest"}|${listKeyword}`}
+            keyword={listKey ? listKeyword : ""}
+            onSearch={(keyword) => go(listHref(listKey ? menu : { kind: "latest" }, 0, keyword))}
+          />
+        }
         isAuthenticated
         profileName={member.displayName}
         onToast={showToast}
@@ -384,24 +392,16 @@ function BoardContent() {
             title={headerTitle}
             onBack={screen.kind === "menu" ? undefined : () => router.back()}
             actions={
-              listKey && (
-                <>
-                  <BoardPostSearch
-                    key={`${menuHref(menu)}|${listKeyword}`}
-                    keyword={listKeyword}
-                    onSearch={(keyword) => go(listHref(menu, 0, keyword))}
-                  />
-                  {writeTarget && (
-                    <button
-                      type="button"
-                      onClick={() => go(writeTarget.href)}
-                      className="flex cursor-pointer items-center gap-1.5 rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 active:scale-95"
-                    >
-                      <SquarePen size={15} aria-hidden="true" />
-                      {writeTarget.inquiry ? "문의하기" : "글쓰기"}
-                    </button>
-                  )}
-                </>
+              listKey &&
+              writeTarget && (
+                <button
+                  type="button"
+                  onClick={() => go(writeTarget.href)}
+                  className="flex cursor-pointer items-center gap-1.5 rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 active:scale-95"
+                >
+                  <SquarePen size={15} aria-hidden="true" />
+                  {writeTarget.inquiry ? "문의하기" : "글쓰기"}
+                </button>
               )
             }
           />
