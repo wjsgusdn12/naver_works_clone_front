@@ -18,6 +18,8 @@ type CustomSelectProps = {
   // 접근성 라벨. 보이는 라벨이 따로 있으면 그 글자를 넘김.
   label: string;
   className?: string;
+  // 목록 도구 줄처럼 좁은 곳에 쓰는 작은 크기(높이 32px)
+  compact?: boolean;
 };
 
 export function CustomSelect({
@@ -28,6 +30,7 @@ export function CustomSelect({
   disabled = false,
   label,
   className = "",
+  compact = false,
 }: CustomSelectProps) {
   const [open, setOpen] = useState(false);
   // 키보드로 훑는 항목 위치.
@@ -103,7 +106,7 @@ export function CustomSelect({
         disabled={disabled}
         onClick={() => (open ? setOpen(false) : openList())}
         onKeyDown={onButtonKeyDown}
-        className={`flex h-12 w-full cursor-pointer items-center justify-between gap-2 rounded-lg border bg-white px-3.5 text-left text-sm outline-none transition focus:ring-4 disabled:cursor-not-allowed disabled:bg-slate-50 ${open ? "border-blue-600 ring-4 ring-blue-100" : "border-slate-300 hover:border-blue-400 focus:border-blue-600 focus:ring-blue-100"}`}
+        className={`flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg border bg-white text-left text-sm ${compact ? "h-8 px-2.5" : "h-12 px-3.5"} outline-none transition focus:ring-4 disabled:cursor-not-allowed disabled:bg-slate-50 ${open ? "border-blue-600 ring-4 ring-blue-100" : "border-slate-300 hover:border-blue-400 focus:border-blue-600 focus:ring-blue-100"}`}
       >
         <span className={`truncate ${selected ? "text-slate-900" : "text-slate-400"}`}>
           {selected ? (selected.selectedLabel ?? selected.label) : placeholder}

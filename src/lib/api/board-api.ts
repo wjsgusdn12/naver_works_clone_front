@@ -5,6 +5,8 @@ import { apiBaseUrl, apiFetchBlob, apiRequest } from "@/lib/api/chat-api";
 export type BoardType = "NOTICE" | "FREE" | "INQUIRY" | "COMPANY" | "DEPARTMENT";
 // 목록 종류(사이드바 메뉴). BOARD는 게시판 하나(boardId 필요).
 // TYPE은 공지·자유·문의 같은 한 종류 전체(type 필요, 관리자는 모든 회사).
+// 목록 정렬: CREATED(글 등록순), ACTIVITY(글/댓글 업데이트 순)
+export type BoardListSort = "CREATED" | "ACTIVITY";
 export type BoardView = "LATEST" | "MUST_READ" | "IMPORTANT" | "MINE" | "BOARD" | "TYPE" | "TRASH";
 
 // 사이드바의 게시판 한 줄. myCompany: 내 회사 게시판(관리자는 다른 회사 것도 받음).
@@ -166,14 +168,23 @@ export const boardApi = {
     token: string,
     view: BoardView,
     target: { boardId?: number | null; type?: BoardType | null },
-    // page: 0부터. keyword: 제목·본문·글쓴이 검색어(없으면 전체)
-    options: { page?: number; keyword?: string } = {},
+    // page: 0부터. keyword: 제목·본문·글쓴이 검색어(없으면 전체). size·sort·unread는 보기 설정.
+    options: {
+      page?: number;
+      keyword?: string;
+      size?: number;
+      sort?: BoardListSort;
+      unread?: boolean;
+    } = {},
   ) => {
     const query = new URLSearchParams({ view });
     if (target.boardId) query.set("boardId", String(target.boardId));
     if (target.type) query.set("type", target.type);
     if (options.page) query.set("page", String(options.page));
     if (options.keyword) query.set("keyword", options.keyword);
+    if (options.size) query.set("size", String(options.size));
+    if (options.sort) query.set("sort", options.sort);
+    if (options.unread) query.set("unread", "true");
     return apiRequest<BoardPostPage>(`/api/v1/board/post/list?${query}`, token);
   },
   // 목록에서 고른 글을 한꺼번에 읽음으로(최대 100개). 결과는 새로 읽음 처리한 글 수.

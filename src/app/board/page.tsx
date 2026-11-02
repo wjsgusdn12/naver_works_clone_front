@@ -15,6 +15,7 @@ import {
 } from "@/components/board/board-sidebar";
 import { GlobalHeader } from "@/components/common/global-header";
 import { CustomCheckbox } from "@/components/common/custom-checkbox";
+import { CustomSelect } from "@/components/common/custom-select";
 import { LoadingState, PageLoading, Spinner } from "@/components/common/loading";
 import { Pagination } from "@/components/common/pagination";
 import { Toast } from "@/components/common/toast";
@@ -23,6 +24,7 @@ import {
   boardApi,
   type BoardHome,
   type BoardItem,
+  type BoardListSort,
   type BoardPostDetail,
   type BoardPostSummary,
   type BoardView,
@@ -62,6 +64,35 @@ const MENU_EMPTY: Record<keyof typeof MENU_VIEW, string> = {
   important: "중요 글이 없습니다.",
   mine: "내가 쓴 글이 없습니다.",
   trash: "휴지통이 비어 있습니다. 지운 글은 30일 동안 여기에 보관됩니다.",
+};
+
+// 목록 보기 설정(n개씩·정렬·안읽음). 게시판을 옮겨도 유지하고, 이 브라우저에 기억해 둠.
+type ListPrefs = { size: number; sort: BoardListSort; unread: boolean };
+const DEFAULT_PREFS: ListPrefs = { size: 20, sort: "CREATED", unread: false };
+const PREFS_STORAGE_KEY = "board-list-prefs";
+const SIZE_OPTIONS = [10, 20, 30, 40, 50].map((size) => ({
+  value: String(size),
+  label: `${size}개씩 보기`,
+}));
+const SORT_OPTIONS = [
+  { value: "CREATED", label: "글 등록순" },
+  { value: "ACTIVITY", label: "글/댓글 업데이트 순" },
+];
+const FILTER_OPTIONS = [
+  { value: "all", label: "전체" },
+  { value: "unread", label: "안읽음" },
+];
+const loadPrefs = (): ListPrefs => {
+  try {
+    const saved = JSON.parse(window.localStorage.getItem(PREFS_STORAGE_KEY) ?? "null");
+    return {
+      size: [10, 20, 30, 40, 50].includes(saved?.size) ? saved.size : DEFAULT_PREFS.size,
+      sort: saved?.sort === "ACTIVITY" ? "ACTIVITY" : "CREATED",
+      unread: saved?.unread === true,
+    };
+  } catch {
+    return DEFAULT_PREFS;
+  }
 };
 
 const numberParam = (value: string | null) => {
@@ -147,6 +178,9 @@ function BoardContent() {
     ids: [],
   });
   const [markingRead, setMarkingRead] = useState(false);
+  const [prefs, setPrefs] = useState<ListPrefs>(() =>
+    typeof window === "undefined" ? DEFAULT_PREFS : loadPrefs(),
+  );
   // 빠르게 화면을 바꿀 때 늦게 온 이전 응답이 덮어쓰지 않게.
   const listVersionRef = useRef(0);
 
@@ -156,7 +190,7 @@ function BoardContent() {
   const listKeyword = (searchParams.get("q") ?? "").trim();
   const listKey =
     screen.kind === "menu" && screen.menu.kind !== "home"
-      ? listHref(screen.menu, listPage, listKeyword)
+      ? `${listHref(screen.menu, listPage, listKeyword)}|${prefs.size}|${prefs.sort}|${prefs.unread}`
       : null;
   // 목록 쪽을 넘기면 오른쪽 화면을 맨 위로
   const contentRef = useRef<HTMLElement>(null);
@@ -223,11 +257,17 @@ function BoardContent() {
       type: CommonBoardType | null,
       page: number,
       keyword: string,
+      listPrefs: ListPrefs,
     ) => {
       if (!accessToken) return;
       const version = ++listVersionRef.current;
       try {
-        const result = await boardApi.list(accessToken, view, { boardId, type }, { page, keyword });
+        const result = await boardApi.list(
+          accessToken,
+          view,
+          { boardId, type },
+          { page, keyword, ...listPrefs },
+        );
         if (version !== listVersionRef.current) return;
         setList({ key, status: "loaded", ...result });
       } catch {
@@ -243,9 +283,23 @@ function BoardContent() {
   useEffect(() => {
     if (listKey && listView)
       void Promise.resolve().then(() =>
-        loadList(listKey, listView, listBoardId, listType, listPage, listKeyword),
+        loadList(listKey, listView, listBoardId, listType, listPage, listKeyword, prefs),
       );
+    // prefs는 listKey에 들어 있어 바뀌면 다시 불러옴
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listKey, listView, listBoardId, listType, listPage, listKeyword, loadList]);
+
+  // 보기 설정을 바꾸면 기억해 두고 1쪽부터
+  const changePrefs = (next: Partial<ListPrefs>) => {
+    const merged = { ...prefs, ...next };
+    setPrefs(merged);
+    try {
+      window.localStorage.setItem(PREFS_STORAGE_KEY, JSON.stringify(merged));
+    } catch {
+      // 저장 못 해도 이번 화면에서는 적용됨
+    }
+    if (listPage > 0) router.replace(listHref(menu, 0, listKeyword));
+  };
 
   // 글 보기·수정
   const loadPost = useCallback(
@@ -550,34 +604,66 @@ function BoardContent() {
                     검색 결과 {currentList.totalElements}건
                   </p>
                 )}
-                {selectable && listPostIds.length > 0 && (
-                  // 목록 도구 줄: 왼쪽은 전체 선택·읽음, 오른쪽은 보기 설정 자리
-                  <div className="mb-2 flex items-center gap-2 px-1">
-                    <CustomCheckbox
-                      label="이 쪽 글 전체 선택"
-                      checked={allChecked}
-                      onChange={() =>
-                        setChecked({ key: listKey, ids: allChecked ? [] : listPostIds })
-                      }
-                    />
-                    <button
-                      type="button"
-                      onClick={() => void markCheckedRead()}
-                      disabled={checkedIds.length === 0 || markingRead}
-                      className="flex h-8 cursor-pointer items-center gap-1.5 rounded-md border border-slate-200 px-3 text-sm text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {markingRead ? (
-                        <Spinner size={13} />
-                      ) : (
-                        <MailOpen size={14} aria-hidden="true" />
+                {/* 목록 도구 줄: 왼쪽은 전체 선택·읽음, 오른쪽은 보기 설정(휴지통은 n개씩 보기만) */}
+                <div className="mb-2 flex min-h-8 items-center gap-2 px-1">
+                  {selectable && listPostIds.length > 0 && (
+                    <>
+                      <CustomCheckbox
+                        label="이 쪽 글 전체 선택"
+                        checked={allChecked}
+                        onChange={() =>
+                          setChecked({ key: listKey, ids: allChecked ? [] : listPostIds })
+                        }
+                      />
+                      <button
+                        type="button"
+                        onClick={() => void markCheckedRead()}
+                        disabled={checkedIds.length === 0 || markingRead}
+                        className="flex h-8 cursor-pointer items-center gap-1.5 rounded-md border border-slate-200 px-3 text-sm text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {markingRead ? (
+                          <Spinner size={13} />
+                        ) : (
+                          <MailOpen size={14} aria-hidden="true" />
+                        )}
+                        읽음
+                      </button>
+                      {checkedIds.length > 0 && (
+                        <span className="text-xs text-blue-600">{checkedIds.length}개 선택</span>
                       )}
-                      읽음
-                    </button>
-                    {checkedIds.length > 0 && (
-                      <span className="text-xs text-blue-600">{checkedIds.length}개 선택</span>
+                    </>
+                  )}
+                  <div className="ml-auto flex items-center gap-2">
+                    <CustomSelect
+                      compact
+                      label="n개씩 보기"
+                      value={String(prefs.size)}
+                      onChange={(value) => changePrefs({ size: Number(value) })}
+                      options={SIZE_OPTIONS}
+                      className="w-32"
+                    />
+                    {menu.kind !== "trash" && (
+                      <>
+                        <CustomSelect
+                          compact
+                          label="보기 정렬"
+                          value={prefs.sort}
+                          onChange={(value) => changePrefs({ sort: value as BoardListSort })}
+                          options={SORT_OPTIONS}
+                          className="w-44"
+                        />
+                        <CustomSelect
+                          compact
+                          label="필터"
+                          value={prefs.unread ? "unread" : "all"}
+                          onChange={(value) => changePrefs({ unread: value === "unread" })}
+                          options={FILTER_OPTIONS}
+                          className="w-24"
+                        />
+                      </>
                     )}
                   </div>
-                )}
+                </div>
                 <PostListBody
                   status={currentList ? currentList.status : "loading"}
                   checkedIds={checkedIds}
@@ -589,9 +675,11 @@ function BoardContent() {
                   emptyText={
                     listKeyword
                       ? "검색 결과가 없습니다."
-                      : menu.kind === "board" || menu.kind === "type"
-                        ? "아직 글이 없습니다."
-                        : MENU_EMPTY[menu.kind]
+                      : prefs.unread && menu.kind !== "trash"
+                        ? "안 읽은 글이 없습니다."
+                        : menu.kind === "board" || menu.kind === "type"
+                          ? "아직 글이 없습니다."
+                          : MENU_EMPTY[menu.kind]
                   }
                   onRetry={() =>
                     listKey &&
@@ -603,21 +691,21 @@ function BoardContent() {
                       listTarget.type,
                       listPage,
                       listKeyword,
+                      prefs,
                     )
-                  }
-                  footer={
-                    currentList && currentList.totalPages > 1 ? (
-                      <Pagination
-                        page={listPage}
-                        totalPages={currentList.totalPages}
-                        onChange={(page) => go(listHref(menu, page, listKeyword))}
-                        label="글 목록 페이지"
-                        className="mt-6"
-                      />
-                    ) : null
                   }
                   onOpen={openPost}
                 />
+                {/* 쪽 번호는 글이 한 쪽뿐이어도 항상 아래에 */}
+                {currentList?.status === "loaded" && (
+                  <Pagination
+                    page={listPage}
+                    totalPages={Math.max(currentList.totalPages, 1)}
+                    onChange={(page) => go(listHref(menu, page, listKeyword))}
+                    label="글 목록 페이지"
+                    className="mt-6"
+                  />
+                )}
               </div>
             )}
           </div>

@@ -488,7 +488,11 @@ function BoardPostList({
             >
               {post.title}
             </span>
-            <PostMeta post={post} showBoard={showBoard} dateText={formatRelative(post.createdAt)} />
+            <PostMeta
+              post={post}
+              prefix={showBoard ? post.boardName : undefined}
+              dateText={formatRelative(post.createdAt)}
+            />
           </button>
         </li>
       ))}

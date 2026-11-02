@@ -5,7 +5,6 @@ import { CustomCheckbox } from "@/components/common/custom-checkbox";
 import { LoadingState } from "@/components/common/loading";
 import type { BoardPostSummary } from "@/lib/api/board-api";
 import { ChevronRight, Eye, MessageSquare, Paperclip, RotateCw } from "lucide-react";
-import type { ReactNode } from "react";
 
 // 필독·중요·답변 상태 딱지
 export function PostBadges({ post }: { post: Pick<BoardPostSummary, "mustRead" | "important"> }) {
@@ -82,11 +81,6 @@ export function PostRow({
             >
               {post.title}
             </span>
-            {post.commentCount > 0 && (
-              <span className="shrink-0 text-sm font-semibold text-blue-600">
-                [{post.commentCount}]
-              </span>
-            )}
             {post.hasFile && (
               <Paperclip
                 size={14}
@@ -99,21 +93,15 @@ export function PostRow({
             <span className="mt-1 block truncate text-xs text-slate-500">{post.preview}</span>
           )}
         </span>
-        <span className="flex shrink-0 items-center gap-3 text-xs text-slate-500">
-          {(showBoard || showCompany) && (
-            <span className="max-w-40 truncate text-slate-400">
-              {[showCompany && post.companyName, showBoard && post.boardName]
-                .filter(Boolean)
-                .join(" · ")}
-            </span>
-          )}
-          <span className="max-w-24 truncate">{post.authorName}</span>
-          <span className="w-20 text-right">{dateLabel(post.deletedAt ?? post.createdAt)}</span>
-          <span className="flex w-10 items-center justify-end gap-0.5 text-slate-400">
-            <Eye size={12} aria-hidden="true" />
-            {post.viewCount}
-          </span>
-        </span>
+        <PostMeta
+          post={post}
+          prefix={
+            [showCompany && post.companyName, showBoard && post.boardName]
+              .filter(Boolean)
+              .join(" · ") || undefined
+          }
+          dateText={dateLabel(post.deletedAt ?? post.createdAt)}
+        />
       </button>
     </li>
   );
@@ -128,22 +116,23 @@ function MetaDot() {
   );
 }
 
-// 글 미리보기 줄 오른쪽 정보: (게시판 ·) 작성자 · 날짜 · 조회수 · 댓글 수. 게시판 홈·메인 홈 카드 공통.
-// 리액션이 생기면 조회수와 댓글 수 사이에 넣음. dateText가 없으면 날짜 형식(dateLabel)으로.
+// 글 줄 오른쪽 정보: (prefix ·) 작성자 · 날짜 · 조회수 · 댓글 수. 게시판 목록·게시판 홈·메인 홈 카드 공통.
+// prefix는 게시판·회사 이름처럼 앞에 붙일 글자. 리액션이 생기면 조회수와 댓글 수 사이에 넣음.
+// dateText가 없으면 날짜 형식(dateLabel)으로.
 export function PostMeta({
   post,
   dateText,
-  showBoard = false,
+  prefix,
 }: {
   post: BoardPostSummary;
   dateText?: string;
-  showBoard?: boolean;
+  prefix?: string;
 }) {
   return (
     <span className="flex shrink-0 items-center gap-1.5 text-xs text-slate-400">
-      {showBoard && (
+      {prefix && (
         <>
-          <span className="max-w-20 truncate">{post.boardName}</span>
+          <span className="max-w-40 truncate">{prefix}</span>
           <MetaDot />
         </>
       )}
@@ -225,7 +214,7 @@ export function HomeCard({
   );
 }
 
-// 목록 화면 본체: 고정 글(중요) + 일반 글 + footer(페이지 번호). 로딩·실패·빈 목록 처리 포함.
+// 목록 화면 본체: 고정 글(중요) + 일반 글. 로딩·실패·빈 목록 처리 포함.
 export function PostListBody({
   status,
   pinned,
@@ -233,7 +222,6 @@ export function PostListBody({
   showBoard,
   showCompany = false,
   emptyText,
-  footer,
   checkedIds,
   onCheck,
   onRetry,
@@ -245,7 +233,6 @@ export function PostListBody({
   showBoard: boolean;
   showCompany?: boolean;
   emptyText: string;
-  footer?: ReactNode;
   // onCheck가 있으면 줄마다 체크박스(휴지통처럼 고를 일이 없는 목록은 넘기지 않음)
   checkedIds?: number[];
   onCheck?: (postId: number) => void;
@@ -303,7 +290,6 @@ export function PostListBody({
           />
         ))}
       </ul>
-      {footer}
     </>
   );
 }
