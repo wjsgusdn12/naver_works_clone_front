@@ -503,6 +503,14 @@ export function HomeDashboard({
             fill
             className="xl:col-start-3 xl:row-span-2 xl:row-start-1"
             title="최신 게시글"
+            badge={
+              // 카드에 불러온 최신 글(최대 10개) 중 안 읽은 글 수
+              <CountChip
+                label="안 읽음"
+                value={board ? board.latest.filter((post) => !post.read).length : null}
+                suffix="건"
+              />
+            }
             description="볼 수 있는 모든 게시판의 새 글입니다(공지사항 포함)."
             onTitleClick={() => router.push("/board?menu=latest")}
             footer={
