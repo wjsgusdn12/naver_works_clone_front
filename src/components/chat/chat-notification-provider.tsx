@@ -17,7 +17,7 @@ import {
   useState,
 } from "react";
 import { useMessageNotificationToast } from "@/hooks/use-message-notification-toast";
-import { useRouter } from "next/navigation";
+import { useLeaveNavigation } from "@/components/common/leave-guard";
 import { applyRoomMessageChange } from "@/lib/chat-message-state";
 
 type ChatNotificationContextValue = {
@@ -45,7 +45,8 @@ type ChatNotificationContextValue = {
 const ChatNotificationContext = createContext<ChatNotificationContextValue | null>(null);
 
 export function ChatNotificationProvider({ children }: Readonly<{ children: React.ReactNode }>) {
-  const router = useRouter();
+  // 화면 이동은 나가기 확인(작성 중인 글)을 거침
+  const router = useLeaveNavigation();
   const { accessToken, member, status } = useAuth();
   // 알림 목록은 서버(notification 테이블)가 원본. 실시간 이벤트는 그 위에 새 항목만 얹음.
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);

@@ -6,7 +6,7 @@ import { Toast } from "@/components/common/toast";
 import { useToast } from "@/hooks/use-toast";
 import { addressBookApi, type AddressBookMemberDetail } from "@/lib/api/address-book-api";
 import { chatApi } from "@/lib/api/chat-api";
-import { useRouter } from "next/navigation";
+import { useLeaveNavigation } from "@/components/common/leave-guard";
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 
 type ProfileModalContextValue = { openProfile: (membershipId: number) => void };
@@ -17,7 +17,8 @@ const ProfileModalContext = createContext<ProfileModalContextValue | null>(null)
 // 공통 아바타가 구성원 ID를 알면 따로 연결하지 않아도 여기로 열림.
 export function ProfileModalProvider({ children }: { children: ReactNode }) {
   const { accessToken, member } = useAuth();
-  const router = useRouter();
+  // 화면 이동은 나가기 확인(작성 중인 글)을 거침
+  const router = useLeaveNavigation();
   const { toast, showToast, dismissToast } = useToast();
   const [targetId, setTargetId] = useState<number | null>(null);
   const [detail, setDetail] = useState<AddressBookMemberDetail | null>(null);

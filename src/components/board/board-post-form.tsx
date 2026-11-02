@@ -7,6 +7,7 @@ import { CustomCheckbox } from "@/components/common/custom-checkbox";
 import { COMMON_BOARDS } from "@/components/board/board-sidebar";
 import { CustomSelect, type SelectOption } from "@/components/common/custom-select";
 import { DateTimePicker } from "@/components/common/date-time-picker";
+import { useLeaveGuard } from "@/components/common/leave-guard";
 import { Spinner } from "@/components/common/loading";
 import { UNDERLINE_FIELD } from "@/components/common/underline-composer";
 import {
@@ -126,6 +127,20 @@ export function BoardPostForm({
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const sequenceRef = useRef(0);
+
+  // 처음 연 상태와 달라졌으면 "작성 중": 다른 화면으로 나가려 하면 확인 창
+  const snapshot = () =>
+    JSON.stringify([
+      boardId,
+      title,
+      content,
+      mustRead,
+      allowComment,
+      commentNotify,
+      files.map((file) => file.key),
+    ]);
+  const [initialSnapshot] = useState(snapshot);
+  useLeaveGuard(snapshot() !== initialSnapshot);
 
   const board = boards.find((item) => item.id === boardId) ?? editing?.board ?? null;
   const flagsAllowed = board?.type !== "INQUIRY";

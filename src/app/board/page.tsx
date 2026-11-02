@@ -19,6 +19,7 @@ import { CustomSelect } from "@/components/common/custom-select";
 import { LoadingState, PageLoading, Spinner } from "@/components/common/loading";
 import { Tabs } from "@/components/common/tabs";
 import { Pagination } from "@/components/common/pagination";
+import { useLeaveNavigation } from "@/components/common/leave-guard";
 import { Toast } from "@/components/common/toast";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -181,6 +182,8 @@ export default function BoardPage() {
 
 function BoardContent() {
   const router = useRouter();
+  // 사람이 누른 화면 이동은 이것으로(글 작성 중이면 나가기 확인). 저장 뒤 이동만 router 직접.
+  const leave = useLeaveNavigation();
   const searchParams = useSearchParams();
   const { accessToken, member, status, logout } = useAuth();
   const { toast, showToast, dismissToast } = useToast();
@@ -379,7 +382,7 @@ function BoardContent() {
   }, [postId, loadPost]);
   const currentPost = post && post.id === postId ? post : null;
 
-  const go = (href: string) => router.push(href);
+  const go = (href: string) => leave.push(href);
   // 임시저장·예약 글은 보기 대신 바로 이어 쓰기(수정 화면)
   const openPost = (target: BoardPostSummary) =>
     go(target.status === "PUBLISHED" ? `/board?postId=${target.id}` : `/board?edit=${target.id}`);
@@ -582,11 +585,11 @@ function BoardContent() {
         profileName={member.displayName}
         onToast={showToast}
         isProfileMenuOpen={isProfileMenuOpen}
-        onHomeAction={() => router.push("/home")}
+        onHomeAction={() => go("/home")}
         onServiceAction={(label) => showToast(`${label} 기능은 준비 중입니다.`)}
         onProfileAction={() => setIsProfileMenuOpen((open) => !open)}
         onCloseProfileMenu={() => setIsProfileMenuOpen(false)}
-        onLogout={() => void handleLogout()}
+        onLogout={() => leave.confirmLeave(() => void handleLogout())}
       />
       <main className="flex min-h-0 flex-1">
         <BoardSidebar
@@ -612,7 +615,7 @@ function BoardContent() {
           {!isHome && (
             <BoardContentHeader
               title={headerTitle}
-              onBack={screen.kind === "menu" ? undefined : () => router.back()}
+              onBack={screen.kind === "menu" ? undefined : leave.back}
               actions={
                 listKey &&
                 writeTarget && (
@@ -645,7 +648,7 @@ function BoardContent() {
                     null
                   }
                   editing={null}
-                  onCancel={() => router.back()}
+                  onCancel={leave.back}
                   onSaved={(saved, mode) => afterSave(saved, mode, "등록")}
                   onToast={showToast}
                 />
@@ -660,7 +663,7 @@ function BoardContent() {
                   boards={writableBoards}
                   initialBoardId={null}
                   editing={currentPost.detail}
-                  onCancel={() => router.back()}
+                  onCancel={leave.back}
                   onSaved={(saved, mode) => afterSave(saved, mode, "수정")}
                   onToast={showToast}
                 />

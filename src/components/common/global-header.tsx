@@ -28,7 +28,7 @@ import { NotificationModeMenu } from "@/components/common/notification-mode-menu
 import { ProfileMenu } from "@/components/common/profile-menu";
 import { ProjectGuideModal } from "@/components/common/project-guide-modal";
 import { UserAvatar } from "@/components/common/user-avatar";
-import { useRouter } from "next/navigation";
+import { useLeaveNavigation } from "@/components/common/leave-guard";
 
 // 상단 헤더에서 반복 렌더링할 서비스 아이콘 정보.
 type HeaderAction = {
@@ -145,7 +145,8 @@ export function GlobalHeader({
       ? notifications
       : notifications.filter((item) => item.category === notificationFilter);
   // 공통 헤더의 서비스 이동은 어느 화면에서나 같은 경로를 사용.
-  const router = useRouter();
+  // 화면 이동은 나가기 확인(작성 중인 글)을 거침
+  const router = useLeaveNavigation();
   // 프로필 버튼과 메뉴 영역을 함께 참조해 바깥 클릭을 판별.
   const profileMenuRef = useRef<HTMLSpanElement>(null);
   const notificationPanelRef = useRef<HTMLSpanElement>(null);
