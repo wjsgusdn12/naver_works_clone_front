@@ -198,8 +198,9 @@ export function BoardPostDetailView({
       </div>
 
       {(post.canReact || post.reactions.length > 0) && (
-        // 리액션 줄: 이모지별 개수(내가 누른 건 파란 테두리, 올리면 누른 사람) + 이모지 고르기 버튼
-        <div className="mb-8 flex flex-wrap items-center gap-1.5">
+        // 리액션 줄(미니멀): 테두리·배경 없이 이모지와 숫자만. 내가 누른 건 숫자가 파랗고 이모지 아래 파란 점,
+        // 올리면 이모지가 살짝 떠오르고 누른 사람이 보임. 끝에 회색 고르기 아이콘.
+        <div className="mb-8 flex flex-wrap items-center gap-x-4 gap-y-2">
           {post.reactions.map((reaction) => (
             <Tooltip
               key={reaction.emoji}
@@ -210,13 +211,33 @@ export function BoardPostDetailView({
                 disabled={!post.canReact || reacting}
                 onClick={() => void react(reaction.emoji)}
                 aria-pressed={reaction.mine}
-                className={`flex h-8 cursor-pointer items-center gap-1 rounded-full border px-2.5 text-sm transition active:scale-95 disabled:cursor-default ${reaction.mine ? "border-blue-300 bg-blue-50 font-semibold text-blue-700" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}
+                className="group flex cursor-pointer items-center gap-1.5 disabled:cursor-default"
               >
-                <ReactionEmoji code={reaction.emoji} size={18} />
-                {reaction.count}
+                <span className="relative flex flex-col items-center">
+                  <ReactionEmoji
+                    code={reaction.emoji}
+                    size={22}
+                    className="transition duration-150 group-hover:-translate-y-0.5 group-active:scale-90"
+                  />
+                  <span
+                    aria-hidden="true"
+                    className={`absolute -bottom-1.5 h-1 w-1 rounded-full transition ${reaction.mine ? "bg-blue-600" : "bg-transparent"}`}
+                  />
+                </span>
+                <span
+                  className={`text-[13px] tabular-nums transition ${reaction.mine ? "font-semibold text-blue-600" : "text-slate-500 group-hover:text-slate-800"}`}
+                >
+                  {reaction.count}
+                </span>
               </button>
             </Tooltip>
           ))}
+          {post.reactions.length > 0 && post.canReact && (
+            <span aria-hidden="true" className="h-4 w-px bg-slate-200" />
+          )}
+          {post.canReact && post.reactions.length === 0 && (
+            <span className="text-xs text-slate-400">이 글에 첫 반응을 남겨 보세요</span>
+          )}
           {post.canReact && (
             <ReactionPicker
               isMine={false}

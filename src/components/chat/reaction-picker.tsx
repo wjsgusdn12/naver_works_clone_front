@@ -111,7 +111,7 @@ export function ReactionPicker({
         aria-expanded={Boolean(position)}
         aria-haspopup="true"
         onClick={open}
-        className={`flex shrink-0 cursor-pointer items-center justify-center transition duration-150 hover:bg-slate-100 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-blue-500 active:scale-95 [@media(hover:none)]:opacity-100 ${alwaysVisible ? "h-8 w-9 rounded-full border border-slate-200 opacity-100!" : "h-5 w-6 rounded-md"} ${
+        className={`flex shrink-0 cursor-pointer items-center justify-center transition duration-150 hover:bg-slate-100 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-blue-500 active:scale-95 [@media(hover:none)]:opacity-100 ${alwaysVisible ? "h-7 w-7 rounded-full text-slate-400! opacity-100! hover:text-slate-700!" : "h-5 w-6 rounded-md"} ${
           reacted
             ? "text-amber-500 opacity-100 hover:text-amber-600"
             : position
@@ -119,7 +119,12 @@ export function ReactionPicker({
               : "text-slate-500 opacity-0 hover:text-slate-900 group-hover/message:opacity-100 group-focus-within/message:opacity-100"
         }`}
       >
-        <SmilePlus size={16} aria-hidden="true" fill={reacted ? "#fef3c7" : "none"} />
+        <SmilePlus
+          size={alwaysVisible ? 18 : 16}
+          strokeWidth={alwaysVisible ? 1.6 : 2}
+          aria-hidden="true"
+          fill={reacted && !alwaysVisible ? "#fef3c7" : "none"}
+        />
       </button>
       {position &&
         createPortal(
