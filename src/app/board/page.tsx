@@ -407,7 +407,7 @@ function BoardContent() {
               onGo={go}
             />
           ) : (
-            <div className="mx-auto w-full max-w-5xl">
+            <div className="w-full">
               <div className="mb-4 flex items-center justify-between gap-4">
                 <h1 className="text-xl font-bold">{listTitle}</h1>
                 {menu.kind === "board" && currentBoard?.canWrite && (
@@ -493,7 +493,8 @@ function HomeScreen({
   }
   const boardLink = (id: number | null) => (id ? () => onGo(`/board?boardId=${id}`) : null);
   return (
-    <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-5 xl:grid-cols-2">
+    <div className="grid w-full grid-cols-1 gap-5 lg:grid-cols-2">
+      <h1 className="text-xl font-bold lg:col-span-2">게시판 홈</h1>
       <HomeCard
         title="최신글"
         icon={<Clock3 size={18} className="text-blue-600" aria-hidden="true" />}
@@ -527,7 +528,7 @@ function HomeScreen({
         onMore={boardLink(home.freeBoardId)}
         onOpen={onOpen}
       />
-      <p className="flex items-center gap-1.5 text-xs text-slate-400 xl:col-span-2">
+      <p className="flex items-center gap-1.5 text-xs text-slate-400 lg:col-span-2">
         <BellRing size={13} aria-hidden="true" />
         필독 글은 사이드바의 &lsquo;필독&rsquo;에서 모아 볼 수 있습니다.
       </p>
