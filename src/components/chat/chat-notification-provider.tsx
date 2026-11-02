@@ -194,6 +194,14 @@ export function ChatNotificationProvider({ children }: Readonly<{ children: Reac
     myMembershipId === undefined
       ? null
       : (memberStatusByMembershipId[myMembershipId]?.statusType ?? null);
+  // 내 "온라인" 알림은 내가 구독을 마치기 전에 방송돼 못 받으므로, 로그인 중인 나는 항상 온라인으로 표시.
+  const livePresenceByMembershipId = useMemo(
+    () =>
+      status !== "authenticated" || myMembershipId === undefined
+        ? presenceByMembershipId
+        : { ...presenceByMembershipId, [myMembershipId]: "ONLINE" as PresenceStatus },
+    [myMembershipId, presenceByMembershipId, status],
+  );
 
   // 로그인 직후 최근 30일 알림을 서버에서 불러옴. 토큰이 바뀌거나 로그아웃하면 정리 단계에서 비움.
   useEffect(() => {
@@ -326,7 +334,7 @@ export function ChatNotificationProvider({ children }: Readonly<{ children: Reac
       notificationsLoaded,
       notificationEnabled,
       notificationMode,
-      presenceByMembershipId,
+      presenceByMembershipId: livePresenceByMembershipId,
       memberStatusByMembershipId,
       myStatusType,
       activeChatRoomId,
@@ -347,7 +355,7 @@ export function ChatNotificationProvider({ children }: Readonly<{ children: Reac
       notificationMode,
       notifications,
       notificationsLoaded,
-      presenceByMembershipId,
+      livePresenceByMembershipId,
       memberStatusByMembershipId,
       myStatusType,
       setNotificationEnabled,
