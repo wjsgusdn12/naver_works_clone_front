@@ -10,7 +10,7 @@ export function BoardContentHeader({
   onBack,
   actions,
 }: {
-  title: string;
+  title: ReactNode;
   onBack?: () => void;
   actions?: ReactNode;
 }) {

@@ -17,6 +17,7 @@ import { GlobalHeader } from "@/components/common/global-header";
 import { CustomCheckbox } from "@/components/common/custom-checkbox";
 import { CustomSelect } from "@/components/common/custom-select";
 import { LoadingState, PageLoading, Spinner } from "@/components/common/loading";
+import { Tabs } from "@/components/common/tabs";
 import { Pagination } from "@/components/common/pagination";
 import { Toast } from "@/components/common/toast";
 import { useToast } from "@/hooks/use-toast";
@@ -28,6 +29,8 @@ import {
   type BoardSaveMode,
   type BoardPostDetail,
   type BoardPostSummary,
+  type BoardSearchCounts,
+  type BoardSearchScope,
   type BoardView,
 } from "@/lib/api/board-api";
 import { markAuthenticationRequired } from "@/lib/auth-required-notice";
@@ -38,7 +41,7 @@ import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 // 화면은 주소의 쿼리로 정함(뒤로 가기·새로고침이 그대로 동작).
 // 없음: 게시판 홈 / menu=latest|mustRead|important|mine|trash / boardId=N: 게시판 /
 // postId=N: 글 보기 / write=1(&boardId=N): 글쓰기 / edit=N: 글 수정
-// 목록에는 page=N(1부터)·q=검색어를 덧붙임
+// 목록에는 page=N(1부터)·q=검색어·tab=검색 결과 탭(게시글이면 생략)을 덧붙임
 type Screen =
   | { kind: "menu"; menu: BoardMenu }
   | { kind: "post"; postId: number }
@@ -145,11 +148,23 @@ type ListState = {
   totalElements: number;
 };
 
-// 목록 주소에 쪽 번호(화면에는 1부터, 1쪽이면 생략)·검색어를 붙임.
-const listHref = (menu: BoardMenu, page: number, keyword: string) => {
+// 검색 결과 화면 탭: 게시글(제목·본문)·작성자·파일·댓글
+type SearchTab = Exclude<BoardSearchScope, "ALL">;
+const SEARCH_TABS: { key: SearchTab; label: string; count: keyof BoardSearchCounts }[] = [
+  { key: "POST", label: "게시글", count: "post" },
+  { key: "AUTHOR", label: "작성자", count: "author" },
+  { key: "FILE", label: "파일", count: "file" },
+  { key: "COMMENT", label: "댓글", count: "comment" },
+];
+const searchTabOf = (value: string | null): SearchTab =>
+  SEARCH_TABS.find((tab) => tab.key === value)?.key ?? "POST";
+
+// 목록 주소에 쪽 번호(화면에는 1부터, 1쪽이면 생략)·검색어·검색 탭을 붙임.
+const listHref = (menu: BoardMenu, page: number, keyword: string, tab: SearchTab = "POST") => {
   const query = new URLSearchParams();
   if (page > 0) query.set("page", String(page + 1));
   if (keyword) query.set("q", keyword);
+  if (keyword && tab !== "POST") query.set("tab", tab);
   const extra = query.toString();
   const base = menuHref(menu);
   return extra ? `${base}${base.includes("?") ? "&" : "?"}${extra}` : base;
@@ -198,9 +213,13 @@ function BoardContent() {
   const menu: BoardMenu = screen.kind === "menu" ? screen.menu : { kind: "home" };
   const listPage = Math.max((numberParam(searchParams.get("page")) ?? 1) - 1, 0);
   const listKeyword = (searchParams.get("q") ?? "").trim();
+  // 상단 검색은 늘 최신글(볼 수 있는 게시판 전체)에서 찾고, 그때만 탭으로 찾을 곳을 나눔
+  const searching = menu.kind === "latest" && listKeyword !== "";
+  const searchTab = searchTabOf(searchParams.get("tab"));
+  const searchScope: BoardSearchScope = searching ? searchTab : "ALL";
   const listKey =
     screen.kind === "menu" && screen.menu.kind !== "home"
-      ? `${listHref(screen.menu, listPage, listKeyword)}|${prefs.size}|${prefs.sort}|${prefs.unread}`
+      ? `${listHref(screen.menu, listPage, listKeyword, searchTab)}|${prefs.size}|${prefs.sort}|${prefs.unread}`
       : null;
   // 목록 쪽을 넘기면 오른쪽 화면을 맨 위로
   const contentRef = useRef<HTMLElement>(null);
@@ -268,6 +287,7 @@ function BoardContent() {
       page: number,
       keyword: string,
       listPrefs: ListPrefs,
+      scope: BoardSearchScope,
     ) => {
       if (!accessToken) return;
       const version = ++listVersionRef.current;
@@ -276,7 +296,7 @@ function BoardContent() {
           accessToken,
           view,
           { boardId, type },
-          { page, keyword, ...listPrefs },
+          { page, keyword, scope, ...listPrefs },
         );
         if (version !== listVersionRef.current) return;
         setList({ key, status: "loaded", ...result });
@@ -293,11 +313,40 @@ function BoardContent() {
   useEffect(() => {
     if (listKey && listView)
       void Promise.resolve().then(() =>
-        loadList(listKey, listView, listBoardId, listType, listPage, listKeyword, prefs),
+        loadList(
+          listKey,
+          listView,
+          listBoardId,
+          listType,
+          listPage,
+          listKeyword,
+          prefs,
+          searchScope,
+        ),
       );
     // prefs는 listKey에 들어 있어 바뀌면 다시 불러옴
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [listKey, listView, listBoardId, listType, listPage, listKeyword, loadList]);
+  }, [listKey, listView, listBoardId, listType, listPage, listKeyword, searchScope, loadList]);
+
+  // 검색 결과 탭별 건수. 검색어가 바뀔 때만 다시 셈(탭·쪽을 옮겨도 그대로).
+  const [searchCounts, setSearchCounts] = useState<{
+    keyword: string;
+    counts: BoardSearchCounts;
+  } | null>(null);
+  useEffect(() => {
+    if (!accessToken || !searching) return;
+    let cancelled = false;
+    boardApi
+      .searchCounts(accessToken, listKeyword)
+      .then((counts) => {
+        if (!cancelled) setSearchCounts({ keyword: listKeyword, counts });
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken, searching, listKeyword]);
+  const currentCounts = searchCounts?.keyword === listKeyword ? searchCounts.counts : null;
 
   // 보기 설정을 바꾸면 기억해 두고 1쪽부터
   const changePrefs = (next: Partial<ListPrefs>) => {
@@ -308,7 +357,7 @@ function BoardContent() {
     } catch {
       // 저장 못 해도 이번 화면에서는 적용됨
     }
-    if (listPage > 0) router.replace(listHref(menu, 0, listKeyword));
+    if (listPage > 0) router.replace(listHref(menu, 0, listKeyword, searchTab));
   };
 
   // 글 보기·수정
@@ -466,19 +515,35 @@ function BoardContent() {
   // 오른쪽 화면 공통 머리줄 제목. 글 보기는 그 글의 게시판 이름.
   const postBoard = currentPost?.detail?.board;
   const headerTitle =
-    screen.kind === "write"
-      ? "글쓰기"
-      : screen.kind === "edit"
-        ? "글 수정"
-        : screen.kind === "post"
-          ? postBoard
-            ? postBoard.myCompany
-              ? postBoard.name
-              : `${postBoard.companyName} · ${postBoard.name}`
-            : "게시글"
-          : menu.kind === "home"
-            ? "게시판 홈"
-            : listTitle;
+    screen.kind === "write" ? (
+      "글쓰기"
+    ) : screen.kind === "edit" ? (
+      "글 수정"
+    ) : screen.kind === "post" ? (
+      postBoard ? (
+        postBoard.myCompany ? (
+          postBoard.name
+        ) : (
+          `${postBoard.companyName} · ${postBoard.name}`
+        )
+      ) : (
+        "게시글"
+      )
+    ) : menu.kind === "home" ? (
+      "게시판 홈"
+    ) : searching ? (
+      // 검색 결과: 탭 건수 합계를 파란 숫자로(세는 중이면 숫자 없이)
+      <>
+        검색 결과
+        {currentCounts && (
+          <span className="ml-1.5 text-blue-600">
+            {currentCounts.post + currentCounts.author + currentCounts.file + currentCounts.comment}
+          </span>
+        )}
+      </>
+    ) : (
+      listTitle
+    );
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-white text-slate-900">
@@ -623,13 +688,29 @@ function BoardContent() {
                     &lsquo;답변 완료&rsquo;로 바뀝니다.
                   </p>
                 )}
-                {listKeyword && currentList?.status === "loaded" && (
-                  <p className="mb-3 text-sm text-slate-600">
-                    <span className="font-semibold text-slate-900">
-                      &lsquo;{listKeyword}&rsquo;
-                    </span>{" "}
-                    검색 결과 {currentList.totalElements}건
-                  </p>
+                {searching ? (
+                  // 검색 결과 탭: 게시글·작성자·파일·댓글(건수는 세는 동안 비움)
+                  <Tabs
+                    ariaLabel="검색 결과 종류"
+                    className="mb-3"
+                    items={SEARCH_TABS.map((tab) => ({
+                      key: tab.key,
+                      label: tab.label,
+                      count: currentCounts ? currentCounts[tab.count] : undefined,
+                    }))}
+                    value={searchTab}
+                    onChange={(tab) => go(listHref(menu, 0, listKeyword, tab))}
+                  />
+                ) : (
+                  listKeyword &&
+                  currentList?.status === "loaded" && (
+                    <p className="mb-3 text-sm text-slate-600">
+                      <span className="font-semibold text-slate-900">
+                        &lsquo;{listKeyword}&rsquo;
+                      </span>{" "}
+                      검색 결과 {currentList.totalElements}건
+                    </p>
+                  )
                 )}
                 {/* 목록 도구 줄: 왼쪽은 전체 선택·읽음, 오른쪽은 보기 설정(휴지통은 n개씩 보기만) */}
                 <div className="mb-2 flex min-h-8 items-center gap-2 px-1">
@@ -716,8 +797,10 @@ function BoardContent() {
                       listPage,
                       listKeyword,
                       prefs,
+                      searchScope,
                     )
                   }
+                  search={searching ? { keyword: listKeyword, scope: searchTab } : undefined}
                   onOpen={openPost}
                 />
               </div>
@@ -729,7 +812,7 @@ function BoardContent() {
               <Pagination
                 page={listPage}
                 totalPages={Math.max(currentList.totalPages, 1)}
-                onChange={(page) => go(listHref(menu, page, listKeyword))}
+                onChange={(page) => go(listHref(menu, page, listKeyword, searchTab))}
                 label="글 목록 페이지"
               />
             </div>

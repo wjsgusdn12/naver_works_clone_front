@@ -1,9 +1,9 @@
 "use client";
 
-import { dateLabel } from "@/components/chat/message-search-panel";
+import { dateLabel, Highlight } from "@/components/chat/message-search-panel";
 import { CustomCheckbox } from "@/components/common/custom-checkbox";
 import { LoadingState } from "@/components/common/loading";
-import type { BoardPostSummary } from "@/lib/api/board-api";
+import type { BoardPostSummary, BoardSearchScope } from "@/lib/api/board-api";
 import { ChevronRight, Eye, MessageSquare, Paperclip, RotateCw, SmilePlus } from "lucide-react";
 
 // 필독·중요·답변 상태 딱지
@@ -34,7 +34,11 @@ export function AnswerBadge({ answered }: { answered: boolean }) {
   );
 }
 
+// 검색 결과 강조: 검색어(파란 글씨)와 탭(어느 칸에서 찾았는지)
+export type PostSearchMark = { keyword: string; scope: BoardSearchScope };
+
 // 글 목록 한 줄(고정 글 포함). 아직 안 읽은 글은 제목을 굵게. showBoard면 어느 게시판 글인지 함께 표시.
+// search가 있으면 맞은 글자를 파랗게, 파일·댓글 탭이면 맞은 파일 이름·댓글을 한 줄 더.
 export function PostRow({
   post,
   pinned = false,
@@ -43,8 +47,10 @@ export function PostRow({
   checked,
   onCheck,
   onOpen,
+  search,
 }: {
   post: BoardPostSummary;
+  search?: PostSearchMark;
   // onCheck가 있으면 줄 앞에 체크박스(읽음 처리할 글 고르기)
   checked?: boolean;
   onCheck?: () => void;
@@ -86,7 +92,7 @@ export function PostRow({
             <span
               className={`truncate text-[15px] ${post.read ? "text-slate-700" : "font-semibold text-slate-950"}`}
             >
-              {post.title}
+              {search ? <Highlight text={post.title} keyword={search.keyword} /> : post.title}
             </span>
             {post.hasFile && (
               <Paperclip
@@ -97,11 +103,27 @@ export function PostRow({
             )}
           </span>
           {post.preview && (
-            <span className="mt-1 block truncate text-xs text-slate-500">{post.preview}</span>
+            <span className="mt-1 block truncate text-xs text-slate-500">
+              {search ? <Highlight text={post.preview} keyword={search.keyword} /> : post.preview}
+            </span>
+          )}
+          {search && post.matchText && (
+            // 파일·댓글 탭: 검색어가 들어 있는 파일 이름·댓글
+            <span className="mt-1 flex min-w-0 items-center gap-1 text-xs text-slate-600">
+              {search.scope === "FILE" ? (
+                <Paperclip size={12} className="shrink-0 text-slate-400" aria-label="파일" />
+              ) : (
+                <MessageSquare size={12} className="shrink-0 text-slate-400" aria-label="댓글" />
+              )}
+              <span className="truncate">
+                <Highlight text={post.matchText} keyword={search.keyword} />
+              </span>
+            </span>
           )}
         </span>
         <PostMeta
           post={post}
+          highlight={search?.scope === "AUTHOR" ? search.keyword : undefined}
           prefix={
             [showCompany && post.companyName, showBoard && post.boardName]
               .filter(Boolean)
@@ -130,10 +152,13 @@ export function PostMeta({
   post,
   dateText,
   prefix,
+  highlight,
 }: {
   post: BoardPostSummary;
   dateText?: string;
   prefix?: string;
+  // 작성자 검색이면 이름에서 맞은 글자를 파랗게
+  highlight?: string;
 }) {
   return (
     <span className="flex shrink-0 items-center gap-1.5 text-xs text-slate-400">
@@ -143,7 +168,9 @@ export function PostMeta({
           <MetaDot />
         </>
       )}
-      <span className="max-w-20 truncate text-slate-500">{post.authorName}</span>
+      <span className="max-w-20 truncate text-slate-500">
+        {highlight ? <Highlight text={post.authorName} keyword={highlight} /> : post.authorName}
+      </span>
       <MetaDot />
       <span className="whitespace-nowrap">{dateText ?? dateLabel(post.createdAt)}</span>
       <MetaDot />
@@ -241,7 +268,10 @@ export function PostListBody({
   onCheck,
   onRetry,
   onOpen,
+  search,
 }: {
+  // 검색 결과 화면이면 검색어 강조
+  search?: PostSearchMark;
   status: "loading" | "loaded" | "failed";
   pinned: BoardPostSummary[];
   items: BoardPostSummary[];
@@ -302,6 +332,7 @@ export function PostListBody({
             checked={checkedIds?.includes(post.id)}
             onCheck={onCheck && (() => onCheck(post.id))}
             onOpen={() => onOpen(post)}
+            search={search}
           />
         ))}
       </ul>

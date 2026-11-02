@@ -61,7 +61,15 @@ export type BoardPostSummary = {
   answered: boolean;
   deletedAt: string | null;
   reactionCount: number;
+  // 파일·댓글 검색일 때 검색어와 맞은 파일 이름·댓글 내용(그 밖에는 null)
+  matchText: string | null;
 };
+
+// 검색 결과 화면의 탭(찾을 곳). ALL: 제목·본문·글쓴이(게시판 안 검색·휴지통).
+export type BoardSearchScope = "ALL" | "POST" | "AUTHOR" | "FILE" | "COMMENT";
+
+// 검색 결과 탭별 건수
+export type BoardSearchCounts = { post: number; author: number; file: number; comment: number };
 
 // 글 리액션 한 종류. mine: 내가 누른 이모지, names: 누른 사람(누른 순서)
 export type BoardReaction = {
@@ -219,6 +227,7 @@ export const boardApi = {
       size?: number;
       sort?: BoardListSort;
       unread?: boolean;
+      scope?: BoardSearchScope;
     } = {},
   ) => {
     const query = new URLSearchParams({ view });
@@ -229,8 +238,15 @@ export const boardApi = {
     if (options.size) query.set("size", String(options.size));
     if (options.sort) query.set("sort", options.sort);
     if (options.unread) query.set("unread", "true");
+    if (options.scope && options.scope !== "ALL") query.set("scope", options.scope);
     return apiRequest<BoardPostPage>(`/api/v1/board/post/list?${query}`, token);
   },
+  // 검색 결과 화면 탭별 건수(게시글·작성자·파일·댓글)
+  searchCounts: (token: string, keyword: string) =>
+    apiRequest<BoardSearchCounts>(
+      `/api/v1/board/post/search/counts?${new URLSearchParams({ keyword })}`,
+      token,
+    ),
   // 목록에서 고른 글을 한꺼번에 읽음으로(최대 100개). 결과는 새로 읽음 처리한 글 수.
   markRead: (token: string, postIds: number[]) =>
     apiRequest<number>("/api/v1/board/post/read", token, json({ postIds })),
