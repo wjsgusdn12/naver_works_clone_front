@@ -7,13 +7,15 @@ import {
   Building2,
   ChevronDown,
   ChevronRight,
+  Globe,
   MessageSquarePlus,
   Star,
   UsersRound,
 } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
-export type AddressBookView = "favorite" | "group" | "company" | "department";
+// all: 모든 회사·모든 부서의 구성원 전체
+export type AddressBookView = "favorite" | "group" | "all" | "company" | "department";
 
 export function OrganizationSidebar({
   isCollapsed,
@@ -135,6 +137,20 @@ export function OrganizationSidebar({
                 message="조직도를 불러오는 중입니다."
                 className="px-3 py-2 text-xs text-slate-500"
               />
+            )}
+            {isOrganizationExpanded && !organizationLoading && (
+              // 모든 회사·모든 부서 구성원을 한 번에 보는 항목
+              <button
+                type="button"
+                className={`mb-0.5 flex w-full cursor-pointer items-center gap-2 rounded-md py-2 pl-9 pr-3 text-left ${view === "all" ? "bg-blue-50 text-blue-700" : "hover:bg-slate-100"}`}
+                onClick={() => onSelectView("all")}
+              >
+                <Globe size={17} />
+                <span className="truncate">전체 구성원</span>
+                <span className="shrink-0 text-xs font-bold text-blue-600">
+                  {organizations.reduce((sum, organization) => sum + organization.memberCount, 0)}
+                </span>
+              </button>
             )}
             {isOrganizationExpanded &&
               organizations.map((organization) => {

@@ -27,15 +27,28 @@ import { MEMBER_PAGE_SIZE, filterGroups, type GroupTab } from "@/lib/address-boo
 import { markAuthenticationRequired } from "@/lib/auth-required-notice";
 import { useToast } from "@/hooks/use-toast";
 import { withLiveStatus } from "@/lib/live-status";
-import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 export default function AddressBookPage() {
+  // URL 쿼리(view=all)는 런타임 값이라 Suspense 경계 안에서 읽음.
+  return (
+    <Suspense fallback={<PageLoading />}>
+      <AddressBookContent />
+    </Suspense>
+  );
+}
+
+function AddressBookContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { accessToken, member, status, applySession, logout } = useAuth();
   const { presenceByMembershipId, memberStatusByMembershipId } = useChatNotification();
   const { toast, showToast, dismissToast, resetToast } = useToast();
-  const [view, setView] = useState<AddressBookView>("company");
+  // ?view=all 로 들어오면(홈 주소록 카드 "전체보기") 모든 회사 구성원부터 보여 줌
+  const [view, setView] = useState<AddressBookView>(() =>
+    searchParams.get("view") === "all" ? "all" : "company",
+  );
   const [departmentId, setDepartmentId] = useState<number | null>(null);
   const [organizations, setOrganizations] = useState<
     Awaited<ReturnType<typeof addressBookApi.organization>>
@@ -110,7 +123,8 @@ export default function AddressBookPage() {
       direction,
     });
     if (executedKeyword.trim()) parameters.set("keyword", executedKeyword.trim());
-    if (view !== "favorite" && companyId) parameters.set("companyId", String(companyId));
+    if (view === "all") parameters.set("allCompany", "true");
+    else if (view !== "favorite" && companyId) parameters.set("companyId", String(companyId));
     if (view === "department" && departmentId) parameters.set("departmentId", String(departmentId));
     if (view === "favorite") parameters.set("favoriteOnly", "true");
     setIsMembersLoading(true);
@@ -427,9 +441,11 @@ export default function AddressBookPage() {
       ? "즐겨찾기"
       : view === "group"
         ? "그룹"
-        : view === "department" && selectedDepartment
-          ? selectedDepartment.name
-          : selectedCompany?.companyName || "주소록";
+        : view === "all"
+          ? "전체 구성원"
+          : view === "department" && selectedDepartment
+            ? selectedDepartment.name
+            : selectedCompany?.companyName || "주소록";
 
   const selectCompany = (targetCompanyId: number) => {
     setCompanyId(targetCompanyId);
