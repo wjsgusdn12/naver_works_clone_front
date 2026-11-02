@@ -156,7 +156,7 @@ const titleOf = (point: ApiDashboardTrendPoint, range: Range) => {
 // 홈 화면의 관리자 전용 "API 상태". 서버 여러 대의 요청을 합친 숫자(배포)나 이 서버 숫자(로컬)를 30초마다 갱신.
 // 고른 기간 탭 것만 받아 오고(30초마다 갱신), 한 번 받은 탭은 기억해 두었다가 다시 고르면 바로 보여 줌.
 export function ApiDashboardSection({ accessToken }: { accessToken: string }) {
-  const [range, setRange] = useState<Range>("DAY");
+  const [range, setRange] = useState<Range>("HOUR");
   const [dataByRange, setDataByRange] = useState<Partial<Record<Range, ApiDashboard>>>({});
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
