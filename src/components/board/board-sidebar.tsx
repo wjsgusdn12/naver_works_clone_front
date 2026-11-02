@@ -13,7 +13,7 @@ import {
   Clock3,
   FileClock,
   FilePen,
-  Flag,
+  Star,
   House,
   Megaphone,
   MessageSquare,
@@ -50,7 +50,7 @@ const QUICK_MENUS: {
 }[] = [
   { kind: "latest", label: "최신글", icon: Clock3 },
   { kind: "mustRead", label: "필독", icon: BellRing },
-  { kind: "important", label: "중요", icon: Flag },
+  { kind: "important", label: "중요", icon: Star },
   { kind: "mine", label: "내 게시글", icon: FilePen },
 ];
 
