@@ -377,7 +377,7 @@ export function GlobalHeader({
                         : undefined
                   }
                   onClick={onClick}
-                  className={`flex h-9 shrink-0 cursor-pointer items-center justify-center rounded-md text-zinc-300 transition hover:-translate-y-0.5 hover:bg-zinc-800 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${label === "내 프로필" && isAuthenticated ? "min-w-9 px-0.5" : label === "관리자" && isAdminMode ? "mx-1.5 px-0.5 hover:bg-transparent" : label === "프로젝트 소개" ? "ml-3 w-9 hover:scale-110 hover:bg-transparent" : "w-9"}`}
+                  className={`flex h-9 shrink-0 cursor-pointer items-center justify-center rounded-md text-zinc-300 transition hover:-translate-y-0.5 hover:bg-zinc-800 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${label === "내 프로필" && isAuthenticated ? "min-w-9 px-0.5" : label === "관리자" && isAdminMode ? "w-9 hover:bg-transparent" : label === "프로젝트 소개" ? "ml-3 w-9 hover:scale-110 hover:bg-transparent" : "w-9"}`}
                 >
                   {label === "내 프로필" && isAuthenticated ? (
                     // 주소록·메시지와 같은 공통 아바타. 본인은 접속 중이라 온라인, 상태 설정이 있으면 그 아이콘.
@@ -395,8 +395,8 @@ export function GlobalHeader({
                       </span>
                     </span>
                   ) : label === "관리자" && isAdminMode ? (
-                    // 관리자 모드 ON: 방패 그림 + "ADMIN" 글자. 둘 다 같은 무지개 그라데이션이 계속 흘러감.
-                    <span className="flex items-center gap-1">
+                    // 관리자 모드 ON: 방패 그림에 무지개 그라데이션이 계속 흐르고 빛번짐이 깜빡임.
+                    <span className="flex items-center">
                       {/* 방패 선(stroke)에 칠할 그라데이션. 옆으로 계속 밀려 색이 흐르는 것처럼 보임. */}
                       <svg width="0" height="0" className="absolute" aria-hidden="true">
                         <defs>
@@ -432,9 +432,6 @@ export function GlobalHeader({
                         aria-hidden="true"
                         className="admin-mode-glow"
                       />
-                      <span className="admin-mode-text admin-mode-glow text-[13px] font-black tracking-wider">
-                        ADMIN
-                      </span>
                     </span>
                   ) : label === "알림" ? (
                     <span className="relative">

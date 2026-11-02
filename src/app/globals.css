@@ -422,26 +422,7 @@ body {
   }
 }
 
-/* 상단바 관리자 모드 ON: 글자 속 무지개 그라데이션이 옆으로 흐르고(방패 그림은 SVG 그라데이션으로 같은 색),
-   빛번짐이 주황·분홍·보라로 바뀌며 깜빡임. */
-@keyframes admin-mode-flow {
-  from {
-    background-position: 0% 50%;
-  }
-  to {
-    background-position: 200% 50%;
-  }
-}
-
-.admin-mode-text {
-  background: linear-gradient(90deg, #fde047, #f97316, #ef4444, #ec4899, #a855f7, #f97316, #fde047);
-  background-size: 200% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: admin-mode-flow 1.2s linear infinite;
-}
-
+/* 상단바 관리자 모드 ON 방패: 빛번짐이 주황·분홍·보라로 바뀌며 깜빡임(색 흐름은 SVG 그라데이션). */
 @keyframes admin-mode-glow {
   0%,
   100% {
@@ -459,16 +440,8 @@ body {
   animation: admin-mode-glow 1.5s ease-in-out infinite;
 }
 
-.admin-mode-text.admin-mode-glow {
-  animation:
-    admin-mode-flow 1.2s linear infinite,
-    admin-mode-glow 1.5s ease-in-out infinite;
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .admin-mode-text,
-  .admin-mode-glow,
-  .admin-mode-text.admin-mode-glow {
+  .admin-mode-glow {
     animation: none;
   }
 }
