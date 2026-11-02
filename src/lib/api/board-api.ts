@@ -37,7 +37,8 @@ export type BoardItem = {
 
 export type BoardSidebar = { boards: BoardItem[]; admin: boolean };
 
-// 목록의 글 한 줄. read: 내가 읽었는지, hasFile: 첨부 파일 있음, answered: 문의하기 답변 완료.
+// 목록의 글 한 줄. read: 내가 읽었는지, hasFile: 첨부 파일 있음, answered: 문의하기 답변 완료,
+// reactionCount: 이모지 리액션을 남긴 사람 수.
 export type BoardPostSummary = {
   status: BoardPostStatus;
   publishAt: string | null;
@@ -59,6 +60,15 @@ export type BoardPostSummary = {
   hasFile: boolean;
   answered: boolean;
   deletedAt: string | null;
+  reactionCount: number;
+};
+
+// 글 리액션 한 종류. mine: 내가 누른 이모지, names: 누른 사람(누른 순서)
+export type BoardReaction = {
+  emoji: string;
+  count: number;
+  mine: boolean;
+  names: string[];
 };
 
 // pinned: 게시판 첫 페이지의 중요 글(맨 위 고정, 검색 중이면 없음). page는 0부터.
@@ -131,6 +141,9 @@ export type BoardPostDetail = {
   canRestore: boolean;
   canSeeReaders: boolean;
   canComment: boolean;
+  reactions: BoardReaction[];
+  // 등록된 글(휴지통·임시저장·예약 아님)에만 리액션 가능
+  canReact: boolean;
 };
 
 // companyName: 공통 게시판 필독은 여러 회사 사람이 섞이므로 함께 표시
@@ -244,6 +257,13 @@ export const boardApi = {
       `/api/v1/board/comment/create?postId=${postId}`,
       token,
       json({ content }),
+    ),
+  // 같은 이모지를 다시 누르면 취소, 다른 이모지면 바꿈. 바뀐 상세가 옴.
+  react: (token: string, postId: number, emoji: string) =>
+    apiRequest<BoardPostDetail>(
+      `/api/v1/board/post/reaction?postId=${postId}`,
+      token,
+      json({ emoji }),
     ),
   deleteComment: (token: string, commentId: number) =>
     apiRequest<BoardPostDetail>(`/api/v1/board/comment/delete/${commentId}`, token, {

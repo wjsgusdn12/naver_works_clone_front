@@ -4,7 +4,7 @@ import { dateLabel } from "@/components/chat/message-search-panel";
 import { CustomCheckbox } from "@/components/common/custom-checkbox";
 import { LoadingState } from "@/components/common/loading";
 import type { BoardPostSummary } from "@/lib/api/board-api";
-import { ChevronRight, Eye, MessageSquare, Paperclip, RotateCw } from "lucide-react";
+import { ChevronRight, Eye, MessageSquare, Paperclip, RotateCw, SmilePlus } from "lucide-react";
 
 // 필독·중요·답변 상태 딱지
 export function PostBadges({ post }: { post: Pick<BoardPostSummary, "mustRead" | "important"> }) {
@@ -123,8 +123,8 @@ function MetaDot() {
   );
 }
 
-// 글 줄 오른쪽 정보: (prefix ·) 작성자 · 날짜 · 조회수 · 댓글 수. 게시판 목록·게시판 홈·메인 홈 카드 공통.
-// prefix는 게시판·회사 이름처럼 앞에 붙일 글자. 리액션이 생기면 조회수와 댓글 수 사이에 넣음.
+// 글 줄 오른쪽 정보: (prefix ·) 작성자 · 날짜 · 조회수 · 리액션 수 · 댓글 수. 게시판 목록·게시판 홈·메인 홈 카드 공통.
+// prefix는 게시판·회사 이름처럼 앞에 붙일 글자.
 // dateText가 없으면 날짜 형식(dateLabel)으로.
 export function PostMeta({
   post,
@@ -150,6 +150,14 @@ export function PostMeta({
       <span className="flex items-center gap-0.5" title="조회수">
         <Eye size={12} aria-hidden="true" />
         {post.viewCount}
+      </span>
+      <MetaDot />
+      <span
+        className={`flex items-center gap-0.5 ${post.reactionCount > 0 ? "text-amber-600" : ""}`}
+        title="리액션 수"
+      >
+        <SmilePlus size={12} aria-hidden="true" />
+        {post.reactionCount}
       </span>
       <MetaDot />
       <span

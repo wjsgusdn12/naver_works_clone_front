@@ -6,9 +6,12 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { useChatNotification } from "@/components/chat/chat-notification-provider";
 import { MessageDialogShell } from "@/components/chat/message-change-dialog";
 import { MessageMemberAvatar } from "@/components/chat/message-member-avatar";
+import { ReactionEmoji } from "@/components/chat/reaction-emoji";
+import { ReactionPicker } from "@/components/chat/reaction-picker";
 import { LoadingState, Spinner } from "@/components/common/loading";
 import { MeBadge } from "@/components/common/me-badge";
 import { Tabs } from "@/components/common/tabs";
+import { Tooltip } from "@/components/common/tooltip";
 import {
   boardApi,
   type BoardAttachment,
@@ -16,6 +19,7 @@ import {
   type BoardReaders,
 } from "@/lib/api/board-api";
 import { fileIconOf, formatFileSize, saveBlob } from "@/lib/attachment-files";
+import { reactionLabel } from "@/lib/chat-reactions";
 import { Download, Eye, Paperclip, RotateCcw, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -54,6 +58,7 @@ export function BoardPostDetailView({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [readersOpen, setReadersOpen] = useState(false);
+  const [reacting, setReacting] = useState(false);
   const files = post.attachments.filter((attachment) => !attachment.inline);
 
   const download = async (attachment: BoardAttachment) => {
@@ -86,6 +91,19 @@ export function BoardPostDetailView({
       onToast(error instanceof Error ? error.message : "댓글을 삭제하지 못했습니다.");
     } finally {
       setDeletingCommentId(null);
+    }
+  };
+
+  // 리액션: 같은 이모지를 다시 누르면 취소, 다른 이모지면 바꿈(한 사람 글마다 하나)
+  const react = async (emoji: string) => {
+    if (reacting) return;
+    setReacting(true);
+    try {
+      onChanged(await boardApi.react(accessToken, post.id, emoji));
+    } catch (error) {
+      onToast(error instanceof Error ? error.message : "리액션을 남기지 못했습니다.");
+    } finally {
+      setReacting(false);
     }
   };
 
@@ -178,6 +196,37 @@ export function BoardPostDetailView({
       <div className="py-8">
         <RichContent json={post.content} />
       </div>
+
+      {(post.canReact || post.reactions.length > 0) && (
+        // 리액션 줄: 이모지별 개수(내가 누른 건 파란 테두리, 올리면 누른 사람) + 이모지 고르기 버튼
+        <div className="mb-8 flex flex-wrap items-center gap-1.5">
+          {post.reactions.map((reaction) => (
+            <Tooltip
+              key={reaction.emoji}
+              label={`${reactionLabel(reaction.emoji)} · ${reaction.names.join(", ")}`}
+            >
+              <button
+                type="button"
+                disabled={!post.canReact || reacting}
+                onClick={() => void react(reaction.emoji)}
+                aria-pressed={reaction.mine}
+                className={`flex h-8 cursor-pointer items-center gap-1 rounded-full border px-2.5 text-sm transition active:scale-95 disabled:cursor-default ${reaction.mine ? "border-blue-300 bg-blue-50 font-semibold text-blue-700" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}
+              >
+                <ReactionEmoji code={reaction.emoji} size={18} />
+                {reaction.count}
+              </button>
+            </Tooltip>
+          ))}
+          {post.canReact && (
+            <ReactionPicker
+              isMine={false}
+              alwaysVisible
+              reactedEmojis={post.reactions.filter((item) => item.mine).map((item) => item.emoji)}
+              onReact={(emoji) => void react(emoji)}
+            />
+          )}
+        </div>
+      )}
 
       {files.length > 0 && (
         // 첨부: 작은 제목 + 줄 목록(박스 없음), 줄을 누르면 내려받기

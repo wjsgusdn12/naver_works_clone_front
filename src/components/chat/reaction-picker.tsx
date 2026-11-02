@@ -15,6 +15,8 @@ type ReactionPickerProps = {
   // 보낸 지 24시간이 지난 메시지. 선택창을 열지 않고 안내 문구를 툴팁으로 띄움.
   expiredMessage?: string | null;
   onReact: (emoji: string) => void;
+  // 말풍선에 마우스를 올리지 않아도 버튼을 항상 보임(게시글 리액션 줄).
+  alwaysVisible?: boolean;
 };
 
 const PICKER_WIDTH = 236;
@@ -26,6 +28,7 @@ export function ReactionPicker({
   reactedEmojis,
   expiredMessage = null,
   onReact,
+  alwaysVisible = false,
 }: ReactionPickerProps) {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
@@ -108,7 +111,7 @@ export function ReactionPicker({
         aria-expanded={Boolean(position)}
         aria-haspopup="true"
         onClick={open}
-        className={`flex h-5 w-6 shrink-0 cursor-pointer items-center justify-center rounded-md transition duration-150 hover:bg-slate-100 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-blue-500 active:scale-95 [@media(hover:none)]:opacity-100 ${
+        className={`flex shrink-0 cursor-pointer items-center justify-center transition duration-150 hover:bg-slate-100 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-blue-500 active:scale-95 [@media(hover:none)]:opacity-100 ${alwaysVisible ? "h-8 w-9 rounded-full border border-slate-200 opacity-100!" : "h-5 w-6 rounded-md"} ${
           reacted
             ? "text-amber-500 opacity-100 hover:text-amber-600"
             : position
