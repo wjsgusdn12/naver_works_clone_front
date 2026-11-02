@@ -81,6 +81,10 @@ export function HomeDashboard({
   const [rooms, setRooms] = useState<ChatRoom[] | null>(null);
   // 주소록 카드(전체 구성원). 즐겨찾기는 별 버튼으로 켜고 끔.
   const [members, setMembers] = useState<AddressBookMember[] | null>(null);
+  // 카드별 보기 거르기(투명 버튼): 즐겨찾기만 · 안 읽은 대화만 · 안 읽은 글만
+  const [favoriteOnly, setFavoriteOnly] = useState(false);
+  const [unreadRoomsOnly, setUnreadRoomsOnly] = useState(false);
+  const [unreadPostsOnly, setUnreadPostsOnly] = useState(false);
   // 게시판 홈 요약(공지사항·최신글). 실패하면 빈 값으로 두고 안내만 띄움.
   const [board, setBoard] = useState<BoardHome | null>(null);
 
@@ -150,8 +154,9 @@ export function HomeDashboard({
   const onlineCount = Object.entries(presenceByMembershipId).filter(
     ([id, status]) => status === "ONLINE" && Number(id) !== membershipId,
   ).length;
+  const visibleMembers = (members ?? []).filter((item) => !favoriteOnly || item.favorite);
   const recentRooms = [...(rooms ?? [])]
-    .filter((room) => room.lastMessageAt !== null)
+    .filter((room) => room.lastMessageAt !== null && (!unreadRoomsOnly || room.unreadCount > 0))
     .sort((a, b) => (b.lastMessageAt ?? "").localeCompare(a.lastMessageAt ?? ""))
     .slice(0, RECENT_ROOM_LIMIT);
 
@@ -211,10 +216,10 @@ export function HomeDashboard({
   return (
     <main className="min-h-0 flex-1 overflow-y-auto">
       <div className="mx-auto w-full max-w-7xl px-5 py-8 sm:px-8 lg:px-10">
-        {/* 3열 × 2행(행 높이 고정): 인사말·알림(왼쪽 두 줄) | 주소록 위 / 최근 대화 아래 | 최신 게시글(오른쪽 두 줄).
+        {/* 3열 × 2행(행 높이 294px 고정): 인사말·알림(왼쪽 두 줄) | 주소록 위 / 최근 대화 아래 | 최신 게시글(오른쪽 두 줄).
             같은 행 카드는 높이가 자동으로 같아져 위·아래선이 맞음. 좁은 화면에서는 한 줄씩 쌓임. */}
-        <section className="grid gap-5 xl:grid-cols-3 xl:grid-rows-[420px_420px]">
-          {/* 인사말 카드(두 줄 높이): 내 프로필·날짜·인사말, 숫자 3칸, 알림 목록, 바로가기 4개 */}
+        <section className="grid gap-5 xl:grid-cols-3 xl:grid-rows-[294px_294px]">
+          {/* 인사말 카드(두 줄 높이): 내 프로필·날짜·인사말·상태, 알림 목록, 바로가기 4개 */}
           <article className="flex flex-col rounded-xl border border-slate-200 bg-white p-5 shadow-sm xl:col-start-1 xl:row-span-2 xl:row-start-1">
             <div className="flex items-center gap-4">
               <UserAvatar
@@ -237,30 +242,18 @@ export function HomeDashboard({
                 />
               </div>
             </div>
-            <div className="mt-5 grid grid-cols-3 divide-x divide-slate-100">
-              <StatTile
-                label="안 읽은 메시지"
-                value={rooms === null ? null : unreadTotal}
-                suffix="건"
-                onClick={() => router.push("/message")}
-              />
-              <StatTile
-                label="온라인 구성원"
-                value={onlineCount}
-                suffix="명"
-                onClick={() => router.push("/addressBook")}
-              />
-              <StatTile
-                label="읽지 않은 알림"
-                value={notificationsLoaded ? notificationCount : null}
-                suffix="건"
-              />
-            </div>
 
-            {/* 알림: 제목 줄 오른쪽에 모두 읽음(상단바 패널과 같은 동작)·알림 설정 */}
+            {/* 알림: 제목 옆 읽지 않은 알림 수, 오른쪽에 모두 읽음(상단바 패널과 같은 동작)·알림 설정 */}
             <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4">
               <div>
-                <p className="text-base font-bold text-slate-900">알림</p>
+                <p className="flex items-center gap-2 text-base font-bold text-slate-900">
+                  알림
+                  <CountChip
+                    label="읽지 않음"
+                    value={notificationsLoaded ? notificationCount : null}
+                    suffix="건"
+                  />
+                </p>
                 <p className="mt-0.5 text-xs text-slate-500">최근 30일 알림입니다.</p>
               </div>
               <div className="flex items-center gap-1">
@@ -334,16 +327,29 @@ export function HomeDashboard({
             fill
             className="xl:col-start-2 xl:row-start-1"
             title="주소록"
+            badge={<CountChip label="온라인" value={onlineCount} suffix="명" />}
             description="전체 구성원입니다. 별을 눌러 즐겨찾기를 켜고 끕니다."
             onTitleClick={() => router.push("/addressBook")}
+            action={
+              <>
+                <GhostToggle active={favoriteOnly} onClick={() => setFavoriteOnly((on) => !on)}>
+                  즐겨찾기만
+                </GhostToggle>
+                <BlueButton onClick={() => router.push("/message?create=group")}>
+                  새 대화
+                </BlueButton>
+              </>
+            }
           >
             {members === null ? (
               <LoadingInline message="주소록을 불러오는 중입니다." className="py-8 text-sm" />
-            ) : members.length === 0 ? (
-              <Empty message="구성원이 없습니다." />
+            ) : visibleMembers.length === 0 ? (
+              <Empty
+                message={favoriteOnly ? "즐겨찾기한 구성원이 없습니다." : "구성원이 없습니다."}
+              />
             ) : (
               <ul className={`${LIST_FILL} divide-y divide-slate-100`}>
-                {members.map((item) => {
+                {visibleMembers.map((item) => {
                   const target = withLiveStatus(
                     item,
                     presenceByMembershipId,
@@ -397,11 +403,27 @@ export function HomeDashboard({
             fill
             className="xl:col-start-2 xl:row-start-2"
             title="최근 대화"
+            badge={
+              <CountChip label="안 읽음" value={rooms === null ? null : unreadTotal} suffix="건" />
+            }
             description="마지막 메시지가 최근인 순서입니다."
             onTitleClick={() => router.push("/message")}
+            action={
+              <>
+                <GhostToggle
+                  active={unreadRoomsOnly}
+                  onClick={() => setUnreadRoomsOnly((on) => !on)}
+                >
+                  안 읽은 대화만
+                </GhostToggle>
+                <BlueButton onClick={() => void openSelf()}>내 메모</BlueButton>
+              </>
+            }
           >
             {rooms === null ? (
               <LoadingInline message="대화 목록을 불러오는 중입니다." className="py-10 text-sm" />
+            ) : recentRooms.length === 0 && unreadRoomsOnly ? (
+              <Empty message="안 읽은 대화가 없습니다." />
             ) : recentRooms.length === 0 ? (
               <Empty
                 message="아직 대화가 없습니다."
@@ -480,10 +502,21 @@ export function HomeDashboard({
             title="최신 게시글"
             description="볼 수 있는 모든 게시판의 새 글입니다(공지사항 포함)."
             onTitleClick={() => router.push("/board?menu=latest")}
+            action={
+              <>
+                <GhostToggle
+                  active={unreadPostsOnly}
+                  onClick={() => setUnreadPostsOnly((on) => !on)}
+                >
+                  안 읽은 글만
+                </GhostToggle>
+                <BlueButton onClick={() => router.push("/board?write=1")}>글쓰기</BlueButton>
+              </>
+            }
           >
             <BoardPostList
-              posts={board ? board.latest : null}
-              emptyText="아직 올라온 글이 없습니다."
+              posts={board ? board.latest.filter((post) => !unreadPostsOnly || !post.read) : null}
+              emptyText={unreadPostsOnly ? "안 읽은 글이 없습니다." : "아직 올라온 글이 없습니다."}
               showBoard
               onOpen={(post) => router.push(`/board?postId=${post.id}`)}
             />
@@ -569,36 +602,56 @@ function QuickButton({
   );
 }
 
-// 인사말 카드의 숫자 한 칸: 작은 이름 + 큰 숫자. 누를 수 있으면 해당 화면으로 이동.
-function StatTile({
+// 카드 제목 옆 숫자 칩(예: "온라인 3명"). value가 null이면 불러오는 중.
+function CountChip({
   label,
   value,
   suffix,
-  onClick,
 }: {
   label: string;
-  // null이면 아직 불러오는 중.
   value: number | null;
   suffix: string;
-  onClick?: () => void;
 }) {
-  const Tag = onClick ? "button" : "div";
   return (
-    <Tag
-      type={onClick ? "button" : undefined}
+    <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
+      {label}
+      {value === null ? <Spinner size={10} /> : <b className="font-bold">{value}</b>}
+      {suffix}
+    </span>
+  );
+}
+
+// 카드 제목 줄 오른쪽 버튼. 투명 버튼은 켜고 끄는 보기 거르기(켜지면 연한 파랑), 파란 버튼은 바로 하는 동작.
+function GhostToggle({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
       onClick={onClick}
-      className={`flex flex-col items-start gap-1 px-4 text-left first:pl-0 ${onClick ? "cursor-pointer transition hover:opacity-70" : ""}`}
+      className={`h-7 shrink-0 cursor-pointer whitespace-nowrap rounded-md border px-2.5 text-xs font-medium transition active:scale-95 ${active ? "border-blue-200 bg-blue-50 text-blue-700" : "border-slate-200 bg-transparent text-slate-600 hover:bg-slate-50"}`}
     >
-      <span className="whitespace-nowrap text-xs text-slate-500">{label}</span>
-      {value === null ? (
-        <Spinner size={16} className="my-1.5 text-blue-500" />
-      ) : (
-        <span className="text-2xl font-bold tracking-tight text-slate-900">
-          {value}
-          <span className="ml-0.5 text-xs font-medium text-slate-400">{suffix}</span>
-        </span>
-      )}
-    </Tag>
+      {children}
+    </button>
+  );
+}
+
+function BlueButton({ onClick, children }: { onClick: () => void; children: ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="h-7 shrink-0 cursor-pointer whitespace-nowrap rounded-md bg-blue-600 px-2.5 text-xs font-semibold text-white transition hover:bg-blue-700 active:scale-95"
+    >
+      {children}
+    </button>
   );
 }
 
@@ -608,6 +661,7 @@ function Card({
   title,
   description,
   onTitleClick,
+  badge,
   action,
   className = "",
   fill = false,
@@ -617,7 +671,9 @@ function Card({
   description: string;
   // 있으면 제목이 "제목 >" 링크가 됨(마우스를 올리면 파란색, 누르면 해당 화면).
   onTitleClick?: () => void;
-  // 제목 줄 오른쪽 작은 버튼(예: 알림 "모두 읽음")
+  // 제목 바로 옆 작은 칩(예: "온라인 3명")
+  badge?: ReactNode;
+  // 제목 줄 오른쪽 버튼들
   action?: ReactNode;
   className?: string;
   fill?: boolean;
@@ -628,28 +684,31 @@ function Card({
       className={`rounded-xl border border-slate-200 bg-white p-5 shadow-sm ${fill ? "flex flex-col" : ""} ${className}`}
     >
       <div className="flex items-start justify-between gap-3">
-        <div>
-          {onTitleClick ? (
-            <button
-              type="button"
-              onClick={onTitleClick}
-              className="group flex cursor-pointer items-center text-base font-bold text-slate-900 transition hover:text-blue-600"
-            >
-              {title}
-              {/* 화살표는 처음부터 굵은 파란색(링크라는 표시). 아이콘 안쪽 여백만큼 당겨 제목에 붙임 */}
-              <ChevronRight
-                size={18}
-                strokeWidth={3}
-                aria-hidden="true"
-                className="-ml-0.5 text-blue-600 transition group-hover:translate-x-0.5"
-              />
-            </button>
-          ) : (
-            <p className="text-base font-bold text-slate-900">{title}</p>
-          )}
-          <p className="mt-1 text-sm text-slate-500">{description}</p>
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            {onTitleClick ? (
+              <button
+                type="button"
+                onClick={onTitleClick}
+                className="group flex cursor-pointer items-center text-base font-bold text-slate-900 transition hover:text-blue-600"
+              >
+                {title}
+                {/* 화살표는 처음부터 굵은 파란색(링크라는 표시). 아이콘 안쪽 여백만큼 당겨 제목에 붙임 */}
+                <ChevronRight
+                  size={18}
+                  strokeWidth={3}
+                  aria-hidden="true"
+                  className="-ml-0.5 text-blue-600 transition group-hover:translate-x-0.5"
+                />
+              </button>
+            ) : (
+              <p className="text-base font-bold text-slate-900">{title}</p>
+            )}
+            {badge}
+          </div>
+          <p className="mt-1 truncate text-sm text-slate-500">{description}</p>
         </div>
-        {action}
+        {action && <div className="flex shrink-0 items-center gap-1.5">{action}</div>}
       </div>
       <div className={fill ? "relative mt-3 min-h-0 flex-1" : "mt-3"}>{children}</div>
     </article>
