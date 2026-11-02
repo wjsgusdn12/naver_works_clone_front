@@ -21,7 +21,6 @@ import type { MemberStatusType } from "@/lib/status-options";
 import type { NotificationCategory, NotificationItem } from "@/lib/api/notification-api";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useChatNotification } from "@/components/chat/chat-notification-provider";
-import { CursorTooltip } from "@/components/common/cursor-tooltip";
 import { Tooltip } from "@/components/common/tooltip";
 import { LoadingState } from "@/components/common/loading";
 import { ProfileMenu } from "@/components/common/profile-menu";
@@ -34,29 +33,22 @@ type HeaderAction = {
   label: string;
   icon: LucideIcon;
   requiresAdmin?: boolean;
-  description: string;
 };
 
 // 아직 구현되지 않은 서비스도 동일한 헤더 구조로 먼저 제공.
-// description: 전체 서비스 패널에서 마우스를 올리면 커서 옆에 보이는 설명.
 const headerActions: HeaderAction[] = [
-  { label: "홈", icon: Home, description: "오늘의 대화·알림·게시판을 한눈에 봅니다." },
-  { label: "메시지", icon: MessageCircle, description: "1:1·그룹 메시지를 주고받습니다." },
-  { label: "캘린더", icon: CalendarDays, description: "일정 관리(준비 중)" },
-  { label: "주소록", icon: BookUser, description: "조직도와 구성원을 찾습니다." },
-  { label: "게시판", icon: ClipboardList, description: "공지사항·자유게시판·문의하기" },
-  {
-    label: "관리자",
-    icon: ShieldCheck,
-    requiresAdmin: true,
-    description: "관리자 기능(준비 중)",
-  },
-  { label: "전체 서비스", icon: Grid2X2, description: "모든 서비스를 모아 봅니다." },
-  { label: "알림", icon: Bell, description: "최근 30일 알림을 엽니다." },
-  { label: "설정", icon: Settings, description: "환경 설정(준비 중)" },
-  { label: "내 프로필", icon: UserRound, description: "내 정보·상태·로그아웃" },
+  { label: "홈", icon: Home },
+  { label: "메시지", icon: MessageCircle },
+  { label: "캘린더", icon: CalendarDays },
+  { label: "주소록", icon: BookUser },
+  { label: "게시판", icon: ClipboardList },
+  { label: "관리자", icon: ShieldCheck, requiresAdmin: true },
+  { label: "전체 서비스", icon: Grid2X2 },
+  { label: "알림", icon: Bell },
+  { label: "설정", icon: Settings },
+  { label: "내 프로필", icon: UserRound },
   // 두 저장소 README 다이어그램을 보여 주는 소개 모달.
-  { label: "프로젝트 소개", icon: BookOpen, description: "이 프로젝트의 구조를 소개합니다." },
+  { label: "프로젝트 소개", icon: BookOpen },
 ];
 
 // 알림 패널 칩 목록. 아직 기능이 없는 서비스(캘린더 등)는 칩을 만들지 않음.
@@ -423,7 +415,7 @@ export function GlobalHeader({
               )}
               {label === "전체 서비스" && isServicePanelOpen && (
                 // 알림 패널과 같은 자리(오른쪽 끝)의 작은 패널. 상단바 메뉴(전체 서비스 자신 제외)를 아이콘+이름 3열로,
-                // 누르면 상단바 아이콘과 같은 동작. 마우스를 올리면 커서 옆에 설명.
+                // 누르면 상단바 아이콘과 같은 동작.
                 <section
                   role="menu"
                   aria-label="전체 서비스"
@@ -433,26 +425,25 @@ export function GlobalHeader({
                   <div className="grid grid-cols-3 gap-0.5 overflow-y-auto p-2">
                     {visibleActions
                       .filter((action) => action.label !== "전체 서비스")
-                      .map(({ label: itemLabel, icon: ItemIcon, description }) => (
-                        <CursorTooltip key={itemLabel} label={description} className="block">
-                          <button
-                            type="button"
-                            role="menuitem"
-                            onClick={() => {
-                              setIsServicePanelOpen(false);
-                              runAction(itemLabel);
-                            }}
-                            className="group flex w-full cursor-pointer flex-col items-center gap-1.5 rounded-lg px-1 py-3 text-xs text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 active:scale-95"
-                          >
-                            <ItemIcon
-                              size={20}
-                              strokeWidth={1.7}
-                              aria-hidden="true"
-                              className="text-slate-500 transition group-hover:text-blue-600"
-                            />
-                            <span className="whitespace-nowrap">{itemLabel}</span>
-                          </button>
-                        </CursorTooltip>
+                      .map(({ label: itemLabel, icon: ItemIcon }) => (
+                        <button
+                          key={itemLabel}
+                          type="button"
+                          role="menuitem"
+                          onClick={() => {
+                            setIsServicePanelOpen(false);
+                            runAction(itemLabel);
+                          }}
+                          className="group flex w-full cursor-pointer flex-col items-center gap-1.5 rounded-lg px-1 py-3 text-xs text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 active:scale-95"
+                        >
+                          <ItemIcon
+                            size={20}
+                            strokeWidth={1.7}
+                            aria-hidden="true"
+                            className="text-slate-500 transition group-hover:text-blue-600"
+                          />
+                          <span className="whitespace-nowrap">{itemLabel}</span>
+                        </button>
                       ))}
                   </div>
                 </section>
