@@ -4,7 +4,6 @@ import { dateLabel } from "@/components/chat/message-search-panel";
 import { LoadingInline, LoadingState } from "@/components/common/loading";
 import type { BoardPostSummary } from "@/lib/api/board-api";
 import { ChevronRight, Eye, Paperclip, RotateCw } from "lucide-react";
-import type { ReactNode } from "react";
 
 // 필독·중요·답변 상태 딱지
 export function PostBadges({ post }: { post: Pick<BoardPostSummary, "mustRead" | "important"> }) {
@@ -39,9 +38,12 @@ export function PostRow({
   post,
   pinned = false,
   showBoard,
+  showCompany = false,
   onOpen,
 }: {
   post: BoardPostSummary;
+  // 관리자처럼 여러 회사 글이 섞이는 목록이면 회사 이름도
+  showCompany?: boolean;
   // 게시판 맨 위에 고정한 중요 글(옅은 배경)
   pinned?: boolean;
   showBoard: boolean;
@@ -81,7 +83,13 @@ export function PostRow({
           )}
         </span>
         <span className="flex shrink-0 items-center gap-3 text-xs text-slate-500">
-          {showBoard && <span className="max-w-28 truncate text-slate-400">{post.boardName}</span>}
+          {(showBoard || showCompany) && (
+            <span className="max-w-40 truncate text-slate-400">
+              {[showCompany && post.companyName, showBoard && post.boardName]
+                .filter(Boolean)
+                .join(" · ")}
+            </span>
+          )}
           <span className="max-w-24 truncate">{post.authorName}</span>
           <span className="w-20 text-right">{dateLabel(post.deletedAt ?? post.createdAt)}</span>
           <span className="flex w-10 items-center justify-end gap-0.5 text-slate-400">
@@ -94,10 +102,9 @@ export function PostRow({
   );
 }
 
-// 게시판 홈 영역 카드(제목 + 더 보기 + 글 5개)
+// 게시판 홈 영역(제목 + 더보기 + 글 5개). 테두리·아이콘 없이 제목 아래 선과 목록만.
 export function HomeCard({
   title,
-  icon,
   posts,
   emptyText,
   onMore,
@@ -105,57 +112,49 @@ export function HomeCard({
   answerBadge = false,
 }: {
   title: string;
-  icon: ReactNode;
   posts: BoardPostSummary[];
   emptyText: string;
-  onMore: (() => void) | null;
+  onMore: () => void;
   onOpen: (post: BoardPostSummary) => void;
   answerBadge?: boolean;
 }) {
   return (
-    <section className="flex min-h-64 flex-col rounded-xl border border-slate-200 bg-white p-5">
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="flex items-center gap-2 text-base font-bold text-slate-900">
-          {icon}
-          {title}
-        </h2>
-        {onMore && (
-          <button
-            type="button"
-            onClick={onMore}
-            className="flex cursor-pointer items-center text-xs text-slate-500 transition hover:text-blue-600"
-          >
-            더 보기
-            <ChevronRight size={14} aria-hidden="true" />
-          </button>
-        )}
+    <section>
+      <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+        <h2 className="text-[15px] font-bold text-slate-900">{title}</h2>
+        <button
+          type="button"
+          onClick={onMore}
+          className="flex cursor-pointer items-center text-xs text-slate-400 transition hover:text-slate-800"
+        >
+          더보기
+          <ChevronRight size={13} aria-hidden="true" />
+        </button>
       </div>
       {posts.length === 0 ? (
-        <p className="flex flex-1 items-center justify-center text-sm text-slate-400">
-          {emptyText}
-        </p>
+        <p className="py-12 text-center text-sm text-slate-400">{emptyText}</p>
       ) : (
-        <ul className="flex flex-col">
+        <ul className="divide-y divide-slate-100">
           {posts.map((post) => (
             <li key={post.id}>
               <button
                 type="button"
                 onClick={() => onOpen(post)}
-                className="flex w-full cursor-pointer items-center gap-2 rounded-md px-1 py-2 text-left text-sm transition hover:bg-slate-50"
+                className="flex w-full cursor-pointer items-center gap-2 py-2.5 text-left text-sm transition hover:text-blue-600"
               >
                 {answerBadge && <AnswerBadge answered={post.answered} />}
                 <PostBadges post={post} />
                 <span
-                  className={`min-w-0 flex-1 truncate ${post.read ? "text-slate-700" : "font-semibold text-slate-900"}`}
+                  className={`min-w-0 flex-1 truncate ${post.read ? "text-slate-600" : "font-semibold text-slate-900"}`}
                 >
                   {post.title}
                 </span>
                 {post.commentCount > 0 && (
-                  <span className="shrink-0 text-xs font-semibold text-blue-600">
-                    [{post.commentCount}]
-                  </span>
+                  <span className="shrink-0 text-xs text-blue-600">[{post.commentCount}]</span>
                 )}
-                <span className="shrink-0 text-xs text-slate-400">{dateLabel(post.createdAt)}</span>
+                <span className="w-16 shrink-0 text-right text-xs text-slate-400">
+                  {dateLabel(post.createdAt)}
+                </span>
               </button>
             </li>
           ))}
@@ -173,6 +172,7 @@ export function PostListBody({
   hasMore,
   loadingMore,
   showBoard,
+  showCompany = false,
   emptyText,
   onRetry,
   onMore,
@@ -184,6 +184,7 @@ export function PostListBody({
   hasMore: boolean;
   loadingMore: boolean;
   showBoard: boolean;
+  showCompany?: boolean;
   emptyText: string;
   onRetry: () => void;
   onMore: () => void;
@@ -222,11 +223,18 @@ export function PostListBody({
             post={post}
             pinned
             showBoard={showBoard}
+            showCompany={showCompany}
             onOpen={() => onOpen(post)}
           />
         ))}
         {items.map((post) => (
-          <PostRow key={post.id} post={post} showBoard={showBoard} onOpen={() => onOpen(post)} />
+          <PostRow
+            key={post.id}
+            post={post}
+            showBoard={showBoard}
+            showCompany={showCompany}
+            onOpen={() => onOpen(post)}
+          />
         ))}
       </ul>
       {hasMore && (

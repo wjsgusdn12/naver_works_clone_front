@@ -5,7 +5,12 @@ import { BoardPostDetailView } from "@/components/board/board-post-detail";
 import { BoardPostForm } from "@/components/board/board-post-form";
 import { HomeCard, PostListBody } from "@/components/board/board-post-list";
 import { BoardRenameDialog } from "@/components/board/board-rename-dialog";
-import { BoardSidebar, type BoardMenu } from "@/components/board/board-sidebar";
+import {
+  BoardSidebar,
+  COMMON_BOARDS,
+  type BoardMenu,
+  type CommonBoardType,
+} from "@/components/board/board-sidebar";
 import { GlobalHeader } from "@/components/common/global-header";
 import { LoadingState, PageLoading } from "@/components/common/loading";
 import { Toast } from "@/components/common/toast";
@@ -19,14 +24,7 @@ import {
   type BoardView,
 } from "@/lib/api/board-api";
 import { markAuthenticationRequired } from "@/lib/auth-required-notice";
-import {
-  BellRing,
-  Clock3,
-  Megaphone,
-  MessageSquare,
-  MessagesSquare,
-  SquarePen,
-} from "lucide-react";
+import { SquarePen } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 
@@ -36,7 +34,7 @@ import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 type Screen =
   | { kind: "menu"; menu: BoardMenu }
   | { kind: "post"; postId: number }
-  | { kind: "write"; boardId: number | null }
+  | { kind: "write"; boardId: number | null; type: CommonBoardType | null }
   | { kind: "edit"; postId: number };
 
 const MENU_VIEW: Record<"latest" | "mustRead" | "important" | "mine" | "trash", BoardView> = {
@@ -71,9 +69,11 @@ const screenOf = (params: URLSearchParams): Screen => {
   const editId = numberParam(params.get("edit"));
   const boardId = numberParam(params.get("boardId"));
   if (editId) return { kind: "edit", postId: editId };
-  if (params.get("write")) return { kind: "write", boardId };
+  const type = COMMON_BOARDS.find((item) => item.type === params.get("type"))?.type ?? null;
+  if (params.get("write")) return { kind: "write", boardId, type };
   if (postId) return { kind: "post", postId };
   if (boardId) return { kind: "menu", menu: { kind: "board", boardId } };
+  if (type) return { kind: "menu", menu: { kind: "type", type } };
   const menu = params.get("menu");
   if (menu && menu in MENU_VIEW)
     return { kind: "menu", menu: { kind: menu as keyof typeof MENU_VIEW } };
@@ -85,7 +85,9 @@ const menuHref = (menu: BoardMenu) =>
     ? "/board"
     : menu.kind === "board"
       ? `/board?boardId=${menu.boardId}`
-      : `/board?menu=${menu.kind}`;
+      : menu.kind === "type"
+        ? `/board?type=${menu.type}`
+        : `/board?menu=${menu.kind}`;
 
 // 목록 한 화면의 상태. key가 지금 화면과 다르면(다른 메뉴로 옮긴 직후) 불러오는 중으로 봄.
 type ListState = {
@@ -114,6 +116,8 @@ function BoardContent() {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [boards, setBoards] = useState<BoardItem[] | null>(null);
+  // 관리자면 여러 회사 글이 한 목록에 섞이므로 글 줄에 회사 이름도 보여 줌
+  const [admin, setAdmin] = useState(false);
   const [home, setHome] = useState<BoardHome | null>(null);
   const [homeFailed, setHomeFailed] = useState(false);
   const [list, setList] = useState<ListState | null>(null);
@@ -142,7 +146,9 @@ function BoardContent() {
   const loadBoards = useCallback(async () => {
     if (!accessToken) return;
     try {
-      setBoards((await boardApi.sidebar(accessToken)).boards);
+      const sidebar = await boardApi.sidebar(accessToken);
+      setBoards(sidebar.boards);
+      setAdmin(sidebar.admin);
     } catch (error) {
       setBoards([]);
       showToast(error instanceof Error ? error.message : "게시판 목록을 불러오지 못했습니다.");
@@ -170,19 +176,22 @@ function BoardContent() {
   }, [isHome, loadHome]);
 
   // 목록(메뉴·게시판)
-  const viewOf = (target: BoardMenu): { view: BoardView; boardId: number | null } | null =>
+  type ListTarget = { view: BoardView; boardId: number | null; type: CommonBoardType | null };
+  const viewOf = (target: BoardMenu): ListTarget | null =>
     target.kind === "home"
       ? null
       : target.kind === "board"
-        ? { view: "BOARD", boardId: target.boardId }
-        : { view: MENU_VIEW[target.kind], boardId: null };
+        ? { view: "BOARD", boardId: target.boardId, type: null }
+        : target.kind === "type"
+          ? { view: "TYPE", boardId: null, type: target.type }
+          : { view: MENU_VIEW[target.kind], boardId: null, type: null };
   const listTarget = viewOf(menu);
   const loadList = useCallback(
-    async (key: string, view: BoardView, boardId: number | null) => {
+    async (key: string, view: BoardView, boardId: number | null, type: CommonBoardType | null) => {
       if (!accessToken) return;
       const version = ++listVersionRef.current;
       try {
-        const page = await boardApi.list(accessToken, view, boardId);
+        const page = await boardApi.list(accessToken, view, { boardId, type });
         if (version !== listVersionRef.current) return;
         setList({ key, status: "loaded", ...page, loadingMore: false });
       } catch {
@@ -201,10 +210,11 @@ function BoardContent() {
   );
   const listView = listTarget?.view ?? null;
   const listBoardId = listTarget?.boardId ?? null;
+  const listType = listTarget?.type ?? null;
   useEffect(() => {
     if (listKey && listView)
-      void Promise.resolve().then(() => loadList(listKey, listView, listBoardId));
-  }, [listKey, listView, listBoardId, loadList]);
+      void Promise.resolve().then(() => loadList(listKey, listView, listBoardId, listType));
+  }, [listKey, listView, listBoardId, listType, loadList]);
 
   const loadMore = async () => {
     if (!accessToken || !list || !list.nextCursor || list.loadingMore || !listTarget) return;
@@ -214,7 +224,7 @@ function BoardContent() {
       const page = await boardApi.list(
         accessToken,
         listTarget.view,
-        listTarget.boardId,
+        { boardId: listTarget.boardId, type: listTarget.type },
         list.nextCursor,
       );
       if (version !== listVersionRef.current) return;
@@ -294,16 +304,32 @@ function BoardContent() {
 
   const currentBoard =
     menu.kind === "board" ? (boards ?? []).find((board) => board.id === menu.boardId) : null;
-  const listTitle =
+  const commonType = menu.kind === "type" ? menu.type : null;
+  const commonLabel = COMMON_BOARDS.find((item) => item.type === commonType)?.label ?? "";
+  // 글쓰기 버튼: 게시판이면 그 게시판, 공통 메뉴면 그 종류 중 내 회사 게시판(관리자는 글쓰기 화면에서 회사 선택)
+  const writeTarget =
     menu.kind === "board"
-      ? currentBoard
-        ? currentBoard.myCompany
-          ? currentBoard.name
-          : `${currentBoard.companyName} · ${currentBoard.name}`
-        : "게시판"
-      : menu.kind === "home"
-        ? ""
-        : MENU_TITLE[menu.kind];
+      ? currentBoard?.canWrite
+        ? {
+            href: `/board?write=1&boardId=${menu.boardId}`,
+            inquiry: currentBoard.type === "INQUIRY",
+          }
+        : null
+      : commonType && (boards ?? []).some((board) => board.type === commonType && board.canWrite)
+        ? { href: `/board?write=1&type=${commonType}`, inquiry: commonType === "INQUIRY" }
+        : null;
+  const listTitle =
+    menu.kind === "type"
+      ? commonLabel
+      : menu.kind === "board"
+        ? currentBoard
+          ? currentBoard.myCompany
+            ? currentBoard.name
+            : `${currentBoard.companyName} · ${currentBoard.name}`
+          : "게시판"
+        : menu.kind === "home"
+          ? ""
+          : MENU_TITLE[menu.kind];
   const currentList = list && list.key === listKey ? list : null;
 
   return (
@@ -328,7 +354,13 @@ function BoardContent() {
           menu={menu}
           onSelect={(target) => go(menuHref(target))}
           onWrite={() =>
-            go(menu.kind === "board" ? `/board?write=1&boardId=${menu.boardId}` : "/board?write=1")
+            go(
+              menu.kind === "board"
+                ? `/board?write=1&boardId=${menu.boardId}`
+                : menu.kind === "type"
+                  ? `/board?write=1&type=${menu.type}`
+                  : "/board?write=1",
+            )
           }
           onToggleFavorite={(board) => void toggleFavorite(board)}
           onRename={setRenaming}
@@ -339,10 +371,16 @@ function BoardContent() {
               <LoadingState message="게시판을 불러오는 중입니다..." className="min-h-64" />
             ) : (
               <BoardPostForm
-                key={`write-${screen.boardId ?? 0}`}
+                key={`write-${screen.boardId ?? 0}-${screen.type ?? ""}`}
                 accessToken={accessToken}
                 boards={writableBoards}
-                initialBoardId={screen.boardId}
+                initialBoardId={
+                  screen.boardId ??
+                  writableBoards.find((board) => board.myCompany && board.type === screen.type)
+                    ?.id ??
+                  writableBoards.find((board) => board.type === screen.type)?.id ??
+                  null
+                }
                 editing={null}
                 onCancel={() => router.back()}
                 onSaved={(saved) => {
@@ -410,18 +448,19 @@ function BoardContent() {
             <div className="w-full">
               <div className="mb-4 flex items-center justify-between gap-4">
                 <h1 className="text-xl font-bold">{listTitle}</h1>
-                {menu.kind === "board" && currentBoard?.canWrite && (
+                {writeTarget && (
                   <button
                     type="button"
-                    onClick={() => go(`/board?write=1&boardId=${menu.boardId}`)}
+                    onClick={() => go(writeTarget.href)}
                     className="flex cursor-pointer items-center gap-1.5 rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 active:scale-95"
                   >
                     <SquarePen size={15} aria-hidden="true" />
-                    {currentBoard.type === "INQUIRY" ? "문의하기" : "글쓰기"}
+                    {writeTarget.inquiry ? "문의하기" : "글쓰기"}
                   </button>
                 )}
               </div>
-              {menu.kind === "board" && currentBoard?.type === "INQUIRY" && (
+              {(commonType === "INQUIRY" ||
+                (menu.kind === "board" && currentBoard?.type === "INQUIRY")) && (
                 <p className="mb-3 text-xs text-slate-500">
                   문의 글은 쓴 사람과 관리자만 볼 수 있습니다. 관리자가 댓글로 답변하면 &lsquo;답변
                   완료&rsquo;로 바뀝니다.
@@ -433,12 +472,17 @@ function BoardContent() {
                 items={currentList?.items ?? []}
                 hasMore={!!currentList?.nextCursor}
                 loadingMore={currentList?.loadingMore ?? false}
-                showBoard={menu.kind !== "board"}
-                emptyText={menu.kind === "board" ? "아직 글이 없습니다." : MENU_EMPTY[menu.kind]}
+                showBoard={menu.kind !== "board" && menu.kind !== "type"}
+                showCompany={admin}
+                emptyText={
+                  menu.kind === "board" || menu.kind === "type"
+                    ? "아직 글이 없습니다."
+                    : MENU_EMPTY[menu.kind]
+                }
                 onRetry={() =>
                   listKey &&
                   listTarget &&
-                  void loadList(listKey, listTarget.view, listTarget.boardId)
+                  void loadList(listKey, listTarget.view, listTarget.boardId, listTarget.type)
                 }
                 onMore={() => void loadMore()}
                 onOpen={openPost}
@@ -461,7 +505,7 @@ function BoardContent() {
   );
 }
 
-// 게시판 홈: 최신글·문의하기·공지사항·자유게시판 네 영역
+// 게시판 홈: 최신글·문의하기·공지사항·자유게시판 네 영역(테두리·아이콘 없이 제목 줄과 목록만)
 function HomeScreen({
   home,
   failed,
@@ -491,47 +535,40 @@ function HomeScreen({
       <LoadingState message="게시판 홈을 불러오는 중입니다..." className="min-h-64" />
     );
   }
-  const boardLink = (id: number | null) => (id ? () => onGo(`/board?boardId=${id}`) : null);
   return (
-    <div className="grid w-full grid-cols-1 gap-5 lg:grid-cols-2">
-      <h1 className="text-xl font-bold lg:col-span-2">게시판 홈</h1>
-      <HomeCard
-        title="최신글"
-        icon={<Clock3 size={18} className="text-blue-600" aria-hidden="true" />}
-        posts={home.latest}
-        emptyText="아직 올라온 글이 없습니다."
-        onMore={() => onGo("/board?menu=latest")}
-        onOpen={onOpen}
-      />
-      <HomeCard
-        title="문의하기"
-        icon={<MessageSquare size={18} className="text-emerald-600" aria-hidden="true" />}
-        posts={home.inquiries}
-        emptyText="문의 내역이 없습니다."
-        onMore={boardLink(home.inquiryBoardId)}
-        onOpen={onOpen}
-        answerBadge
-      />
-      <HomeCard
-        title="공지사항"
-        icon={<Megaphone size={18} className="text-red-500" aria-hidden="true" />}
-        posts={home.notices}
-        emptyText="공지사항이 없습니다."
-        onMore={boardLink(home.noticeBoardId)}
-        onOpen={onOpen}
-      />
-      <HomeCard
-        title="자유게시판"
-        icon={<MessagesSquare size={18} className="text-violet-600" aria-hidden="true" />}
-        posts={home.free}
-        emptyText="자유게시판에 글이 없습니다."
-        onMore={boardLink(home.freeBoardId)}
-        onOpen={onOpen}
-      />
-      <p className="flex items-center gap-1.5 text-xs text-slate-400 lg:col-span-2">
-        <BellRing size={13} aria-hidden="true" />
-        필독 글은 사이드바의 &lsquo;필독&rsquo;에서 모아 볼 수 있습니다.
-      </p>
+    <div className="w-full max-w-6xl">
+      <h1 className="mb-8 text-xl font-bold">게시판 홈</h1>
+      <div className="grid grid-cols-1 gap-x-12 gap-y-10 lg:grid-cols-2">
+        <HomeCard
+          title="최신글"
+          posts={home.latest}
+          emptyText="아직 올라온 글이 없습니다."
+          onMore={() => onGo("/board?menu=latest")}
+          onOpen={onOpen}
+        />
+        <HomeCard
+          title="문의하기"
+          posts={home.inquiries}
+          emptyText="문의 내역이 없습니다."
+          onMore={() => onGo("/board?type=INQUIRY")}
+          onOpen={onOpen}
+          answerBadge
+        />
+        <HomeCard
+          title="공지사항"
+          posts={home.notices}
+          emptyText="공지사항이 없습니다."
+          onMore={() => onGo("/board?type=NOTICE")}
+          onOpen={onOpen}
+        />
+        <HomeCard
+          title="자유게시판"
+          posts={home.free}
+          emptyText="자유게시판에 글이 없습니다."
+          onMore={() => onGo("/board?type=FREE")}
+          onOpen={onOpen}
+        />
+      </div>
     </div>
   );
 }

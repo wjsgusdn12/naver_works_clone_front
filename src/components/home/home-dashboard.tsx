@@ -423,15 +423,7 @@ export function HomeDashboard({
             title="공지사항"
             description="회사 공지사항 최근 글입니다."
             action={
-              <LinkButton
-                onClick={() =>
-                  router.push(
-                    board?.noticeBoardId ? `/board?boardId=${board.noticeBoardId}` : "/board",
-                  )
-                }
-              >
-                전체보기
-              </LinkButton>
+              <LinkButton onClick={() => router.push("/board?type=NOTICE")}>전체보기</LinkButton>
             }
           >
             <BoardPostList

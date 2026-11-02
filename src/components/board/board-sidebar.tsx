@@ -25,11 +25,20 @@ import {
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 
-// 사이드바에서 고른 곳. 게시판 홈·모아보기 메뉴·휴지통·게시판 하나.
+// 사이드바에서 고른 곳. 게시판 홈·모아보기 메뉴·휴지통·공통 게시판(종류)·게시판 하나.
+export type CommonBoardType = "NOTICE" | "FREE" | "INQUIRY";
 export type BoardMenu =
   | { kind: "home" }
   | { kind: "latest" | "mustRead" | "important" | "mine" | "trash" }
+  | { kind: "type"; type: CommonBoardType }
   | { kind: "board"; boardId: number };
+
+// 공통 메뉴(회사와 상관없이 한 줄씩). 관리자는 모든 회사 글이 한 목록에 모임.
+export const COMMON_BOARDS: { type: CommonBoardType; label: string }[] = [
+  { type: "NOTICE", label: "공지사항" },
+  { type: "FREE", label: "자유게시판" },
+  { type: "INQUIRY", label: "문의하기" },
+];
 
 const QUICK_MENUS: {
   kind: "latest" | "mustRead" | "important" | "mine";
@@ -49,8 +58,6 @@ const TYPE_ICON: Record<BoardType, LucideIcon> = {
   COMPANY: Building2,
   DEPARTMENT: UsersRound,
 };
-// 회사 단위 기본 게시판(공지·자유·문의) 순서
-const COMPANY_BASIC: BoardType[] = ["NOTICE", "FREE", "INQUIRY"];
 
 export function BoardSidebar({
   boards,
@@ -76,24 +83,20 @@ export function BoardSidebar({
   const matches = (board: BoardItem) => !query || board.name.toLowerCase().includes(query);
 
   const favorites = boards.filter((board) => board.favorite && matches(board));
-  const basics = COMPANY_BASIC.map((type) =>
-    boards.find((board) => board.myCompany && board.type === type),
-  ).filter((board): board is BoardItem => !!board && matches(board));
-  // 회사별: 회사 게시판 + 그 회사 부서 게시판(관리자가 보는 다른 회사는 공지·자유·문의도 그 회사 아래에)
+  const commons = COMMON_BOARDS.filter(
+    (item) =>
+      boards.some((board) => board.type === item.type) &&
+      (!query || item.label.toLowerCase().includes(query)),
+  );
+  // 회사별: 회사 게시판 아래에 그 회사의 부서 게시판만
   const companies = [...new Map(boards.map((board) => [board.companyId, board])).values()].map(
     (sample) => {
       const inCompany = boards.filter((board) => board.companyId === sample.companyId);
       const companyBoard = inCompany.find((board) => board.type === "COMPANY") ?? null;
-      const children = [
-        ...(sample.myCompany
-          ? []
-          : COMPANY_BASIC.map((type) => inCompany.find((board) => board.type === type)).filter(
-              (board): board is BoardItem => !!board,
-            )),
-        ...inCompany
-          .filter((board) => board.type === "DEPARTMENT")
-          .sort((a, b) => a.name.localeCompare(b.name, "ko")),
-      ].filter(matches);
+      const children = inCompany
+        .filter((board) => board.type === "DEPARTMENT")
+        .sort((a, b) => a.name.localeCompare(b.name, "ko"))
+        .filter(matches);
       return {
         companyId: sample.companyId,
         companyName: sample.companyName,
@@ -186,7 +189,22 @@ export function BoardSidebar({
               )}
             </Section>
             <Section title="전체게시판" open={!closed.all} onToggle={() => toggle("all")}>
-              {basics.map((board) => row(board))}
+              {commons.map((item) => {
+                const Icon = TYPE_ICON[item.type];
+                const selected = menu.kind === "type" && menu.type === item.type;
+                return (
+                  <button
+                    key={item.type}
+                    type="button"
+                    aria-current={selected ? "page" : undefined}
+                    onClick={() => onSelect({ kind: "type", type: item.type })}
+                    className={`flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-left ${selected ? "bg-blue-50 font-semibold text-blue-700" : "text-slate-700 hover:bg-slate-100"}`}
+                  >
+                    <Icon size={15} className="shrink-0 opacity-70" aria-hidden="true" />
+                    {item.label}
+                  </button>
+                );
+              })}
             </Section>
             <Section
               title="회사별게시판"

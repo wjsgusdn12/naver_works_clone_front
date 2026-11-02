@@ -4,7 +4,8 @@ import { apiBaseUrl, apiFetchBlob, apiRequest } from "@/lib/api/chat-api";
 // 게시판 종류. 회사마다 공지사항·자유게시판·문의하기·회사 게시판 하나씩, 부서마다 부서 게시판 하나.
 export type BoardType = "NOTICE" | "FREE" | "INQUIRY" | "COMPANY" | "DEPARTMENT";
 // 목록 종류(사이드바 메뉴). BOARD는 게시판 하나(boardId 필요).
-export type BoardView = "LATEST" | "MUST_READ" | "IMPORTANT" | "MINE" | "BOARD" | "TRASH";
+// TYPE은 공지·자유·문의 같은 한 종류 전체(type 필요, 관리자는 모든 회사).
+export type BoardView = "LATEST" | "MUST_READ" | "IMPORTANT" | "MINE" | "BOARD" | "TYPE" | "TRASH";
 
 // 사이드바의 게시판 한 줄. myCompany: 내 회사 게시판(관리자는 다른 회사 것도 받음).
 export type BoardItem = {
@@ -28,6 +29,7 @@ export type BoardPostSummary = {
   boardId: number;
   boardName: string;
   boardType: BoardType;
+  companyName: string;
   title: string;
   preview: string;
   authorMembershipId: number;
@@ -158,9 +160,15 @@ const uploadAttachment = (token: string, file: File, onProgress: (percent: numbe
 export const boardApi = {
   sidebar: (token: string) => apiRequest<BoardSidebar>("/api/v1/board/sidebar", token),
   home: (token: string) => apiRequest<BoardHome>("/api/v1/board/home", token),
-  list: (token: string, view: BoardView, boardId?: number | null, cursor?: number | null) => {
+  list: (
+    token: string,
+    view: BoardView,
+    target: { boardId?: number | null; type?: BoardType | null },
+    cursor?: number | null,
+  ) => {
     const query = new URLSearchParams({ view });
-    if (boardId) query.set("boardId", String(boardId));
+    if (target.boardId) query.set("boardId", String(target.boardId));
+    if (target.type) query.set("type", target.type);
     if (cursor) query.set("cursor", String(cursor));
     return apiRequest<BoardPostPage>(`/api/v1/board/post/list?${query}`, token);
   },
