@@ -218,6 +218,11 @@ function MessageContent() {
   // 현재 방의 공지 목록(최근 등록이 앞)과 전달 모달에 올린 메시지.
   const [notices, setNotices] = useState<ChatNotice[]>([]);
   const [forwardTarget, setForwardTarget] = useState<ChatMessage | null>(null);
+  // 사진·파일·링크 모아보기에서 고른 항목 전달(메시지 번호 목록, 모달에 보여 줄 글)
+  const [galleryForward, setGalleryForward] = useState<{
+    messageIds: number[];
+    preview: string;
+  } | null>(null);
   const [profileMemberId, setProfileMemberId] = useState<number | null>(null);
   const [profileMember, setProfileMember] = useState<AddressBookMemberDetail | null>(null);
   const [scrollDateLabel, setScrollDateLabel] = useState<string | null>(null);
@@ -1298,6 +1303,26 @@ function MessageContent() {
       return true;
     } catch (error) {
       showToast(error instanceof Error ? error.message : "메시지를 전달하지 못했습니다.");
+      return false;
+    }
+  };
+
+  // 모아보기에서 고른 항목(1개 이상)을 고른 방마다 전달. 메시지마다 차례로 보내 순서를 지킴.
+  // 현재 방으로 보낸 복사본은 실시간 새 메시지 이벤트로 화면에 붙음.
+  const submitGalleryForward = async (targetRoomIds: number[]) => {
+    if (!accessToken || !selectedRoomId || !galleryForward) return false;
+    let sent = 0;
+    try {
+      for (const messageId of galleryForward.messageIds) {
+        await chatApi.forwardMessage(accessToken, selectedRoomId, messageId, targetRoomIds);
+        sent += 1;
+      }
+      showToast(`${targetRoomIds.length}개 메시지방에 ${sent}개 항목을 전달했습니다.`);
+      void loadRooms().catch(() => undefined);
+      return true;
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : "전달하지 못했습니다.";
+      showToast(sent > 0 ? `${sent}개를 전달한 뒤 멈췄습니다. ${reason}` : reason);
       return false;
     }
   };
@@ -2446,6 +2471,8 @@ function MessageContent() {
                 }
                 onOpenFile={(file) => setFilePreview({ ...file, roomId: selectedRoom.id })}
                 onDownload={downloadAttachment}
+                onForward={(messageIds, preview) => setGalleryForward({ messageIds, preview })}
+                onToast={showToast}
               />
             )}
             {roomManageOpen && selectedRoom?.type === "GROUP" && accessToken && member && (
@@ -2669,11 +2696,20 @@ function MessageContent() {
       )}
       {forwardTarget && (
         <ForwardMessageModal
-          message={forwardTarget}
+          preview={forwardTarget.content}
           rooms={rooms}
           roomName={stableDisplayRoomName}
           onClose={() => setForwardTarget(null)}
           onSubmit={submitForward}
+        />
+      )}
+      {galleryForward && (
+        <ForwardMessageModal
+          preview={galleryForward.preview}
+          rooms={rooms}
+          roomName={stableDisplayRoomName}
+          onClose={() => setGalleryForward(null)}
+          onSubmit={submitGalleryForward}
         />
       )}
       {reactionModal && (

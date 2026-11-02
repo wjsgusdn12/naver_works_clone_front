@@ -1,16 +1,18 @@
 "use client";
 
-import { Check, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { MessageDialogShell } from "@/components/chat/message-change-dialog";
+import { CheckboxControl } from "@/components/common/custom-checkbox";
 import { Spinner } from "@/components/common/loading";
 import { MeBadge } from "@/components/common/me-badge";
-import type { ChatMessage, ChatRoom } from "@/lib/api/chat-api";
+import type { ChatRoom } from "@/lib/api/chat-api";
 
 const MAX_TARGETS = 10;
 
 type ForwardMessageModalProps = {
-  message: ChatMessage;
+  // 무엇을 보내는지 한 줄로 보여 줄 글(메시지 내용, "사진 3개" 등)
+  preview: string;
   rooms: ChatRoom[];
   roomName: (room: ChatRoom) => string;
   onClose: () => void;
@@ -20,7 +22,7 @@ type ForwardMessageModalProps = {
 
 // 메시지를 보낼 방을 여러 개 고르는 모달. 검색으로 좁히고 체크해서 "전달" 버튼으로 보냄.
 export function ForwardMessageModal({
-  message,
+  preview,
   rooms,
   roomName,
   onClose,
@@ -60,7 +62,7 @@ export function ForwardMessageModal({
     <MessageDialogShell title="메시지 전달" onClose={onClose} widthClassName="max-w-md">
       {/* 전달할 내용을 한 줄로 보여 줘 무엇을 보내는지 확인하게 함. */}
       <p className="mb-4 truncate rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-600">
-        {message.content.replace(/[\r\n]+/g, " ")}
+        {preview.replace(/[\r\n]+/g, " ")}
       </p>
       <label className="flex h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 focus-within:border-blue-400">
         <Search size={16} className="shrink-0 text-slate-400" aria-hidden="true" />
@@ -91,12 +93,7 @@ export function ForwardMessageModal({
                 onClick={() => !disabled && toggle(room.id)}
                 className={`flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm transition ${checked ? "bg-blue-50" : disabled ? "cursor-not-allowed text-slate-300" : "cursor-pointer hover:bg-slate-50"}`}
               >
-                <span
-                  aria-hidden="true"
-                  className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border ${checked ? "border-blue-600 bg-blue-600 text-white" : "border-slate-300 bg-white"}`}
-                >
-                  {checked && <Check size={14} strokeWidth={3} />}
-                </span>
+                <CheckboxControl checked={checked} />
                 {room.type === "SELF" && <MeBadge />}
                 <span className="min-w-0 flex-1 truncate font-medium">{roomName(room)}</span>
                 {room.type === "GROUP" && (

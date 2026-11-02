@@ -38,7 +38,7 @@ export function MessageRoomHeader({
   directStatusType?: MemberStatusType | null;
   headerMembershipId: number | null | undefined;
   onProfileClick: (membershipId: number) => void;
-  // 오른쪽 "사진·파일" 버튼으로 모아보기 패널을 열고 닫음(모든 방 종류 공통).
+  // 오른쪽 "사진·파일·링크" 버튼으로 모아보기 패널을 열고 닫음(모든 방 종류 공통).
   galleryOpen: boolean;
   onToggleGallery: () => void;
 }) {
@@ -93,7 +93,7 @@ export function MessageRoomHeader({
           </div>
         )}
         {selectedRoom && (
-          <Tooltip label="주고받은 사진·파일 모아보기">
+          <Tooltip label="주고받은 사진·파일·링크 모아보기">
             <button
               type="button"
               aria-expanded={galleryOpen}
@@ -101,7 +101,7 @@ export function MessageRoomHeader({
               className={`flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition active:scale-95 ${galleryOpen ? "bg-blue-50 text-blue-600" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"}`}
             >
               <Images size={18} aria-hidden="true" />
-              사진·파일
+              사진·파일·링크
             </button>
           </Tooltip>
         )}

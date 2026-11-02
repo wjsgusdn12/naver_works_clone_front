@@ -72,6 +72,20 @@ export type ChatAttachmentItem = {
   createdAt: string;
 };
 export type ChatAttachmentPage = { items: ChatAttachmentItem[]; nextCursor: number | null };
+// 방 상세의 링크 모아보기 한 줄(메시지 속 링크마다 한 줄).
+// previewStatus: PENDING이면 서버가 제목·대표 이미지를 가져오는 중. title이 null이면 "제목 없는 웹사이트".
+// imagePreviewId: 대표 이미지가 있으면 그 번호(없으면 빈 이미지 자리).
+export type ChatLinkItem = {
+  messageId: number;
+  url: string;
+  title: string | null;
+  imagePreviewId: number | null;
+  previewStatus: "PENDING" | "DONE" | "FAILED";
+  senderMembershipId: number;
+  senderName: string;
+  createdAt: string;
+};
+export type ChatLinkPage = { items: ChatLinkItem[]; nextCursor: number | null };
 
 // 상단 검색 결과가 속한 방. name은 화면에 보일 이름, hidden은 내가 목록에서 숨긴 방인지,
 // directMembershipId는 1:1 방 상대(아바타 접속 상태용).
@@ -267,18 +281,23 @@ const uploadAttachment = (
 
 // 첨부 내용을 받아 옴. 토큰을 헤더로 보내야 해서 <img src>에 주소를 바로 넣지 않고 Blob으로 받음.
 // inline=true면 사진을 화면 표시용 형식으로 받음. thumbnail=true면 말풍선·모아보기용 작은 사본(없으면 서버가 원본).
-const attachmentBlob = async (
-  token: string,
-  attachmentId: number,
-  inline: boolean,
-  thumbnail = false,
-) => {
+const attachmentBlob = (token: string, attachmentId: number, inline: boolean, thumbnail = false) =>
+  fetchBlob(
+    token,
+    `/api/v1/chatRoom/message/attachment/download?attachmentId=${attachmentId}&inline=${inline}&thumbnail=${thumbnail}`,
+  );
+
+// 링크 대표 이미지. 서버가 받아 줄여 둔 사본이라 브라우저가 외부 사이트에 직접 접속하지 않음.
+const linkImageBlob = (token: string, previewId: number) =>
+  fetchBlob(token, `/api/v1/chatRoom/message/link/image?previewId=${previewId}`);
+
+const fetchBlob = async (token: string, path: string) => {
   let response: Response;
   try {
-    response = await fetch(
-      `${apiBaseUrl()}/api/v1/chatRoom/message/attachment/download?attachmentId=${attachmentId}&inline=${inline}&thumbnail=${thumbnail}`,
-      { credentials: "include", headers: { Authorization: `Bearer ${token}` } },
-    );
+    response = await fetch(`${apiBaseUrl()}${path}`, {
+      credentials: "include",
+      headers: { Authorization: `Bearer ${token}` },
+    });
   } catch {
     throw new ApiClientError("메시지 서버에 연결할 수 없습니다.", 0, "NETWORK_ERROR");
   }
@@ -296,10 +315,16 @@ const attachmentBlob = async (
 export const chatApi = {
   uploadAttachment,
   attachmentBlob,
+  linkImageBlob,
   // 사진·파일 모아보기(최신순). cursor는 이전 페이지의 nextCursor.
   attachments: (token: string, roomId: number, kind: ChatAttachment["kind"], cursor?: number) =>
     request<ChatAttachmentPage>(
       `/api/v1/chatRoom/message/attachment/list?chatRoomId=${roomId}&kind=${kind}${cursor ? `&cursor=${cursor}` : ""}`,
+      token,
+    ),
+  links: (token: string, roomId: number, cursor?: number) =>
+    request<ChatLinkPage>(
+      `/api/v1/chatRoom/message/link/list?chatRoomId=${roomId}${cursor ? `&cursor=${cursor}` : ""}`,
       token,
     ),
   rooms: (token: string) => request<ChatRoom[]>("/api/v1/chatRoom", token),
