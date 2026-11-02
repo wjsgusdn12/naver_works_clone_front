@@ -59,6 +59,20 @@ function boardOptions(boards: BoardItem[]): SelectOption[] {
   return [...commons, ...rest];
 }
 
+// 편집기 본문(JSON)이 비었는지: 공백 아닌 글자도, 문단·줄바꿈 말고 다른 것(사진·표·구분선 등)도 없으면 빈 것
+type DocNode = { type?: string; text?: string; content?: DocNode[] };
+const BLANK_NODES = new Set(["doc", "paragraph", "hardBreak", "text"]);
+function isEmptyDoc(json: string) {
+  if (!json) return true;
+  const blank = (node: DocNode): boolean =>
+    BLANK_NODES.has(node.type ?? "") && !node.text?.trim() && (node.content ?? []).every(blank);
+  try {
+    return blank(JSON.parse(json) as DocNode);
+  } catch {
+    return false;
+  }
+}
+
 // 예약 시각 기본값: 다음 정시(1시간 뒤 이내). 고를 수 있는 범위는 1분 뒤 ~ 90일(서버와 같음).
 const nextHour = () => {
   const date = new Date();
@@ -128,12 +142,13 @@ export function BoardPostForm({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const sequenceRef = useRef(0);
 
-  // 처음 연 상태와 달라졌으면 "작성 중": 다른 화면으로 나가려 하면 확인 창
+  // 처음 연 상태와 달라졌으면 "작성 중": 다른 화면으로 나가려 하면 확인 창.
+  // 본문은 썼다 다 지우면 빈 문단만 남으므로 비어 있으면 ""로 봄.
   const snapshot = () =>
     JSON.stringify([
       boardId,
       title,
-      content,
+      isEmptyDoc(content) ? "" : content,
       mustRead,
       allowComment,
       commentNotify,
