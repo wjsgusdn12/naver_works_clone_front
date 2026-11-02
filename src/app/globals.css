@@ -422,6 +422,32 @@ body {
   }
 }
 
+/* 상단바 관리자 모드 ON 글자: 금색·주황·빨강·분홍 그라데이션이 글자 속에서 옆으로 계속 흘러감. */
+@keyframes admin-mode-flow {
+  from {
+    background-position: 0% 50%;
+  }
+  to {
+    background-position: 200% 50%;
+  }
+}
+
+.admin-mode-text {
+  background: linear-gradient(90deg, #fde047, #f97316, #ef4444, #ec4899, #a855f7, #f97316, #fde047);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 6px rgba(249, 115, 22, 0.7));
+  animation: admin-mode-flow 2.4s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-mode-text {
+    animation: none;
+  }
+}
+
 /* API 상태 숫자 카드의 등락 배지: 값이 바뀔 때 살짝 떠오르며 나타나고, 화살표가 오르면 위로·내리면 아래로 한 번 튐. */
 @keyframes delta-badge-enter {
   from {

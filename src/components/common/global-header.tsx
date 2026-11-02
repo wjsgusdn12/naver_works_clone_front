@@ -395,21 +395,9 @@ export function GlobalHeader({
                       </span>
                     </span>
                   ) : label === "관리자" && isAdminMode ? (
-                    // 관리자 모드 ON: 주황·빨강·분홍 그라데이션 알약에 금빛 테두리·빛번짐, 뒤로 파동이 계속 퍼짐.
-                    <span className="relative flex items-center">
-                      <span
-                        aria-hidden="true"
-                        className="absolute inset-0 animate-ping rounded-full bg-amber-400/60 motion-reduce:animate-none"
-                      />
-                      <span className="relative flex h-7 items-center gap-1 rounded-full bg-gradient-to-r from-amber-400 via-red-500 to-pink-600 pl-1.5 pr-2.5 text-white shadow-[0_0_14px_3px_rgba(251,146,60,0.75)] ring-2 ring-amber-200">
-                        <Icon
-                          size={16}
-                          strokeWidth={2.6}
-                          aria-hidden="true"
-                          className="drop-shadow"
-                        />
-                        <span className="text-[11px] font-extrabold tracking-wider">ADMIN</span>
-                      </span>
+                    // 관리자 모드 ON: 아이콘 대신 "ADMIN" 글자. 글자 속 그라데이션이 계속 흘러감.
+                    <span className="admin-mode-text text-[13px] font-black tracking-wider">
+                      ADMIN
                     </span>
                   ) : label === "알림" ? (
                     <span className="relative">
