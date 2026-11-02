@@ -3,7 +3,7 @@
 import { dateLabel } from "@/components/chat/message-search-panel";
 import { LoadingState } from "@/components/common/loading";
 import type { BoardPostSummary } from "@/lib/api/board-api";
-import { ChevronRight, Eye, Paperclip, RotateCw } from "lucide-react";
+import { ChevronRight, Eye, MessageSquare, Paperclip, RotateCw } from "lucide-react";
 import type { ReactNode } from "react";
 
 // 필독·중요·답변 상태 딱지
@@ -146,24 +146,25 @@ export function HomeCard({
               >
                 {answerBadge && <AnswerBadge answered={post.answered} />}
                 <PostBadges post={post} />
-                {/* 댓글 수는 제목 글자 바로 오른쪽(제목이 길면 제목만 줄임) */}
-                <span className="flex min-w-0 flex-1 items-center gap-1">
-                  <span
-                    className={`truncate ${post.read ? "text-slate-600" : "font-semibold text-slate-900"}`}
-                  >
-                    {post.title}
-                  </span>
-                  {post.commentCount > 0 && (
-                    <span className="shrink-0 text-xs text-blue-600">[{post.commentCount}]</span>
-                  )}
+                <span
+                  className={`min-w-0 flex-1 truncate ${post.read ? "text-slate-600" : "font-semibold text-slate-900"}`}
+                >
+                  {post.title}
                 </span>
-                {/* 작성자 · 날짜 · 조회수 */}
+                {/* 작성자 · 날짜 · 조회수 · 댓글 수(리액션이 생기면 조회수와 댓글 수 사이) */}
                 <span className="flex shrink-0 items-center gap-2.5 text-xs text-slate-400">
                   <span className="max-w-20 truncate text-slate-500">{post.authorName}</span>
                   <span className="w-16 text-right">{dateLabel(post.createdAt)}</span>
-                  <span className="flex w-9 items-center justify-end gap-0.5">
+                  <span className="flex w-9 items-center justify-end gap-0.5" title="조회수">
                     <Eye size={12} aria-hidden="true" />
                     {post.viewCount}
+                  </span>
+                  <span
+                    className={`flex w-9 items-center justify-end gap-0.5 ${post.commentCount > 0 ? "text-blue-600" : ""}`}
+                    title="댓글 수"
+                  >
+                    <MessageSquare size={12} aria-hidden="true" />
+                    {post.commentCount}
                   </span>
                 </span>
               </button>
