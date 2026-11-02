@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { ChatNotificationProvider } from "@/components/chat/chat-notification-provider";
+import { ProfileImageProvider } from "@/components/common/profile-image-provider";
 import { RouteStateBoundary } from "@/components/common/route-state-boundary";
 import { Geist } from "next/font/google";
 import "./globals.css";
@@ -24,9 +25,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col">
         {/* 모든 화면이 동일한 메모리 인증 상태를 공유. */}
         <AuthProvider>
-          <ChatNotificationProvider>
-            <RouteStateBoundary>{children}</RouteStateBoundary>
-          </ChatNotificationProvider>
+          {/* 프로필 사진 목록. 메시지 알림 카드의 아바타도 쓰므로 알림 공급자보다 바깥 */}
+          <ProfileImageProvider>
+            <ChatNotificationProvider>
+              <RouteStateBoundary>{children}</RouteStateBoundary>
+            </ChatNotificationProvider>
+          </ProfileImageProvider>
         </AuthProvider>
       </body>
     </html>

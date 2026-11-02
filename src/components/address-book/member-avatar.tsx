@@ -12,6 +12,7 @@ export function MemberAvatar({
   return (
     <UserAvatar
       name={member.displayName}
+      membershipId={member.membershipId}
       presenceStatus={member.presenceStatus}
       statusType={member.statusType}
       size={size}

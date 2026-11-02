@@ -7,11 +7,14 @@ import type { MemberStatusType } from "@/lib/status-options";
 // 메시지 화면용 얇은 포장. 실제 그림은 공통 UserAvatar가 담당. md·lg 모두 40px 크기.
 export function MessageMemberAvatar({
   name,
+  membershipId,
   presenceStatus,
   statusType,
   onClick,
 }: {
   name: string;
+  // 누구의 아바타인지(프로필 사진용)
+  membershipId?: number | null;
   presenceStatus: PresenceStatus;
   statusType?: MemberStatusType | null;
   size?: "md" | "lg";
@@ -20,6 +23,7 @@ export function MessageMemberAvatar({
   return (
     <UserAvatar
       name={name}
+      membershipId={membershipId}
       presenceStatus={presenceStatus}
       statusType={statusType}
       size="md"
