@@ -505,7 +505,7 @@ function BoardContent() {
   );
 }
 
-// 게시판 홈: 최신글·문의하기·공지사항·자유게시판 네 영역(테두리·아이콘 없이 제목 줄과 목록만)
+// 게시판 홈: 최신글·공지사항·자유게시판·문의하기 순으로 한 줄에 하나씩(테두리·아이콘 없이 제목 줄과 목록만)
 function HomeScreen({
   home,
   failed,
@@ -536,23 +536,15 @@ function HomeScreen({
     );
   }
   return (
-    <div className="w-full max-w-6xl">
+    <div className="w-full">
       <h1 className="mb-8 text-xl font-bold">게시판 홈</h1>
-      <div className="grid grid-cols-1 gap-x-12 gap-y-10 lg:grid-cols-2">
+      <div className="flex flex-col gap-10">
         <HomeCard
           title="최신글"
           posts={home.latest}
           emptyText="아직 올라온 글이 없습니다."
           onMore={() => onGo("/board?menu=latest")}
           onOpen={onOpen}
-        />
-        <HomeCard
-          title="문의하기"
-          posts={home.inquiries}
-          emptyText="문의 내역이 없습니다."
-          onMore={() => onGo("/board?type=INQUIRY")}
-          onOpen={onOpen}
-          answerBadge
         />
         <HomeCard
           title="공지사항"
@@ -567,6 +559,14 @@ function HomeScreen({
           emptyText="자유게시판에 글이 없습니다."
           onMore={() => onGo("/board?type=FREE")}
           onOpen={onOpen}
+        />
+        <HomeCard
+          title="문의하기"
+          posts={home.inquiries}
+          emptyText="문의 내역이 없습니다."
+          onMore={() => onGo("/board?type=INQUIRY")}
+          onOpen={onOpen}
+          answerBadge
         />
       </div>
     </div>

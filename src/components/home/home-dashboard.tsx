@@ -427,7 +427,7 @@ export function HomeDashboard({
             }
           >
             <BoardPostList
-              posts={board?.notices ?? null}
+              posts={board ? board.notices.slice(0, 5) : null}
               emptyText="공지사항이 없습니다."
               onOpen={(post) => router.push(`/board?postId=${post.id}`)}
             />
@@ -440,7 +440,7 @@ export function HomeDashboard({
             }
           >
             <BoardPostList
-              posts={board?.latest ?? null}
+              posts={board ? board.latest.slice(0, 5) : null}
               emptyText="아직 올라온 글이 없습니다."
               showBoard
               onOpen={(post) => router.push(`/board?postId=${post.id}`)}

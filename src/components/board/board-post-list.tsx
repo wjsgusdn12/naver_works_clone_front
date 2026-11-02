@@ -102,7 +102,7 @@ export function PostRow({
   );
 }
 
-// 게시판 홈 영역(제목 + 더보기 + 글 5개). 테두리·아이콘 없이 제목 아래 선과 목록만.
+// 게시판 홈 영역(제목 + 더보기 + 글 목록). 테두리·아이콘 없이 제목 아래 선과 목록만.
 export function HomeCard({
   title,
   posts,
@@ -134,9 +134,10 @@ export function HomeCard({
       {posts.length === 0 ? (
         <p className="py-12 text-center text-sm text-slate-400">{emptyText}</p>
       ) : (
-        <ul className="divide-y divide-slate-100">
+        // 넓은 화면에서는 글을 좌우 2열로(왼쪽→오른쪽 순서). 줄마다 아래에 옅은 구분선.
+        <ul className="grid grid-cols-1 gap-x-10 md:grid-cols-2">
           {posts.map((post) => (
-            <li key={post.id}>
+            <li key={post.id} className="border-b border-slate-100">
               <button
                 type="button"
                 onClick={() => onOpen(post)}
