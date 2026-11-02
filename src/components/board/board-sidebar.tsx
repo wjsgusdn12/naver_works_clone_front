@@ -117,17 +117,18 @@ export function BoardSidebar({
     />
   );
 
+  // 위(글쓰기·메뉴·검색)와 아래(휴지통)는 고정하고 게시판 목록만 스크롤
   return (
-    <aside className="flex w-64 shrink-0 flex-col overflow-y-auto border-r border-slate-200 bg-slate-50 p-3">
+    <aside className="flex w-64 shrink-0 flex-col border-r border-slate-200 bg-slate-50 p-3">
       <button
         type="button"
         onClick={onWrite}
-        className="mb-3 flex h-11 w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-slate-950 text-sm font-bold text-white transition hover:bg-slate-800 active:scale-[.98]"
+        className="mb-3 flex h-11 w-full shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-slate-950 text-sm font-bold text-white transition hover:bg-slate-800 active:scale-[.98]"
       >
         <SquarePen size={16} aria-hidden="true" />
         글쓰기
       </button>
-      <div className="grid grid-cols-4 border-b border-slate-200 pb-3 text-xs">
+      <div className="grid shrink-0 grid-cols-4 border-b border-slate-200 pb-3 text-xs">
         {QUICK_MENUS.map(({ kind, label, icon: Icon }) => (
           <button
             key={kind}
@@ -141,7 +142,7 @@ export function BoardSidebar({
           </button>
         ))}
       </div>
-      <label className="mt-3 flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-2.5 transition focus-within:border-blue-500">
+      <label className="mt-3 flex h-9 shrink-0 items-center gap-2 rounded-lg border border-slate-200 bg-white px-2.5 transition focus-within:border-blue-500">
         <Search size={15} className="shrink-0 text-slate-400" aria-hidden="true" />
         <input
           value={keyword}
@@ -162,7 +163,10 @@ export function BoardSidebar({
         )}
       </label>
 
-      <nav aria-label="게시판 목록" className="mt-3 flex-1 text-sm">
+      <nav
+        aria-label="게시판 목록"
+        className="-mx-1 mt-3 min-h-0 flex-1 overflow-y-auto px-1 text-sm"
+      >
         {loading ? (
           <LoadingInline
             message="게시판을 불러오는 중입니다."
@@ -228,7 +232,7 @@ export function BoardSidebar({
         type="button"
         aria-current={menu.kind === "trash" ? "page" : undefined}
         onClick={() => onSelect({ kind: "trash" })}
-        className={`mt-3 flex cursor-pointer items-center gap-2 rounded-md border-t border-slate-200 px-2 pt-3 pb-1.5 text-sm transition hover:text-slate-900 ${menu.kind === "trash" ? "font-semibold text-blue-600" : "text-slate-600"}`}
+        className={`mt-2 flex shrink-0 cursor-pointer items-center gap-2 rounded-md border-t border-slate-200 px-2 pt-3 pb-1.5 text-sm transition hover:text-slate-900 ${menu.kind === "trash" ? "font-semibold text-blue-600" : "text-slate-600"}`}
       >
         <Trash2 size={16} aria-hidden="true" />
         휴지통
