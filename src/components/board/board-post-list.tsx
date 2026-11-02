@@ -1,9 +1,10 @@
 "use client";
 
 import { dateLabel } from "@/components/chat/message-search-panel";
-import { LoadingInline, LoadingState } from "@/components/common/loading";
+import { LoadingState } from "@/components/common/loading";
 import type { BoardPostSummary } from "@/lib/api/board-api";
 import { ChevronRight, Eye, Paperclip, RotateCw } from "lucide-react";
+import type { ReactNode } from "react";
 
 // 필독·중요·답변 상태 딱지
 export function PostBadges({ post }: { post: Pick<BoardPostSummary, "mustRead" | "important"> }) {
@@ -165,30 +166,26 @@ export function HomeCard({
   );
 }
 
-// 목록 화면 본체: 고정 글(중요) + 일반 글 + 더 보기. 로딩·실패·빈 목록 처리 포함.
+// 목록 화면 본체: 고정 글(중요) + 일반 글 + footer(페이지 번호). 로딩·실패·빈 목록 처리 포함.
 export function PostListBody({
   status,
   pinned,
   items,
-  hasMore,
-  loadingMore,
   showBoard,
   showCompany = false,
   emptyText,
+  footer,
   onRetry,
-  onMore,
   onOpen,
 }: {
   status: "loading" | "loaded" | "failed";
   pinned: BoardPostSummary[];
   items: BoardPostSummary[];
-  hasMore: boolean;
-  loadingMore: boolean;
   showBoard: boolean;
   showCompany?: boolean;
   emptyText: string;
+  footer?: ReactNode;
   onRetry: () => void;
-  onMore: () => void;
   onOpen: (post: BoardPostSummary) => void;
 }) {
   if (status === "loading")
@@ -238,21 +235,7 @@ export function PostListBody({
           />
         ))}
       </ul>
-      {hasMore && (
-        <div className="my-4 flex justify-center">
-          {loadingMore ? (
-            <LoadingInline message="더 불러오는 중입니다." className="text-xs text-slate-500" />
-          ) : (
-            <button
-              type="button"
-              onClick={onMore}
-              className="cursor-pointer rounded-lg border border-slate-200 px-4 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50"
-            >
-              더 보기
-            </button>
-          )}
-        </div>
-      )}
+      {footer}
     </>
   );
 }

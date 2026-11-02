@@ -45,11 +45,13 @@ export type BoardPostSummary = {
   deletedAt: string | null;
 };
 
-// pinned: 게시판 첫 페이지의 중요 글(맨 위 고정). nextCursor가 null이면 마지막 페이지.
+// pinned: 게시판 첫 페이지의 중요 글(맨 위 고정, 검색 중이면 없음). page는 0부터.
 export type BoardPostPage = {
   pinned: BoardPostSummary[];
   items: BoardPostSummary[];
-  nextCursor: number | null;
+  page: number;
+  totalPages: number;
+  totalElements: number;
 };
 
 export type BoardHome = {
@@ -164,12 +166,14 @@ export const boardApi = {
     token: string,
     view: BoardView,
     target: { boardId?: number | null; type?: BoardType | null },
-    cursor?: number | null,
+    // page: 0부터. keyword: 제목·본문·글쓴이 검색어(없으면 전체)
+    options: { page?: number; keyword?: string } = {},
   ) => {
     const query = new URLSearchParams({ view });
     if (target.boardId) query.set("boardId", String(target.boardId));
     if (target.type) query.set("type", target.type);
-    if (cursor) query.set("cursor", String(cursor));
+    if (options.page) query.set("page", String(options.page));
+    if (options.keyword) query.set("keyword", options.keyword);
     return apiRequest<BoardPostPage>(`/api/v1/board/post/list?${query}`, token);
   },
   // 처음 여는 글이면 서버가 읽음 기록·조회수 1을 함께 처리.

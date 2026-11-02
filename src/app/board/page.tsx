@@ -4,6 +4,7 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { BoardContentHeader } from "@/components/board/board-content-header";
 import { BoardPostDetailView } from "@/components/board/board-post-detail";
 import { BoardPostForm } from "@/components/board/board-post-form";
+import { BoardPostSearch } from "@/components/board/board-post-search";
 import { HomeCard, PostListBody } from "@/components/board/board-post-list";
 import { BoardRenameDialog } from "@/components/board/board-rename-dialog";
 import {
@@ -14,6 +15,7 @@ import {
 } from "@/components/board/board-sidebar";
 import { GlobalHeader } from "@/components/common/global-header";
 import { LoadingState, PageLoading } from "@/components/common/loading";
+import { Pagination } from "@/components/common/pagination";
 import { Toast } from "@/components/common/toast";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -32,6 +34,7 @@ import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 // 화면은 주소의 쿼리로 정함(뒤로 가기·새로고침이 그대로 동작).
 // 없음: 게시판 홈 / menu=latest|mustRead|important|mine|trash / boardId=N: 게시판 /
 // postId=N: 글 보기 / write=1(&boardId=N): 글쓰기 / edit=N: 글 수정
+// 목록에는 page=N(1부터)·q=검색어를 덧붙임
 type Screen =
   | { kind: "menu"; menu: BoardMenu }
   | { kind: "post"; postId: number }
@@ -96,8 +99,18 @@ type ListState = {
   status: "loaded" | "failed";
   pinned: BoardPostSummary[];
   items: BoardPostSummary[];
-  nextCursor: number | null;
-  loadingMore: boolean;
+  totalPages: number;
+  totalElements: number;
+};
+
+// 목록 주소에 쪽 번호(화면에는 1부터, 1쪽이면 생략)·검색어를 붙임.
+const listHref = (menu: BoardMenu, page: number, keyword: string) => {
+  const query = new URLSearchParams();
+  if (page > 0) query.set("page", String(page + 1));
+  if (keyword) query.set("q", keyword);
+  const extra = query.toString();
+  const base = menuHref(menu);
+  return extra ? `${base}${base.includes("?") ? "&" : "?"}${extra}` : base;
 };
 
 export default function BoardPage() {
@@ -133,8 +146,17 @@ function BoardContent() {
 
   const screen = screenOf(new URLSearchParams(searchParams.toString()));
   const menu: BoardMenu = screen.kind === "menu" ? screen.menu : { kind: "home" };
+  const listPage = Math.max((numberParam(searchParams.get("page")) ?? 1) - 1, 0);
+  const listKeyword = (searchParams.get("q") ?? "").trim();
   const listKey =
-    screen.kind === "menu" && screen.menu.kind !== "home" ? menuHref(screen.menu) : null;
+    screen.kind === "menu" && screen.menu.kind !== "home"
+      ? listHref(screen.menu, listPage, listKeyword)
+      : null;
+  // 목록 쪽을 넘기면 오른쪽 화면을 맨 위로
+  const contentRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    contentRef.current?.scrollTo({ top: 0 });
+  }, [listKey]);
   const postId = screen.kind === "post" || screen.kind === "edit" ? screen.postId : null;
 
   useEffect(() => {
@@ -188,23 +210,23 @@ function BoardContent() {
           : { view: MENU_VIEW[target.kind], boardId: null, type: null };
   const listTarget = viewOf(menu);
   const loadList = useCallback(
-    async (key: string, view: BoardView, boardId: number | null, type: CommonBoardType | null) => {
+    async (
+      key: string,
+      view: BoardView,
+      boardId: number | null,
+      type: CommonBoardType | null,
+      page: number,
+      keyword: string,
+    ) => {
       if (!accessToken) return;
       const version = ++listVersionRef.current;
       try {
-        const page = await boardApi.list(accessToken, view, { boardId, type });
+        const result = await boardApi.list(accessToken, view, { boardId, type }, { page, keyword });
         if (version !== listVersionRef.current) return;
-        setList({ key, status: "loaded", ...page, loadingMore: false });
+        setList({ key, status: "loaded", ...result });
       } catch {
         if (version !== listVersionRef.current) return;
-        setList({
-          key,
-          status: "failed",
-          pinned: [],
-          items: [],
-          nextCursor: null,
-          loadingMore: false,
-        });
+        setList({ key, status: "failed", pinned: [], items: [], totalPages: 0, totalElements: 0 });
       }
     },
     [accessToken],
@@ -214,35 +236,10 @@ function BoardContent() {
   const listType = listTarget?.type ?? null;
   useEffect(() => {
     if (listKey && listView)
-      void Promise.resolve().then(() => loadList(listKey, listView, listBoardId, listType));
-  }, [listKey, listView, listBoardId, listType, loadList]);
-
-  const loadMore = async () => {
-    if (!accessToken || !list || !list.nextCursor || list.loadingMore || !listTarget) return;
-    const version = listVersionRef.current;
-    setList({ ...list, loadingMore: true });
-    try {
-      const page = await boardApi.list(
-        accessToken,
-        listTarget.view,
-        { boardId: listTarget.boardId, type: listTarget.type },
-        list.nextCursor,
+      void Promise.resolve().then(() =>
+        loadList(listKey, listView, listBoardId, listType, listPage, listKeyword),
       );
-      if (version !== listVersionRef.current) return;
-      setList(
-        (current) =>
-          current && {
-            ...current,
-            items: [...current.items, ...page.items],
-            nextCursor: page.nextCursor,
-            loadingMore: false,
-          },
-      );
-    } catch {
-      setList((current) => current && { ...current, loadingMore: false });
-      showToast("글을 더 불러오지 못했습니다.");
-    }
-  };
+  }, [listKey, listView, listBoardId, listType, listPage, listKeyword, loadList]);
 
   // 글 보기·수정
   const loadPost = useCallback(
@@ -382,21 +379,29 @@ function BoardContent() {
           onToggleFavorite={(board) => void toggleFavorite(board)}
           onRename={setRenaming}
         />
-        <section className="min-w-0 flex-1 overflow-y-auto bg-white">
+        <section ref={contentRef} className="min-w-0 flex-1 overflow-y-auto bg-white">
           <BoardContentHeader
             title={headerTitle}
             onBack={screen.kind === "menu" ? undefined : () => router.back()}
             actions={
-              screen.kind === "menu" &&
-              writeTarget && (
-                <button
-                  type="button"
-                  onClick={() => go(writeTarget.href)}
-                  className="flex cursor-pointer items-center gap-1.5 rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 active:scale-95"
-                >
-                  <SquarePen size={15} aria-hidden="true" />
-                  {writeTarget.inquiry ? "문의하기" : "글쓰기"}
-                </button>
+              listKey && (
+                <>
+                  <BoardPostSearch
+                    key={`${menuHref(menu)}|${listKeyword}`}
+                    keyword={listKeyword}
+                    onSearch={(keyword) => go(listHref(menu, 0, keyword))}
+                  />
+                  {writeTarget && (
+                    <button
+                      type="button"
+                      onClick={() => go(writeTarget.href)}
+                      className="flex cursor-pointer items-center gap-1.5 rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 active:scale-95"
+                    >
+                      <SquarePen size={15} aria-hidden="true" />
+                      {writeTarget.inquiry ? "문의하기" : "글쓰기"}
+                    </button>
+                  )}
+                </>
               )
             }
           />
@@ -487,25 +492,50 @@ function BoardContent() {
                     &lsquo;답변 완료&rsquo;로 바뀝니다.
                   </p>
                 )}
+                {listKeyword && currentList?.status === "loaded" && (
+                  <p className="mb-3 text-sm text-slate-600">
+                    <span className="font-semibold text-slate-900">
+                      &lsquo;{listKeyword}&rsquo;
+                    </span>{" "}
+                    검색 결과 {currentList.totalElements}건
+                  </p>
+                )}
                 <PostListBody
                   status={currentList ? currentList.status : "loading"}
                   pinned={currentList?.pinned ?? []}
                   items={currentList?.items ?? []}
-                  hasMore={!!currentList?.nextCursor}
-                  loadingMore={currentList?.loadingMore ?? false}
                   showBoard={menu.kind !== "board" && menu.kind !== "type"}
                   showCompany={admin}
                   emptyText={
-                    menu.kind === "board" || menu.kind === "type"
-                      ? "아직 글이 없습니다."
-                      : MENU_EMPTY[menu.kind]
+                    listKeyword
+                      ? "검색 결과가 없습니다."
+                      : menu.kind === "board" || menu.kind === "type"
+                        ? "아직 글이 없습니다."
+                        : MENU_EMPTY[menu.kind]
                   }
                   onRetry={() =>
                     listKey &&
                     listTarget &&
-                    void loadList(listKey, listTarget.view, listTarget.boardId, listTarget.type)
+                    void loadList(
+                      listKey,
+                      listTarget.view,
+                      listTarget.boardId,
+                      listTarget.type,
+                      listPage,
+                      listKeyword,
+                    )
                   }
-                  onMore={() => void loadMore()}
+                  footer={
+                    currentList && currentList.totalPages > 1 ? (
+                      <Pagination
+                        page={listPage}
+                        totalPages={currentList.totalPages}
+                        onChange={(page) => go(listHref(menu, page, listKeyword))}
+                        label="글 목록 페이지"
+                        className="mt-6"
+                      />
+                    ) : null
+                  }
                   onOpen={openPost}
                 />
               </div>
