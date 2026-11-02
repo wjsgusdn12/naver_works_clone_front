@@ -1,6 +1,6 @@
 "use client";
 
-import { FavoriteBadge } from "@/components/address-book/favorite-badge";
+import { FavoriteBadge } from "@/components/common/favorite-badge";
 import { useAuth } from "@/components/auth/auth-provider";
 import { ApiDashboardSection } from "@/components/home/api-dashboard";
 import { GroupAvatar } from "@/components/chat/group-avatar";

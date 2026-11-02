@@ -1,6 +1,6 @@
 "use client";
 
-import { FavoriteButton } from "@/components/address-book/favorite-button";
+import { FavoriteButton } from "@/components/common/favorite-button";
 import { MemberAvatar } from "@/components/address-book/member-avatar";
 import type { AddressBookMemberDetail } from "@/lib/api/address-book-api";
 import { CalendarDays, ExternalLink, Mail, MessageCircle, X } from "lucide-react";

@@ -1,7 +1,7 @@
 "use client";
 
 import { GroupAvatar } from "@/components/chat/group-avatar";
-import { FavoriteBadge } from "@/components/address-book/favorite-badge";
+import { FavoriteBadge } from "@/components/common/favorite-badge";
 import { LoadingInline } from "@/components/common/loading";
 import { MeBadge } from "@/components/common/me-badge";
 import { Tabs } from "@/components/common/tabs";

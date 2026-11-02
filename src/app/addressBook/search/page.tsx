@@ -2,7 +2,7 @@
 
 import { LoadingState, PageLoading, Spinner } from "@/components/common/loading";
 import { GlobalHeader } from "@/components/common/global-header";
-import { FavoriteButton } from "@/components/address-book/favorite-button";
+import { FavoriteButton } from "@/components/common/favorite-button";
 import { MemberAvatar } from "@/components/address-book/member-avatar";
 import { useChatNotification } from "@/components/chat/chat-notification-provider";
 import { withLiveStatus } from "@/lib/live-status";

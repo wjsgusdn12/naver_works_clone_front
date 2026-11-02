@@ -1,7 +1,7 @@
 "use client";
 
 import { CustomCheckbox } from "@/components/common/custom-checkbox";
-import { FavoriteButton } from "@/components/address-book/favorite-button";
+import { FavoriteButton } from "@/components/common/favorite-button";
 import { MemberAvatar } from "@/components/address-book/member-avatar";
 import { MeBadge } from "@/components/common/me-badge";
 import { LoadingState } from "@/components/common/loading";
