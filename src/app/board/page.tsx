@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/components/auth/auth-provider";
+import { BoardContentHeader } from "@/components/board/board-content-header";
 import { BoardPostDetailView } from "@/components/board/board-post-detail";
 import { BoardPostForm } from "@/components/board/board-post-form";
 import { HomeCard, PostListBody } from "@/components/board/board-post-list";
@@ -331,6 +332,22 @@ function BoardContent() {
           ? ""
           : MENU_TITLE[menu.kind];
   const currentList = list && list.key === listKey ? list : null;
+  // 오른쪽 화면 공통 머리줄 제목. 글 보기는 그 글의 게시판 이름.
+  const postBoard = currentPost?.detail?.board;
+  const headerTitle =
+    screen.kind === "write"
+      ? "글쓰기"
+      : screen.kind === "edit"
+        ? "글 수정"
+        : screen.kind === "post"
+          ? postBoard
+            ? postBoard.myCompany
+              ? postBoard.name
+              : `${postBoard.companyName} · ${postBoard.name}`
+            : "게시글"
+          : menu.kind === "home"
+            ? "게시판 홈"
+            : listTitle;
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-white text-slate-900">
@@ -365,130 +382,135 @@ function BoardContent() {
           onToggleFavorite={(board) => void toggleFavorite(board)}
           onRename={setRenaming}
         />
-        <section className="min-w-0 flex-1 overflow-y-auto bg-white p-6">
-          {screen.kind === "write" ? (
-            boards === null ? (
-              <LoadingState message="게시판을 불러오는 중입니다..." className="min-h-64" />
-            ) : (
-              <BoardPostForm
-                key={`write-${screen.boardId ?? 0}-${screen.type ?? ""}`}
-                accessToken={accessToken}
-                boards={writableBoards}
-                initialBoardId={
-                  screen.boardId ??
-                  writableBoards.find((board) => board.myCompany && board.type === screen.type)
-                    ?.id ??
-                  writableBoards.find((board) => board.type === screen.type)?.id ??
-                  null
-                }
-                editing={null}
-                onCancel={() => router.back()}
-                onSaved={(saved) => {
-                  showToast("글을 등록했습니다.");
-                  router.replace(`/board?postId=${saved.id}`);
-                }}
-                onToast={showToast}
-              />
-            )
-          ) : screen.kind === "edit" ? (
-            !currentPost?.detail ? (
-              <LoadingState message="글을 불러오는 중입니다..." className="min-h-64" />
-            ) : (
-              <BoardPostForm
-                key={`edit-${currentPost.id}-${currentPost.detail.version}`}
-                accessToken={accessToken}
-                boards={writableBoards}
-                initialBoardId={null}
-                editing={currentPost.detail}
-                onCancel={() => router.back()}
-                onSaved={(saved) => {
-                  showToast("글을 수정했습니다.");
-                  setPost({ id: saved.id, detail: saved, failed: false });
-                  router.replace(`/board?postId=${saved.id}`);
-                }}
-                onToast={showToast}
-              />
-            )
-          ) : screen.kind === "post" ? (
-            currentPost?.failed ? (
-              <p className="flex min-h-64 items-center justify-center text-sm text-slate-500">
-                글을 찾을 수 없습니다. 지워졌거나 볼 수 없는 글입니다.
-              </p>
-            ) : !currentPost?.detail ? (
-              <LoadingState message="글을 불러오는 중입니다..." className="min-h-64" />
-            ) : (
-              <BoardPostDetailView
-                key={currentPost.id}
-                post={currentPost.detail}
-                accessToken={accessToken}
-                myMembershipId={member.membershipId}
-                onBack={() => router.back()}
-                onEdit={() => go(`/board?edit=${currentPost.id}`)}
-                onChanged={(detail) => setPost({ id: detail.id, detail, failed: false })}
-                onDeleted={() => {
-                  showToast("글을 휴지통으로 옮겼습니다.");
-                  router.replace(`/board?boardId=${currentPost.detail!.board.id}`);
-                }}
-                onRestored={() => {
-                  showToast("글을 복구했습니다.");
-                  void loadPost(currentPost.id);
-                }}
-                onToast={showToast}
-              />
-            )
-          ) : menu.kind === "home" ? (
-            <HomeScreen
-              home={home}
-              failed={homeFailed}
-              onRetry={() => void loadHome()}
-              onOpen={openPost}
-              onGo={go}
-            />
-          ) : (
-            <div className="w-full">
-              <div className="mb-4 flex items-center justify-between gap-4">
-                <h1 className="text-xl font-bold">{listTitle}</h1>
-                {writeTarget && (
-                  <button
-                    type="button"
-                    onClick={() => go(writeTarget.href)}
-                    className="flex cursor-pointer items-center gap-1.5 rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 active:scale-95"
-                  >
-                    <SquarePen size={15} aria-hidden="true" />
-                    {writeTarget.inquiry ? "문의하기" : "글쓰기"}
-                  </button>
-                )}
-              </div>
-              {(commonType === "INQUIRY" ||
-                (menu.kind === "board" && currentBoard?.type === "INQUIRY")) && (
-                <p className="mb-3 text-xs text-slate-500">
-                  문의 글은 쓴 사람과 관리자만 볼 수 있습니다. 관리자가 댓글로 답변하면 &lsquo;답변
-                  완료&rsquo;로 바뀝니다.
+        <section className="min-w-0 flex-1 overflow-y-auto bg-white">
+          <BoardContentHeader
+            title={headerTitle}
+            onBack={screen.kind === "menu" ? undefined : () => router.back()}
+            actions={
+              screen.kind === "menu" &&
+              writeTarget && (
+                <button
+                  type="button"
+                  onClick={() => go(writeTarget.href)}
+                  className="flex cursor-pointer items-center gap-1.5 rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 active:scale-95"
+                >
+                  <SquarePen size={15} aria-hidden="true" />
+                  {writeTarget.inquiry ? "문의하기" : "글쓰기"}
+                </button>
+              )
+            }
+          />
+          <div className="p-6">
+            {screen.kind === "write" ? (
+              boards === null ? (
+                <LoadingState message="게시판을 불러오는 중입니다..." className="min-h-64" />
+              ) : (
+                <BoardPostForm
+                  key={`write-${screen.boardId ?? 0}-${screen.type ?? ""}`}
+                  accessToken={accessToken}
+                  boards={writableBoards}
+                  initialBoardId={
+                    screen.boardId ??
+                    writableBoards.find((board) => board.myCompany && board.type === screen.type)
+                      ?.id ??
+                    writableBoards.find((board) => board.type === screen.type)?.id ??
+                    null
+                  }
+                  editing={null}
+                  onCancel={() => router.back()}
+                  onSaved={(saved) => {
+                    showToast("글을 등록했습니다.");
+                    router.replace(`/board?postId=${saved.id}`);
+                  }}
+                  onToast={showToast}
+                />
+              )
+            ) : screen.kind === "edit" ? (
+              !currentPost?.detail ? (
+                <LoadingState message="글을 불러오는 중입니다..." className="min-h-64" />
+              ) : (
+                <BoardPostForm
+                  key={`edit-${currentPost.id}-${currentPost.detail.version}`}
+                  accessToken={accessToken}
+                  boards={writableBoards}
+                  initialBoardId={null}
+                  editing={currentPost.detail}
+                  onCancel={() => router.back()}
+                  onSaved={(saved) => {
+                    showToast("글을 수정했습니다.");
+                    setPost({ id: saved.id, detail: saved, failed: false });
+                    router.replace(`/board?postId=${saved.id}`);
+                  }}
+                  onToast={showToast}
+                />
+              )
+            ) : screen.kind === "post" ? (
+              currentPost?.failed ? (
+                <p className="flex min-h-64 items-center justify-center text-sm text-slate-500">
+                  글을 찾을 수 없습니다. 지워졌거나 볼 수 없는 글입니다.
                 </p>
-              )}
-              <PostListBody
-                status={currentList ? currentList.status : "loading"}
-                pinned={currentList?.pinned ?? []}
-                items={currentList?.items ?? []}
-                hasMore={!!currentList?.nextCursor}
-                loadingMore={currentList?.loadingMore ?? false}
-                showBoard={menu.kind !== "board" && menu.kind !== "type"}
-                showCompany={admin}
-                emptyText={
-                  menu.kind === "board" || menu.kind === "type"
-                    ? "아직 글이 없습니다."
-                    : MENU_EMPTY[menu.kind]
-                }
-                onRetry={() =>
-                  listKey &&
-                  listTarget &&
-                  void loadList(listKey, listTarget.view, listTarget.boardId, listTarget.type)
-                }
-                onMore={() => void loadMore()}
+              ) : !currentPost?.detail ? (
+                <LoadingState message="글을 불러오는 중입니다..." className="min-h-64" />
+              ) : (
+                <BoardPostDetailView
+                  key={currentPost.id}
+                  post={currentPost.detail}
+                  accessToken={accessToken}
+                  myMembershipId={member.membershipId}
+                  onEdit={() => go(`/board?edit=${currentPost.id}`)}
+                  onChanged={(detail) => setPost({ id: detail.id, detail, failed: false })}
+                  onDeleted={() => {
+                    showToast("글을 휴지통으로 옮겼습니다.");
+                    router.replace(`/board?boardId=${currentPost.detail!.board.id}`);
+                  }}
+                  onRestored={() => {
+                    showToast("글을 복구했습니다.");
+                    void loadPost(currentPost.id);
+                  }}
+                  onToast={showToast}
+                />
+              )
+            ) : menu.kind === "home" ? (
+              <HomeScreen
+                home={home}
+                failed={homeFailed}
+                onRetry={() => void loadHome()}
                 onOpen={openPost}
+                onGo={go}
               />
-            </div>
-          )}
+            ) : (
+              <div className="w-full">
+                {(commonType === "INQUIRY" ||
+                  (menu.kind === "board" && currentBoard?.type === "INQUIRY")) && (
+                  <p className="mb-3 text-xs text-slate-500">
+                    문의 글은 쓴 사람과 관리자만 볼 수 있습니다. 관리자가 댓글로 답변하면
+                    &lsquo;답변 완료&rsquo;로 바뀝니다.
+                  </p>
+                )}
+                <PostListBody
+                  status={currentList ? currentList.status : "loading"}
+                  pinned={currentList?.pinned ?? []}
+                  items={currentList?.items ?? []}
+                  hasMore={!!currentList?.nextCursor}
+                  loadingMore={currentList?.loadingMore ?? false}
+                  showBoard={menu.kind !== "board" && menu.kind !== "type"}
+                  showCompany={admin}
+                  emptyText={
+                    menu.kind === "board" || menu.kind === "type"
+                      ? "아직 글이 없습니다."
+                      : MENU_EMPTY[menu.kind]
+                  }
+                  onRetry={() =>
+                    listKey &&
+                    listTarget &&
+                    void loadList(listKey, listTarget.view, listTarget.boardId, listTarget.type)
+                  }
+                  onMore={() => void loadMore()}
+                  onOpen={openPost}
+                />
+              </div>
+            )}
+          </div>
         </section>
       </main>
       {renaming && (
@@ -537,7 +559,6 @@ function HomeScreen({
   }
   return (
     <div className="w-full">
-      <h1 className="mb-8 text-xl font-bold">게시판 홈</h1>
       <div className="flex flex-col gap-10">
         <HomeCard
           title="최신글"

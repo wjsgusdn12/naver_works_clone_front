@@ -16,7 +16,7 @@ import {
   type BoardReaders,
 } from "@/lib/api/board-api";
 import { fileIconOf, formatFileSize, saveBlob } from "@/lib/attachment-files";
-import { ArrowLeft, Download, Eye, Pencil, RotateCcw, Trash2, Users } from "lucide-react";
+import { Download, Eye, Pencil, RotateCcw, Trash2, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const dateTime = (value: string) =>
@@ -33,7 +33,6 @@ export function BoardPostDetailView({
   post,
   accessToken,
   myMembershipId,
-  onBack,
   onEdit,
   onChanged,
   onDeleted,
@@ -43,7 +42,6 @@ export function BoardPostDetailView({
   post: BoardPostDetail;
   accessToken: string;
   myMembershipId: number;
-  onBack: () => void;
   onEdit: () => void;
   onChanged: (post: BoardPostDetail) => void;
   onDeleted: () => void;
@@ -105,14 +103,6 @@ export function BoardPostDetailView({
 
   return (
     <article className="w-full">
-      <button
-        type="button"
-        onClick={onBack}
-        className="mb-4 flex cursor-pointer items-center gap-1 text-sm text-slate-500 transition hover:text-slate-900"
-      >
-        <ArrowLeft size={16} aria-hidden="true" />
-        목록으로
-      </button>
       {post.deletedAt && (
         <div className="mb-4 flex items-center justify-between rounded-lg bg-slate-100 px-4 py-3 text-sm text-slate-600">
           휴지통에 있는 글입니다. 옮긴 지 30일이 지나면 휴지통에서도 보이지 않습니다.
@@ -130,12 +120,11 @@ export function BoardPostDetailView({
         </div>
       )}
       <header className="border-b border-slate-200 pb-5">
-        <p className="text-sm text-blue-600">{post.board.name}</p>
-        <h1 className="mt-1 flex flex-wrap items-center gap-2 text-2xl font-bold text-slate-950">
+        <h2 className="flex flex-wrap items-center gap-2 text-2xl font-bold text-slate-950">
           <PostBadges post={post} />
           {post.board.type === "INQUIRY" && <AnswerBadge answered={!!post.answeredAt} />}
           <span className="break-all">{post.title}</span>
-        </h1>
+        </h2>
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <PersonAvatar membershipId={post.authorMembershipId} name={post.authorName} size="lg" />

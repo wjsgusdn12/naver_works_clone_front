@@ -168,7 +168,6 @@ export function BoardPostForm({
         void submit();
       }}
     >
-      <h1 className="text-xl font-bold text-slate-950">{editing ? "글 수정" : "글쓰기"}</h1>
       <div className="flex items-center gap-3">
         <span className="w-14 shrink-0 text-sm font-medium text-slate-600">게시판</span>
         {editing ? (
