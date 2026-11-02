@@ -1,5 +1,6 @@
 "use client";
 
+import { FavoriteButton } from "@/components/common/favorite-button";
 import { LoadingInline } from "@/components/common/loading";
 import { Tooltip } from "@/components/common/tooltip";
 import type { BoardItem, BoardType } from "@/lib/api/board-api";
@@ -17,7 +18,6 @@ import {
   Pencil,
   Search,
   SquarePen,
-  Star,
   Trash2,
   UsersRound,
   X,
@@ -179,7 +179,9 @@ export function BoardSidebar({
                 favorites.map((board) => row(board))
               ) : (
                 <p className="px-3 py-1.5 text-xs text-slate-400">
-                  {query ? "맞는 게시판이 없습니다." : "게시판의 ☆를 눌러 추가하세요."}
+                  {query
+                    ? "맞는 게시판이 없습니다."
+                    : "게시판에 마우스를 올려 별을 눌러 추가하세요."}
                 </p>
               )}
             </Section>
@@ -311,17 +313,14 @@ function BoardRow({
           </button>
         </Tooltip>
       )}
-      <Tooltip label={board.favorite ? "즐겨찾기 해제" : "즐겨찾기"}>
-        <button
-          type="button"
-          aria-label={`${board.name} ${board.favorite ? "즐겨찾기 해제" : "즐겨찾기"}`}
-          aria-pressed={board.favorite}
+      {/* 즐겨찾기한 게시판은 버튼이 늘 보이고, 아니면 마우스를 올렸을 때만 */}
+      <span className={`mr-1.5 ${board.favorite ? "flex" : "hidden group-hover:flex"}`}>
+        <FavoriteButton
+          active={board.favorite}
+          label={`${board.name} ${board.favorite ? "즐겨찾기 해제" : "즐겨찾기"}`}
           onClick={onToggleFavorite}
-          className={`mr-1 h-6 w-6 cursor-pointer items-center justify-center rounded transition hover:bg-slate-200 ${board.favorite ? "flex text-amber-400" : "hidden text-slate-400 group-hover:flex"}`}
-        >
-          <Star size={14} fill={board.favorite ? "currentColor" : "none"} aria-hidden="true" />
-        </button>
-      </Tooltip>
+        />
+      </span>
     </div>
   );
 }
