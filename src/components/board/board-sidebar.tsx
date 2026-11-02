@@ -12,6 +12,7 @@ import {
   Clock3,
   FilePen,
   Flag,
+  House,
   Megaphone,
   MessageSquare,
   MessagesSquare,
@@ -165,6 +166,16 @@ export function BoardSidebar({
           </button>
         )}
       </label>
+      {/* 게시판 홈(최신글·공지·자유·문의 미리보기)으로 */}
+      <button
+        type="button"
+        aria-current={menu.kind === "home" ? "page" : undefined}
+        onClick={() => onSelect({ kind: "home" })}
+        className={`mt-2 flex w-full shrink-0 cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm ${menu.kind === "home" ? "bg-blue-50 font-semibold text-blue-700" : "text-slate-700 hover:bg-slate-100"}`}
+      >
+        <House size={15} className="shrink-0 opacity-70" aria-hidden="true" />
+        게시판 홈
+      </button>
 
       <nav
         aria-label="게시판 목록"
