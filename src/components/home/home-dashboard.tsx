@@ -1,13 +1,14 @@
 "use client";
 
 import { PostBadges, PostMeta } from "@/components/board/board-post-list";
-import { FavoriteBadge } from "@/components/common/favorite-badge";
+import { FavoriteButton } from "@/components/common/favorite-button";
 import { useAuth } from "@/components/auth/auth-provider";
 import { ApiDashboardSection } from "@/components/home/api-dashboard";
 import { GroupAvatar } from "@/components/chat/group-avatar";
 import { useChatNotification } from "@/components/chat/chat-notification-provider";
 import { LoadingInline, Spinner } from "@/components/common/loading";
 import { MeBadge } from "@/components/common/me-badge";
+import { NotificationModeMenu } from "@/components/common/notification-mode-menu";
 import { UserAvatar } from "@/components/common/user-avatar";
 import { addressBookApi, type AddressBookMember } from "@/lib/api/address-book-api";
 import { boardApi, type BoardHome, type BoardPostSummary } from "@/lib/api/board-api";
@@ -34,10 +35,10 @@ type HomeDashboardProps = {
 
 // 최근 대화에 담을 최대 개수(카드 높이를 넘으면 스크롤).
 const RECENT_ROOM_LIMIT = 30;
-// 즐겨찾기는 전부 보여 주되, 서버 한 페이지 최대치(100명)까지만 받음.
-const FAVORITE_LIMIT = 100;
-// 작은 카드(알림·즐겨찾기·공지·최신글) 목록 높이. 카드끼리 같은 값으로 통일, 넘치면 그 안에서 스크롤.
-// 즐겨찾기 4명(한 줄 60px × 4 + 구분선 3px = 243px)까지는 스크롤바가 생기지 않는 높이.
+// 주소록 카드는 전체 구성원을 보여 주되, 서버 한 페이지 최대치(100명)까지만 받음.
+const MEMBER_LIMIT = 100;
+// 작은 카드(주소록·공지·최신글) 목록 높이. 카드끼리 같은 값으로 통일, 넘치면 그 안에서 스크롤.
+// 구성원 4명(한 줄 60px × 4 + 구분선 3px = 243px)까지는 스크롤바가 생기지 않는 높이.
 const LIST_HEIGHT = "max-h-[248px]";
 
 // 상대 시각. 오늘이면 시각, 올해면 월·일, 그 외는 연·월·일.
@@ -77,11 +78,12 @@ export function HomeDashboard({
     acknowledgeNotifications,
   } = useChatNotification();
   const [rooms, setRooms] = useState<ChatRoom[] | null>(null);
-  const [favorites, setFavorites] = useState<AddressBookMember[] | null>(null);
+  // 주소록 카드(전체 구성원). 즐겨찾기는 별 버튼으로 켜고 끔.
+  const [members, setMembers] = useState<AddressBookMember[] | null>(null);
   // 게시판 홈 요약(공지사항·최신글). 실패하면 빈 값으로 두고 안내만 띄움.
   const [board, setBoard] = useState<BoardHome | null>(null);
 
-  // 채팅방 목록과 즐겨찾기 구성원을 한 번씩 조회. 실패해도 빈 목록으로 두고 안내만 띄움.
+  // 채팅방 목록과 주소록 구성원을 한 번씩 조회. 실패해도 빈 목록으로 두고 안내만 띄움.
   useEffect(() => {
     let cancelled = false;
     chatApi
@@ -99,19 +101,18 @@ export function HomeDashboard({
         accessToken,
         new URLSearchParams({
           page: "0",
-          size: String(FAVORITE_LIMIT),
+          size: String(MEMBER_LIMIT),
           sort: "name",
           direction: "asc",
-          favoriteOnly: "true",
         }),
       )
       .then((result) => {
-        if (!cancelled) setFavorites(result.content);
+        if (!cancelled) setMembers(result.content);
       })
       .catch((error: unknown) => {
         if (cancelled) return;
-        setFavorites([]);
-        showToast(error instanceof Error ? error.message : "즐겨찾기를 불러오지 못했습니다.");
+        setMembers([]);
+        showToast(error instanceof Error ? error.message : "주소록을 불러오지 못했습니다.");
       });
     boardApi
       .home(accessToken)
@@ -168,6 +169,26 @@ export function HomeDashboard({
     }
   };
 
+  // 별 버튼: 응답을 기다리지 않고 바로 바꾸고, 실패하면 되돌림(주소록 화면과 같은 방식).
+  const toggleFavorite = async (target: AddressBookMember) => {
+    const setFavorite = (favorite: boolean) =>
+      setMembers(
+        (current) =>
+          current &&
+          current.map((item) =>
+            item.membershipId === target.membershipId ? { ...item, favorite } : item,
+          ),
+      );
+    setFavorite(!target.favorite);
+    try {
+      if (target.favorite) await addressBookApi.deleteFavorite(accessToken, target.membershipId);
+      else await addressBookApi.createFavorite(accessToken, target.membershipId);
+    } catch (error) {
+      setFavorite(target.favorite);
+      showToast(error instanceof Error ? error.message : "즐겨찾기를 변경하지 못했습니다.");
+    }
+  };
+
   const openSelf = async () => {
     try {
       const room = await chatApi.createSelf(accessToken);
@@ -187,16 +208,25 @@ export function HomeDashboard({
   return (
     <main className="min-h-0 flex-1 overflow-y-auto">
       <div className="mx-auto w-full max-w-7xl px-5 py-8 sm:px-8 lg:px-10">
-        {/* 인사말 · 숫자 칩 3개(안 읽은 메시지·온라인 구성원·읽지 않은 알림) · 바로가기 버튼을 한 줄에 */}
-        {/* 3열 × 2행 카드 6장: 인사말 | 알림 | 공지사항 / 최근 대화 | 즐겨찾기 구성원 | 게시판 최신글.
+        {/* 3열 × 2행: 인사말·알림(왼쪽 두 줄 차지) | 주소록 | 공지사항 / 최근 대화 | 게시판 최신글.
             같은 행 카드는 높이가 자동으로 같아져 위·아래선이 맞음. 좁은 화면에서는 한 줄씩 쌓임. */}
         <section className="grid gap-5 xl:grid-cols-3">
-          {/* 인사말 카드: 날짜·인사말, 숫자 3칸, 바로가기 4개 */}
-          <article className="flex flex-col rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-sm text-slate-500">{today}</p>
-            <h1 className="mt-1 whitespace-nowrap text-2xl font-bold tracking-tight text-slate-900">
-              {displayName}님, 안녕하세요.
-            </h1>
+          {/* 인사말 카드(두 줄 높이): 내 프로필·날짜·인사말, 숫자 3칸, 알림 목록, 바로가기 4개 */}
+          <article className="flex flex-col rounded-xl border border-slate-200 bg-white p-5 shadow-sm xl:row-span-2">
+            <div className="flex items-center gap-4">
+              <UserAvatar
+                size="lg"
+                name={displayName}
+                presenceStatus={presenceByMembershipId[membershipId] ?? "ONLINE"}
+                statusType={myStatusType}
+              />
+              <div className="min-w-0">
+                <p className="text-sm text-slate-500">{today}</p>
+                <h1 className="mt-1 truncate text-2xl font-bold tracking-tight text-slate-900">
+                  {displayName}님, 안녕하세요.
+                </h1>
+              </div>
+            </div>
             <div className="mt-5 grid grid-cols-3 divide-x divide-slate-100">
               <StatTile
                 label="안 읽은 메시지"
@@ -216,8 +246,65 @@ export function HomeDashboard({
                 suffix="건"
               />
             </div>
+
+            {/* 알림: 제목 줄 오른쪽에 모두 읽음(상단바 패널과 같은 동작)·알림 설정 */}
+            <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4">
+              <div>
+                <p className="text-base font-bold text-slate-900">알림</p>
+                <p className="mt-0.5 text-xs text-slate-500">최근 30일 알림입니다.</p>
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={acknowledgeNotifications}
+                  disabled={notificationCount === 0}
+                  className="shrink-0 cursor-pointer rounded-md px-2 py-1 text-xs font-medium text-blue-600 transition hover:bg-blue-50 disabled:cursor-default disabled:text-slate-300 disabled:hover:bg-transparent"
+                >
+                  모두 읽음
+                </button>
+                <NotificationModeMenu />
+              </div>
+            </div>
+            {/* 넓은 화면에서는 카드 남는 높이를 채우고 그 안에서 스크롤 */}
+            <div className="relative mt-2 min-h-0 flex-1">
+              {!notificationsLoaded ? (
+                <LoadingInline message="알림을 불러오는 중입니다." className="py-8 text-sm" />
+              ) : notifications.length === 0 ? (
+                <Empty message="새 알림이 없습니다." />
+              ) : (
+                <ul className="max-h-[320px] divide-y divide-slate-100 overflow-y-auto xl:absolute xl:inset-0 xl:max-h-none">
+                  {notifications.map((item) => (
+                    <li key={item.id}>
+                      <button
+                        type="button"
+                        className="flex w-full cursor-pointer items-start gap-3 rounded-lg px-2 py-3 text-left transition hover:bg-slate-50"
+                        onClick={() => openNotification(item)}
+                      >
+                        <span
+                          className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${item.read ? "bg-slate-200" : "bg-blue-500"}`}
+                        />
+                        <span className="min-w-0 flex-1">
+                          <span
+                            className={`block truncate text-sm ${item.read ? "text-slate-600" : "font-semibold text-slate-900"}`}
+                          >
+                            {item.title}
+                          </span>
+                          <span className="mt-0.5 block truncate text-xs text-slate-500">
+                            {item.body}
+                          </span>
+                        </span>
+                        <span className="shrink-0 text-xs text-slate-400">
+                          {formatRelative(item.createdAt)}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
             {/* 바로가기는 카드 아래쪽에 붙임 */}
-            <div className="mt-auto grid grid-cols-4 gap-1 border-t border-slate-100 pt-3">
+            <div className="mt-3 grid grid-cols-4 gap-1 border-t border-slate-100 pt-3">
               <QuickButton icon={MessageCircleMore} onClick={() => router.push("/message")}>
                 메시지
               </QuickButton>
@@ -234,52 +321,62 @@ export function HomeDashboard({
           </article>
 
           <Card
-            title="알림"
-            description="최근 30일 알림입니다."
-            action={
-              // 상단바 알림 패널의 "모두 읽음"과 같은 동작(종 숫자도 함께 0)
-              <button
-                type="button"
-                onClick={acknowledgeNotifications}
-                disabled={notificationCount === 0}
-                className="shrink-0 cursor-pointer rounded-md px-2 py-1 text-xs font-medium text-blue-600 transition hover:bg-blue-50 disabled:cursor-default disabled:text-slate-300 disabled:hover:bg-transparent"
-              >
-                모두 읽음
-              </button>
-            }
+            title="주소록"
+            description="전체 구성원입니다. 별을 눌러 즐겨찾기를 켜고 끕니다."
+            onTitleClick={() => router.push("/addressBook")}
           >
-            {!notificationsLoaded ? (
-              <LoadingInline message="알림을 불러오는 중입니다." className="py-8 text-sm" />
-            ) : notifications.length === 0 ? (
-              <Empty message="새 알림이 없습니다." />
+            {members === null ? (
+              <LoadingInline message="주소록을 불러오는 중입니다." className="py-8 text-sm" />
+            ) : members.length === 0 ? (
+              <Empty message="구성원이 없습니다." />
             ) : (
               <ul className={`${LIST_HEIGHT} divide-y divide-slate-100 overflow-y-auto`}>
-                {notifications.map((item) => (
-                  <li key={item.id}>
-                    <button
-                      type="button"
-                      className="flex w-full cursor-pointer items-start gap-3 rounded-lg px-2 py-3 text-left transition hover:bg-slate-50"
-                      onClick={() => openNotification(item)}
-                    >
-                      <span
-                        className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${item.read ? "bg-slate-200" : "bg-blue-500"}`}
+                {members.map((item) => {
+                  const target = withLiveStatus(
+                    item,
+                    presenceByMembershipId,
+                    memberStatusByMembershipId,
+                  );
+                  return (
+                    <li key={target.membershipId} className="flex items-center gap-3 px-2 py-2.5">
+                      <UserAvatar
+                        size="md"
+                        name={target.displayName}
+                        presenceStatus={target.presenceStatus}
+                        statusType={target.statusType}
                       />
                       <span className="min-w-0 flex-1">
-                        <span
-                          className={`block truncate text-sm ${item.read ? "text-slate-600" : "font-semibold text-slate-900"}`}
-                        >
-                          {item.title}
+                        <span className="flex items-center gap-1.5">
+                          {target.membershipId === membershipId && <MeBadge />}
+                          <b className="truncate text-sm text-slate-900">{target.displayName}</b>
                         </span>
-                        <span className="mt-0.5 block truncate text-xs text-slate-500">
-                          {item.body}
+                        <span className="block truncate text-xs text-slate-500">
+                          {/* 직급 · 부서 · 회사(다른 회사 구성원도 구분되게) */}
+                          {[
+                            target.jobGradeName ?? target.jobTitle,
+                            target.departmentName,
+                            target.companyName,
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")}
                         </span>
                       </span>
-                      <span className="shrink-0 text-xs text-slate-400">
-                        {formatRelative(item.createdAt)}
-                      </span>
-                    </button>
-                  </li>
-                ))}
+                      <FavoriteButton
+                        active={target.favorite}
+                        onClick={() => void toggleFavorite(item)}
+                        label={`${target.displayName} 즐겨찾기 ${target.favorite ? "끄기" : "켜기"}`}
+                      />
+                      <button
+                        type="button"
+                        aria-label={`${target.displayName}에게 메시지 보내기`}
+                        className="cursor-pointer rounded-md p-1.5 text-blue-600 transition hover:bg-blue-50"
+                        onClick={() => void openDirect(target)}
+                      >
+                        <MessageCircleMore size={17} />
+                      </button>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </Card>
@@ -372,67 +469,6 @@ export function HomeDashboard({
                     </button>
                   </li>
                 ))}
-              </ul>
-            )}
-          </Card>
-
-          <Card
-            title="즐겨찾기 구성원"
-            description="주소록에서 별표한 구성원입니다."
-            onTitleClick={() => router.push("/addressBook")}
-          >
-            {favorites === null ? (
-              <LoadingInline message="즐겨찾기를 불러오는 중입니다." className="py-8 text-sm" />
-            ) : favorites.length === 0 ? (
-              <Empty
-                message="즐겨찾기한 구성원이 없습니다."
-                actionLabel="주소록에서 별표하기"
-                onAction={() => router.push("/addressBook")}
-              />
-            ) : (
-              <ul className={`${LIST_HEIGHT} divide-y divide-slate-100 overflow-y-auto`}>
-                {favorites.map((favorite) => {
-                  const target = withLiveStatus(
-                    favorite,
-                    presenceByMembershipId,
-                    memberStatusByMembershipId,
-                  );
-                  return (
-                    <li key={target.membershipId} className="flex items-center gap-3 px-2 py-2.5">
-                      <UserAvatar
-                        size="md"
-                        name={target.displayName}
-                        presenceStatus={target.presenceStatus}
-                        statusType={target.statusType}
-                      />
-                      <span className="min-w-0 flex-1">
-                        <span className="flex items-center gap-1.5">
-                          {target.membershipId === membershipId && <MeBadge />}
-                          <b className="truncate text-sm text-slate-900">{target.displayName}</b>
-                          <FavoriteBadge />
-                        </span>
-                        <span className="block truncate text-xs text-slate-500">
-                          {/* 직급 · 부서 · 회사(다른 회사 구성원도 구분되게) */}
-                          {[
-                            target.jobGradeName ?? target.jobTitle,
-                            target.departmentName,
-                            target.companyName,
-                          ]
-                            .filter(Boolean)
-                            .join(" · ")}
-                        </span>
-                      </span>
-                      <button
-                        type="button"
-                        aria-label={`${target.displayName}에게 메시지 보내기`}
-                        className="cursor-pointer rounded-md p-1.5 text-blue-600 transition hover:bg-blue-50"
-                        onClick={() => void openDirect(target)}
-                      >
-                        <MessageCircleMore size={17} />
-                      </button>
-                    </li>
-                  );
-                })}
               </ul>
             )}
           </Card>
