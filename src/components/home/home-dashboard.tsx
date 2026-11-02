@@ -607,14 +607,12 @@ function QuickButton({
     <button
       type="button"
       onClick={onClick}
-      className="group flex cursor-pointer flex-col items-center gap-1.5 whitespace-nowrap rounded-lg py-2.5 text-xs text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 active:scale-95"
+      className="group flex cursor-pointer flex-col items-center gap-1.5 whitespace-nowrap rounded-lg py-2 text-xs font-medium text-slate-700 transition hover:bg-blue-50/60 hover:text-blue-700 active:scale-95"
     >
-      <Icon
-        size={19}
-        strokeWidth={1.7}
-        className="text-slate-500 transition group-hover:text-blue-600"
-        aria-hidden="true"
-      />
+      {/* 파란 아이콘 타일: 평소엔 옅은 파랑, 올리면 진한 파랑에 흰 아이콘 */}
+      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600 transition group-hover:bg-blue-600 group-hover:text-white">
+        <Icon size={18} strokeWidth={2} aria-hidden="true" />
+      </span>
       {children}
     </button>
   );
