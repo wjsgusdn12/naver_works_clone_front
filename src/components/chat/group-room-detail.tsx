@@ -1,12 +1,15 @@
 "use client";
 
 import { GroupAvatar } from "@/components/chat/group-avatar";
+import { MessageDialogShell } from "@/components/chat/message-change-dialog";
 import { MessageMemberAvatar } from "@/components/chat/message-member-avatar";
 import { useChatNotification } from "@/components/chat/chat-notification-provider";
-import { LoadingState } from "@/components/common/loading";
+import { ItemActionMenu } from "@/components/common/item-action-menu";
+import { LoadingState, Spinner } from "@/components/common/loading";
+import { MeBadge } from "@/components/common/me-badge";
 import type { AddressBookMember } from "@/lib/api/address-book-api";
 import { chatApi, type ChatMemberProfile, type ChatRoom } from "@/lib/api/chat-api";
-import { ChevronDown, X } from "lucide-react";
+import { ChevronDown, Crown, MoreVertical, UserMinus, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export function GroupRoomDetail({
@@ -48,6 +51,16 @@ export function GroupRoomDetail({
     "loading",
   );
   const inviteRef = useRef<HTMLDivElement>(null);
+  // 멤버 ⋮ 메뉴(방장 위임·내보내기)와 그 확인 모달
+  const [memberMenu, setMemberMenu] = useState<{
+    member: ChatMemberProfile;
+    position: { left: number; top: number };
+  } | null>(null);
+  const [memberConfirm, setMemberConfirm] = useState<{
+    action: "owner" | "remove";
+    member: ChatMemberProfile;
+  } | null>(null);
+  const closeMemberMenu = useCallback(() => setMemberMenu(null), []);
   const owner = room.ownerMembershipId === currentMemberId;
   // 전체 회사 구성원 중 현재 방에 없는 사람만 초대 후보로 제공. 참여자를 받기 전에는 후보를 보이지 않음.
   const inviteCandidates =
@@ -81,8 +94,9 @@ export function GroupRoomDetail({
       if (inviteRef.current && !inviteRef.current.contains(event.target as Node))
         setInviteOpen(false);
     };
+    // ⋮ 메뉴·확인 모달이 열려 있으면 Esc는 그것만 닫고 패널은 그대로 둠
     const closeByEscape = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
+      if (event.key !== "Escape" || memberMenu || memberConfirm) return;
       if (inviteOpen) setInviteOpen(false);
       else onClose();
     };
@@ -92,7 +106,7 @@ export function GroupRoomDetail({
       document.removeEventListener("mousedown", closeOutside);
       document.removeEventListener("keydown", closeByEscape);
     };
-  }, [inviteOpen, onClose]);
+  }, [inviteOpen, onClose, memberMenu, memberConfirm]);
 
   const run = async (
     action: "leave" | "invite" | "remove" | "owner" | "rename",
@@ -244,7 +258,7 @@ export function GroupRoomDetail({
       )}
       <section className="mt-4 border-t border-slate-100 pt-4">
         <h3 className="text-sm font-bold">
-          멤버 <span className="text-blue-600">({participants.length || room.memberCount})</span>
+          멤버 <span className="text-blue-600">{participants.length || room.memberCount}</span>
         </h3>
         <div className="mt-2 max-h-[calc(100vh-25rem)] overflow-y-auto overflow-x-hidden">
           {participants.map((participant) => {
@@ -272,12 +286,16 @@ export function GroupRoomDetail({
                     statusType={isMe ? myStatusType : profile?.statusType}
                   />
                   <span className="min-w-0 flex-1">
-                    <b className="block truncate text-sm">
-                      {participant.displayName}
-                      {isMe ? " (나)" : ""}
-                    </b>
+                    <span className="flex min-w-0 items-center gap-1.5">
+                      {isMe && <MeBadge />}
+                      <b className="truncate text-sm">{participant.displayName}</b>
+                    </span>
                     <small className="block truncate text-slate-500">
-                      {[participant.jobGradeName, participant.departmentName]
+                      {[
+                        participant.jobGradeName,
+                        participant.departmentName,
+                        participant.companyName,
+                      ]
                         .filter(Boolean)
                         .join(" · ")}
                     </small>
@@ -289,20 +307,28 @@ export function GroupRoomDetail({
                   </em>
                 )}
                 {owner && !isMe && (
-                  <span className="flex shrink-0 gap-1">
-                    <button
-                      onClick={() => void run("owner", participant.membershipId)}
-                      className="cursor-pointer rounded border border-slate-200 px-2 py-1 text-[11px] transition hover:border-blue-300 hover:bg-blue-50"
-                    >
-                      위임
-                    </button>
-                    <button
-                      onClick={() => void run("remove", participant.membershipId)}
-                      className="cursor-pointer rounded border border-red-100 px-2 py-1 text-[11px] text-red-600 transition hover:bg-red-50"
-                    >
-                      내보내기
-                    </button>
-                  </span>
+                  <button
+                    type="button"
+                    data-item-menu
+                    aria-label={`${participant.displayName} 메뉴`}
+                    aria-haspopup="menu"
+                    aria-expanded={memberMenu?.member.membershipId === participant.membershipId}
+                    onClick={(event) => {
+                      if (memberMenu?.member.membershipId === participant.membershipId) {
+                        setMemberMenu(null);
+                        return;
+                      }
+                      const rect = event.currentTarget.getBoundingClientRect();
+                      setMemberMenu({
+                        member: participant,
+                        // 메뉴 폭(144px)만큼 왼쪽으로 붙여 패널 밖으로 나가지 않게
+                        position: { left: rect.right - 144, top: rect.bottom + 4 },
+                      });
+                    }}
+                    className={`flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded text-slate-600 transition hover:bg-slate-200 ${memberMenu?.member.membershipId === participant.membershipId ? "bg-slate-200" : ""}`}
+                  >
+                    <MoreVertical size={17} aria-hidden="true" />
+                  </button>
                 )}
               </div>
             );
@@ -321,6 +347,104 @@ export function GroupRoomDetail({
       >
         채팅방 나가기
       </button>
+      {memberMenu && (
+        <ItemActionMenu
+          position={memberMenu.position}
+          onClose={closeMemberMenu}
+          items={[
+            {
+              key: "owner",
+              label: "방장 위임",
+              icon: Crown,
+              onSelect: () => setMemberConfirm({ action: "owner", member: memberMenu.member }),
+            },
+            {
+              key: "remove",
+              label: "내보내기",
+              icon: UserMinus,
+              onSelect: () => setMemberConfirm({ action: "remove", member: memberMenu.member }),
+            },
+          ]}
+        />
+      )}
+      {memberConfirm && (
+        <MemberActionDialog
+          action={memberConfirm.action}
+          name={memberConfirm.member.displayName}
+          onClose={() => setMemberConfirm(null)}
+          onConfirm={() => run(memberConfirm.action, memberConfirm.member.membershipId)}
+        />
+      )}
     </aside>
+  );
+}
+
+// 방장 위임·내보내기 확인 모달. 확인을 누르면 요청이 끝날 때까지 버튼에 로딩 표시.
+function MemberActionDialog({
+  action,
+  name,
+  onClose,
+  onConfirm,
+}: {
+  action: "owner" | "remove";
+  name: string;
+  onClose: () => void;
+  onConfirm: () => Promise<void>;
+}) {
+  const [busy, setBusy] = useState(false);
+  const owner = action === "owner";
+  const confirm = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await onConfirm();
+    } finally {
+      setBusy(false);
+      onClose();
+    }
+  };
+  return (
+    <MessageDialogShell
+      title={owner ? "방장 위임" : "내보내기"}
+      onClose={onClose}
+      widthClassName="max-w-md"
+    >
+      <div className="flex items-start gap-4">
+        <div
+          className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${owner ? "bg-blue-50 text-blue-600" : "bg-red-50 text-red-500"}`}
+        >
+          {owner ? <Crown size={22} /> : <UserMinus size={22} />}
+        </div>
+        <div className="min-w-0 pt-0.5">
+          <p className="text-base font-semibold text-slate-800">
+            {owner ? `${name}님에게 방장을 위임할까요?` : `${name}님을 내보낼까요?`}
+          </p>
+          <p className="mt-1.5 text-sm leading-6 text-slate-500">
+            {owner
+              ? "위임하면 그룹명 변경·초대·내보내기는 새 방장만 할 수 있습니다."
+              : "내보낸 구성원은 이 메시지방의 대화를 더 볼 수 없고, 다시 초대할 수 있습니다."}
+          </p>
+        </div>
+      </div>
+      <div className="mt-7 flex justify-end gap-2">
+        <button
+          data-dialog-initial-focus
+          type="button"
+          onClick={onClose}
+          className="cursor-pointer rounded-md border border-slate-200 px-5 py-2.5 text-sm font-medium transition hover:bg-slate-50 active:scale-95"
+        >
+          취소
+        </button>
+        <button
+          type="button"
+          onClick={() => void confirm()}
+          disabled={busy}
+          className={`flex cursor-pointer items-center gap-2 rounded-md px-5 py-2.5 text-sm font-semibold text-white transition active:scale-95 disabled:cursor-wait disabled:opacity-60 ${owner ? "bg-blue-600 hover:bg-blue-700" : "bg-red-500 hover:bg-red-600"}`}
+        >
+          {busy && <Spinner size={14} />}
+          {owner ? "위임" : "내보내기"}
+        </button>
+      </div>
+    </MessageDialogShell>
   );
 }
