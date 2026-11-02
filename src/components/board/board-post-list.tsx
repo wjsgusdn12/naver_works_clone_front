@@ -146,14 +146,17 @@ export function HomeCard({
               >
                 {answerBadge && <AnswerBadge answered={post.answered} />}
                 <PostBadges post={post} />
-                <span
-                  className={`min-w-0 flex-1 truncate ${post.read ? "text-slate-600" : "font-semibold text-slate-900"}`}
-                >
-                  {post.title}
+                {/* 댓글 수는 제목 글자 바로 오른쪽(제목이 길면 제목만 줄임) */}
+                <span className="flex min-w-0 flex-1 items-center gap-1">
+                  <span
+                    className={`truncate ${post.read ? "text-slate-600" : "font-semibold text-slate-900"}`}
+                  >
+                    {post.title}
+                  </span>
+                  {post.commentCount > 0 && (
+                    <span className="shrink-0 text-xs text-blue-600">[{post.commentCount}]</span>
+                  )}
                 </span>
-                {post.commentCount > 0 && (
-                  <span className="shrink-0 text-xs text-blue-600">[{post.commentCount}]</span>
-                )}
                 {/* 작성자 · 날짜 · 조회수 */}
                 <span className="flex shrink-0 items-center gap-2.5 text-xs text-slate-400">
                   <span className="max-w-20 truncate text-slate-500">{post.authorName}</span>
