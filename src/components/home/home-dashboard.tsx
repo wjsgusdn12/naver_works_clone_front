@@ -14,15 +14,7 @@ import { boardApi, type BoardHome, type BoardPostSummary } from "@/lib/api/board
 import { chatApi, type ChatRoom } from "@/lib/api/chat-api";
 import { withLiveStatus } from "@/lib/live-status";
 import type { NotificationItem } from "@/lib/api/notification-api";
-import {
-  ArrowRight,
-  Bell,
-  BookUser,
-  ClipboardList,
-  MessageCircleMore,
-  NotebookPen,
-  UsersRound,
-} from "lucide-react";
+import { ArrowRight, BookUser, ClipboardList, MessageCircleMore, NotebookPen } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 
@@ -190,39 +182,33 @@ export function HomeDashboard({
         {/* 3열 × 2행 카드 6장: 인사말 | 알림 | 공지사항 / 최근 대화 | 즐겨찾기 구성원 | 게시판 최신글.
             같은 행 카드는 높이가 자동으로 같아져 위·아래선이 맞음. 좁은 화면에서는 한 줄씩 쌓임. */}
         <section className="grid gap-5 xl:grid-cols-3">
-          {/* 인사말 카드: 날짜·인사말, 숫자 칩 3개, 바로가기 버튼 */}
+          {/* 인사말 카드: 날짜·인사말, 숫자 3칸, 바로가기 4개 */}
           <article className="flex flex-col rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <p className="text-sm text-slate-500">{today}</p>
             <h1 className="mt-1 whitespace-nowrap text-2xl font-bold tracking-tight text-slate-900">
               {displayName}님, 안녕하세요.
             </h1>
-            <div className="mt-4 flex flex-wrap gap-2">
+            <div className="mt-5 grid grid-cols-3 divide-x divide-slate-100">
               <StatTile
                 label="안 읽은 메시지"
                 value={rooms === null ? null : unreadTotal}
                 suffix="건"
-                icon={MessageCircleMore}
-                accent="bg-blue-50 text-blue-600"
                 onClick={() => router.push("/message")}
               />
               <StatTile
                 label="온라인 구성원"
                 value={onlineCount}
                 suffix="명"
-                icon={UsersRound}
-                accent="bg-emerald-50 text-emerald-600"
                 onClick={() => router.push("/addressBook")}
               />
               <StatTile
                 label="읽지 않은 알림"
                 value={notificationsLoaded ? notificationCount : null}
                 suffix="건"
-                icon={Bell}
-                accent="bg-amber-50 text-amber-600"
               />
             </div>
             {/* 바로가기는 카드 아래쪽에 붙임 */}
-            <div className="mt-auto grid grid-cols-2 gap-2 pt-5 sm:grid-cols-4">
+            <div className="mt-auto grid grid-cols-4 gap-1 border-t border-slate-100 pt-3">
               <QuickButton icon={MessageCircleMore} onClick={() => router.push("/message")}>
                 메시지
               </QuickButton>
@@ -500,6 +486,7 @@ function BoardPostList({
   );
 }
 
+// 인사말 카드의 바로가기: 테두리 없이 아이콘 위·이름 아래(전체 서비스 패널과 같은 모양).
 function QuickButton({
   icon: Icon,
   onClick,
@@ -513,28 +500,30 @@ function QuickButton({
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex h-10 cursor-pointer items-center gap-2 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-800 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:text-blue-700 hover:shadow-md"
+      className="group flex cursor-pointer flex-col items-center gap-1.5 whitespace-nowrap rounded-lg py-2.5 text-xs text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 active:scale-95"
     >
-      <Icon size={17} />
+      <Icon
+        size={19}
+        strokeWidth={1.7}
+        className="text-slate-500 transition group-hover:text-blue-600"
+        aria-hidden="true"
+      />
       {children}
     </button>
   );
 }
 
+// 인사말 카드의 숫자 한 칸: 작은 이름 + 큰 숫자. 누를 수 있으면 해당 화면으로 이동.
 function StatTile({
   label,
   value,
   suffix,
-  icon: Icon,
-  accent,
   onClick,
 }: {
   label: string;
   // null이면 아직 불러오는 중.
   value: number | null;
   suffix: string;
-  icon: typeof MessageCircleMore;
-  accent: string;
   onClick?: () => void;
 }) {
   const Tag = onClick ? "button" : "div";
@@ -542,19 +531,15 @@ function StatTile({
     <Tag
       type={onClick ? "button" : undefined}
       onClick={onClick}
-      className={`flex items-center gap-2 rounded-full border border-slate-200 bg-white py-1.5 pl-1.5 pr-3.5 text-left shadow-sm ${onClick ? "cursor-pointer transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md" : ""}`}
+      className={`flex flex-col items-start gap-1 px-4 text-left first:pl-0 ${onClick ? "cursor-pointer transition hover:opacity-70" : ""}`}
     >
-      {/* 칩 한 개: 아이콘 · 이름 · 값. 값을 불러오는 중이면 값 자리에 로딩 표시. */}
-      <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${accent}`}>
-        <Icon size={15} />
-      </span>
-      <span className="whitespace-nowrap text-sm font-medium text-slate-600">{label}</span>
+      <span className="whitespace-nowrap text-xs text-slate-500">{label}</span>
       {value === null ? (
-        <Spinner size={16} className="text-blue-500" />
+        <Spinner size={16} className="my-1.5 text-blue-500" />
       ) : (
-        <span className="shrink-0 text-base font-bold tracking-tight text-slate-900">
+        <span className="text-2xl font-bold tracking-tight text-slate-900">
           {value}
-          <span className="ml-0.5 text-xs font-medium text-slate-500">{suffix}</span>
+          <span className="ml-0.5 text-xs font-medium text-slate-400">{suffix}</span>
         </span>
       )}
     </Tag>
