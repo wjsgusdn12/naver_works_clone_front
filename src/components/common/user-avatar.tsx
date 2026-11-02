@@ -2,6 +2,7 @@
 
 import { X } from "lucide-react";
 import { useProfileImageUrl } from "@/components/common/profile-image-provider";
+import { useProfileModal } from "@/components/common/profile-modal-provider";
 import type { PresenceStatus } from "@/lib/api/address-book-api";
 import { memberStatusOption, type MemberStatusType } from "@/lib/status-options";
 
@@ -32,8 +33,10 @@ type UserAvatarProps = {
   // 구성원이 고른 상태. 있으면 접속 점 대신 그 아이콘을 배지로 그림.
   statusType?: MemberStatusType | null;
   size?: UserAvatarSize;
-  // 있으면 눌러서 프로필을 여는 버튼처럼 동작.
+  // 있으면 눌러서 프로필을 여는 버튼처럼 동작. 없어도 membershipId가 있으면 공통 프로필 모달을 엶.
   onClick?: () => void;
+  // false면 눌러도 아무 일 없음(상단바 내 아바타처럼 바깥 버튼이 따로 동작할 때)
+  profileClick?: boolean;
   className?: string;
   // 메시지 화면에서 아바타를 찾을 때 쓰는 표식.
   dataName?: string;
@@ -45,10 +48,17 @@ export function UserAvatar({
   presenceStatus,
   statusType = null,
   size = "sm",
-  onClick,
+  onClick: customClick,
+  profileClick = true,
   className = "",
   dataName,
 }: UserAvatarProps) {
+  const profileModal = useProfileModal();
+  const onClick =
+    customClick ??
+    (profileClick && membershipId != null && profileModal
+      ? () => profileModal.openProfile(membershipId)
+      : undefined);
   const sizes = sizeClassName[size];
   const imageUrl = useProfileImageUrl(membershipId);
   // 비활성 계정은 상태 설정과 무관하게 비활성 배지.

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { ChatNotificationProvider } from "@/components/chat/chat-notification-provider";
 import { ProfileImageProvider } from "@/components/common/profile-image-provider";
+import { ProfileModalProvider } from "@/components/common/profile-modal-provider";
 import { RouteStateBoundary } from "@/components/common/route-state-boundary";
 import { Geist } from "next/font/google";
 import "./globals.css";
@@ -28,7 +29,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           {/* 프로필 사진 목록. 메시지 알림 카드의 아바타도 쓰므로 알림 공급자보다 바깥 */}
           <ProfileImageProvider>
             <ChatNotificationProvider>
-              <RouteStateBoundary>{children}</RouteStateBoundary>
+              {/* 어느 화면에서든 아바타를 누르면 같은 프로필 모달 */}
+              <ProfileModalProvider>
+                <RouteStateBoundary>{children}</RouteStateBoundary>
+              </ProfileModalProvider>
             </ChatNotificationProvider>
           </ProfileImageProvider>
         </AuthProvider>

@@ -385,6 +385,7 @@ export function GlobalHeader({
                     <UserAvatar
                       name={profileName}
                       membershipId={myMembershipId}
+                      profileClick={false}
                       presenceStatus="ONLINE"
                       statusType={myStatusType}
                       size="sm"

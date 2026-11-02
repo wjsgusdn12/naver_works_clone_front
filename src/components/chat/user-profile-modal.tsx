@@ -72,6 +72,7 @@ export function UserProfileModal({
           <UserAvatar
             name={member.displayName}
             membershipId={member.membershipId}
+            profileClick={false}
             presenceStatus={member.presenceStatus}
             statusType={member.statusType}
             size="xl"
