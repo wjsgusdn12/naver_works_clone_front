@@ -110,8 +110,12 @@ export type BoardAttachment = {
   inline: boolean;
 };
 
+// parentId: 답글이면 맨 위 댓글 ID(답글은 한 단계만).
+// deleted: 지웠지만 답글이 남아 자리만 보여 주는 댓글(글쓴이·내용 없음).
 export type BoardComment = {
   id: number;
+  parentId: number | null;
+  deleted: boolean;
   authorMembershipId: number;
   authorName: string;
   authorAdmin: boolean;
@@ -268,11 +272,12 @@ export const boardApi = {
     apiRequest<void>(`/api/v1/board/post/restore/${postId}`, token, { method: "POST" }),
   readers: (token: string, postId: number) =>
     apiRequest<BoardReaders>(`/api/v1/board/post/${postId}/readers`, token),
-  addComment: (token: string, postId: number, content: string) =>
+  // parentId가 있으면 그 댓글에 답글
+  addComment: (token: string, postId: number, content: string, parentId?: number) =>
     apiRequest<BoardPostDetail>(
       `/api/v1/board/comment/create?postId=${postId}`,
       token,
-      json({ content }),
+      json({ content, parentId: parentId ?? null }),
     ),
   // 같은 이모지를 다시 누르면 취소, 다른 이모지면 바꿈. 바뀐 상세가 옴.
   react: (token: string, postId: number, emoji: string) =>

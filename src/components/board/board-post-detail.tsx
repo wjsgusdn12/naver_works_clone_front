@@ -10,17 +10,29 @@ import { ReactionEmoji } from "@/components/chat/reaction-emoji";
 import { ReactionPicker } from "@/components/chat/reaction-picker";
 import { LoadingState, Spinner } from "@/components/common/loading";
 import { MeBadge } from "@/components/common/me-badge";
+import { MoreMenu } from "@/components/common/more-menu";
 import { Tabs } from "@/components/common/tabs";
 import { Tooltip } from "@/components/common/tooltip";
 import {
   boardApi,
   type BoardAttachment,
+  type BoardComment,
   type BoardPostDetail,
   type BoardReaders,
 } from "@/lib/api/board-api";
 import { fileIconOf, formatFileSize, saveBlob } from "@/lib/attachment-files";
 import { reactionLabel } from "@/lib/chat-reactions";
-import { Download, Eye, Paperclip, RotateCcw, Trash2 } from "lucide-react";
+import {
+  CornerDownRight,
+  Download,
+  Eye,
+  Paperclip,
+  Pencil,
+  Reply,
+  RotateCcw,
+  Trash2,
+  UsersRound,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 
 const dateTime = (value: string) =>
@@ -54,6 +66,10 @@ export function BoardPostDetailView({
 }) {
   const [comment, setComment] = useState("");
   const [sending, setSending] = useState(false);
+  // 답글 쓰는 중인 맨 위 댓글과 그 입력 내용
+  const [replyTo, setReplyTo] = useState<number | null>(null);
+  const [reply, setReply] = useState("");
+  const [replySending, setReplySending] = useState(false);
   const [deletingCommentId, setDeletingCommentId] = useState<number | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [restoring, setRestoring] = useState(false);
@@ -82,6 +98,27 @@ export function BoardPostDetailView({
       setSending(false);
     }
   };
+
+  const submitReply = async (parentId: number) => {
+    const text = reply.trim();
+    if (!text || replySending) return;
+    setReplySending(true);
+    try {
+      onChanged(await boardApi.addComment(accessToken, post.id, text, parentId));
+      setReply("");
+      setReplyTo(null);
+    } catch (error) {
+      onToast(error instanceof Error ? error.message : "답글을 등록하지 못했습니다.");
+    } finally {
+      setReplySending(false);
+    }
+  };
+
+  // 맨 위 댓글과 그 아래 답글(서버가 오래된 순으로 줌)
+  const rootComments = post.comments.filter((item) => item.parentId === null);
+  const repliesOf = (rootId: number) => post.comments.filter((item) => item.parentId === rootId);
+  // 지운 자리는 댓글 수에서 뺌
+  const commentCount = post.comments.filter((item) => !item.deleted).length;
 
   const removeComment = async (commentId: number) => {
     setDeletingCommentId(commentId);
@@ -119,9 +156,64 @@ export function BoardPostDetailView({
     }
   };
 
-  // 머리줄 오른쪽 글자 버튼(읽음 현황·수정·삭제)
-  const textAction =
-    "cursor-pointer rounded px-1.5 py-1 text-sm text-slate-500 transition hover:bg-slate-100 hover:text-slate-900";
+  // 댓글·답글 한 줄: 아바타 · 이름 · 날짜 · ⋮(답글·삭제), 아래 내용과 "답글" 글자 버튼
+  const renderComment = (item: BoardComment, rootId: number) =>
+    item.deleted ? (
+      <p className="py-3 text-sm text-slate-400">삭제된 댓글입니다.</p>
+    ) : (
+      <div className="flex gap-3 py-3">
+        <PersonAvatar membershipId={item.authorMembershipId} name={item.authorName} />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 text-xs text-slate-400">
+            {item.authorMembershipId === myMembershipId && <MeBadge />}
+            <span className="text-sm font-medium text-slate-800">{item.authorName}</span>
+            {item.authorAdmin && <span className="text-violet-600">관리자</span>}
+            <span>{dateTime(item.createdAt)}</span>
+            {deletingCommentId === item.id && <Spinner size={12} />}
+            <span className="ml-auto">
+              <MoreMenu
+                label="댓글 메뉴"
+                size={15}
+                items={[
+                  ...(post.canComment
+                    ? [{ label: "답글 쓰기", icon: Reply, onClick: () => openReply(rootId) }]
+                    : []),
+                  ...(item.canDelete
+                    ? [
+                        {
+                          label: "삭제",
+                          icon: Trash2,
+                          danger: true,
+                          disabled: deletingCommentId === item.id,
+                          onClick: () => void removeComment(item.id),
+                        },
+                      ]
+                    : []),
+                ]}
+              />
+            </span>
+          </div>
+          <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-6 text-slate-700">
+            {item.content}
+          </p>
+          {post.canComment && (
+            <button
+              type="button"
+              onClick={() => openReply(rootId)}
+              className="mt-1 cursor-pointer text-xs text-slate-400 transition hover:text-slate-800"
+            >
+              답글
+            </button>
+          )}
+        </div>
+      </div>
+    );
+
+  // 답글 입력 열기(같은 댓글이면 닫기). 다른 댓글로 옮기면 쓰던 내용은 비움.
+  const openReply = (rootId: number) => {
+    setReply("");
+    setReplyTo((current) => (current === rootId ? null : rootId));
+  };
 
   return (
     <article className="w-full">
@@ -169,27 +261,26 @@ export function BoardPostDetailView({
               {post.viewCount}
             </span>
           </div>
-          <div className="flex items-center">
-            {post.canSeeReaders && (
-              <button type="button" onClick={() => setReadersOpen(true)} className={textAction}>
-                읽음 현황
-              </button>
-            )}
-            {post.canEdit && (
-              <button type="button" onClick={onEdit} className={textAction}>
-                수정
-              </button>
-            )}
-            {post.canDelete && (
-              <button
-                type="button"
-                onClick={() => setConfirmDelete(true)}
-                className={`${textAction} hover:text-red-600`}
-              >
-                삭제
-              </button>
-            )}
-          </div>
+          {/* 오른쪽 ⋮: 읽음 현황·수정·삭제 */}
+          <MoreMenu
+            label="글 메뉴"
+            items={[
+              ...(post.canSeeReaders
+                ? [{ label: "읽음 현황", icon: UsersRound, onClick: () => setReadersOpen(true) }]
+                : []),
+              ...(post.canEdit ? [{ label: "수정", icon: Pencil, onClick: onEdit }] : []),
+              ...(post.canDelete
+                ? [
+                    {
+                      label: "삭제",
+                      icon: Trash2,
+                      danger: true,
+                      onClick: () => setConfirmDelete(true),
+                    },
+                  ]
+                : []),
+            ]}
+          />
         </div>
       </header>
 
@@ -287,34 +378,68 @@ export function BoardPostDetailView({
       {/* 댓글: 작은 제목, 줄 사이 옅은 선, 입력은 밑줄 한 줄 + 글자 버튼 */}
       <section className="border-t border-slate-100 pt-6">
         <p className="text-sm font-semibold text-slate-900">
-          댓글 <span className="font-normal text-slate-400">{post.comments.length}</span>
+          댓글 <span className="font-normal text-slate-400">{commentCount}</span>
         </p>
-        {post.comments.length > 0 && (
+        {rootComments.length > 0 && (
+          // 맨 위 댓글 사이 옅은 선, 답글은 ↳ 표시와 함께 들여쓰고 그 아래 답글 입력
           <ul className="mt-2 divide-y divide-slate-100">
-            {post.comments.map((item) => (
-              <li key={item.id} className="flex gap-3 py-3">
-                <PersonAvatar membershipId={item.authorMembershipId} name={item.authorName} />
-                <div className="min-w-0 flex-1">
-                  <p className="flex items-center gap-1.5 text-xs text-slate-400">
-                    {item.authorMembershipId === myMembershipId && <MeBadge />}
-                    <span className="text-sm font-medium text-slate-800">{item.authorName}</span>
-                    {item.authorAdmin && <span className="text-violet-600">관리자</span>}
-                    <span>{dateTime(item.createdAt)}</span>
-                    {item.canDelete && (
-                      <button
-                        type="button"
-                        onClick={() => void removeComment(item.id)}
-                        disabled={deletingCommentId === item.id}
-                        className="ml-auto cursor-pointer transition hover:text-red-600 disabled:opacity-50"
-                      >
-                        {deletingCommentId === item.id ? "삭제 중..." : "삭제"}
-                      </button>
+            {rootComments.map((root) => (
+              <li key={root.id}>
+                {renderComment(root, root.id)}
+                {(repliesOf(root.id).length > 0 || replyTo === root.id) && (
+                  <ul className="mb-3 ml-11 border-l border-slate-100 pl-4">
+                    {repliesOf(root.id).map((item) => (
+                      <li key={item.id} className="relative">
+                        <CornerDownRight
+                          size={13}
+                          aria-hidden="true"
+                          className="absolute -left-[22px] top-4 text-slate-300"
+                        />
+                        {renderComment(item, root.id)}
+                      </li>
+                    ))}
+                    {replyTo === root.id && (
+                      <li>
+                        <form
+                          className="mt-1 flex items-end gap-2 border-b border-slate-200 pb-2 transition focus-within:border-slate-900"
+                          onSubmit={(event) => {
+                            event.preventDefault();
+                            void submitReply(root.id);
+                          }}
+                        >
+                          <textarea
+                            value={reply}
+                            onChange={(event) => setReply(event.target.value)}
+                            onKeyDown={(event) => {
+                              if (event.key === "Escape") setReplyTo(null);
+                            }}
+                            maxLength={1000}
+                            rows={1}
+                            autoFocus
+                            placeholder="답글을 남겨 주세요."
+                            aria-label="답글"
+                            className="min-w-0 flex-1 resize-none bg-transparent py-1 text-sm outline-none placeholder:text-slate-300"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setReplyTo(null)}
+                            className="shrink-0 cursor-pointer rounded-md px-2 py-1.5 text-sm text-slate-400 transition hover:text-slate-800"
+                          >
+                            취소
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={!reply.trim() || replySending}
+                            className="flex shrink-0 cursor-pointer items-center gap-1 rounded-md px-3 py-1.5 text-sm font-semibold text-blue-600 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent"
+                          >
+                            {replySending && <Spinner size={12} />}
+                            등록
+                          </button>
+                        </form>
+                      </li>
                     )}
-                  </p>
-                  <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-6 text-slate-700">
-                    {item.content}
-                  </p>
-                </div>
+                  </ul>
+                )}
               </li>
             ))}
           </ul>
