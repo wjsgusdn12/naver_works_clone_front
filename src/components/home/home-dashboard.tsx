@@ -75,6 +75,7 @@ export function HomeDashboard({
     notificationCount,
     notificationsLoaded,
     markNotificationRead,
+    acknowledgeNotifications,
   } = useChatNotification();
   const [rooms, setRooms] = useState<ChatRoom[] | null>(null);
   const [favorites, setFavorites] = useState<AddressBookMember[] | null>(null);
@@ -233,7 +234,21 @@ export function HomeDashboard({
             </div>
           </article>
 
-          <Card title="알림" description="최근 30일 알림입니다.">
+          <Card
+            title="알림"
+            description="최근 30일 알림입니다."
+            action={
+              // 상단바 알림 패널의 "모두 읽음"과 같은 동작(종 숫자도 함께 0)
+              <button
+                type="button"
+                onClick={acknowledgeNotifications}
+                disabled={notificationCount === 0}
+                className="shrink-0 cursor-pointer rounded-md px-2 py-1 text-xs font-medium text-blue-600 transition hover:bg-blue-50 disabled:cursor-default disabled:text-slate-300 disabled:hover:bg-transparent"
+              >
+                모두 읽음
+              </button>
+            }
+          >
             {!notificationsLoaded ? (
               <LoadingInline message="알림을 불러오는 중입니다." className="py-8 text-sm" />
             ) : notifications.length === 0 ? (
@@ -562,6 +577,7 @@ function Card({
   title,
   description,
   onTitleClick,
+  action,
   className = "",
   fill = false,
   children,
@@ -570,6 +586,8 @@ function Card({
   description: string;
   // 있으면 제목이 "제목 >" 링크가 됨(마우스를 올리면 파란색, 누르면 해당 화면).
   onTitleClick?: () => void;
+  // 제목 줄 오른쪽 작은 버튼(예: 알림 "모두 읽음")
+  action?: ReactNode;
   className?: string;
   fill?: boolean;
   children: ReactNode;
@@ -578,26 +596,29 @@ function Card({
     <article
       className={`rounded-xl border border-slate-200 bg-white p-5 shadow-sm ${fill ? "flex flex-col" : ""} ${className}`}
     >
-      <div>
-        {onTitleClick ? (
-          <button
-            type="button"
-            onClick={onTitleClick}
-            className="group flex cursor-pointer items-center text-base font-bold text-slate-900 transition hover:text-blue-600"
-          >
-            {title}
-            {/* 화살표는 처음부터 굵은 파란색(링크라는 표시). 아이콘 안쪽 여백만큼 당겨 제목에 붙임 */}
-            <ChevronRight
-              size={18}
-              strokeWidth={3}
-              aria-hidden="true"
-              className="-ml-0.5 text-blue-600 transition group-hover:translate-x-0.5"
-            />
-          </button>
-        ) : (
-          <p className="text-base font-bold text-slate-900">{title}</p>
-        )}
-        <p className="mt-1 text-sm text-slate-500">{description}</p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          {onTitleClick ? (
+            <button
+              type="button"
+              onClick={onTitleClick}
+              className="group flex cursor-pointer items-center text-base font-bold text-slate-900 transition hover:text-blue-600"
+            >
+              {title}
+              {/* 화살표는 처음부터 굵은 파란색(링크라는 표시). 아이콘 안쪽 여백만큼 당겨 제목에 붙임 */}
+              <ChevronRight
+                size={18}
+                strokeWidth={3}
+                aria-hidden="true"
+                className="-ml-0.5 text-blue-600 transition group-hover:translate-x-0.5"
+              />
+            </button>
+          ) : (
+            <p className="text-base font-bold text-slate-900">{title}</p>
+          )}
+          <p className="mt-1 text-sm text-slate-500">{description}</p>
+        </div>
+        {action}
       </div>
       <div className={fill ? "relative mt-3 min-h-0 flex-1" : "mt-3"}>{children}</div>
     </article>
