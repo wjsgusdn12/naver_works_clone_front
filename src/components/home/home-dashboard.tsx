@@ -580,15 +580,15 @@ function Card({
           <button
             type="button"
             onClick={onTitleClick}
-            className="group flex cursor-pointer items-center gap-0.5 text-base font-bold text-slate-900 transition hover:text-blue-600"
+            className="group flex cursor-pointer items-center text-base font-bold text-slate-900 transition hover:text-blue-600"
           >
             {title}
-            {/* 화살표는 처음부터 굵은 파란색(링크라는 표시) */}
+            {/* 화살표는 처음부터 굵은 파란색(링크라는 표시). 아이콘 안쪽 여백만큼 당겨 제목에 붙임 */}
             <ChevronRight
               size={18}
               strokeWidth={3}
               aria-hidden="true"
-              className="text-blue-600 transition group-hover:translate-x-0.5"
+              className="-ml-0.5 text-blue-600 transition group-hover:translate-x-0.5"
             />
           </button>
         ) : (
