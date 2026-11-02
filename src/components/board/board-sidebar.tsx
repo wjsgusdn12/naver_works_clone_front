@@ -239,7 +239,12 @@ export function BoardSidebar({
                           )}
                         </div>
                       </div>
-                      {open && company.children.map((board) => row(board, 1))}
+                      {open && company.children.length > 0 && (
+                        // 회사 아이콘 아래에서 시작하는 세로선 + 한 단계 더 들여쓴 부서 게시판(회사 소속이 한눈에 보이게)
+                        <div className="mb-1 ml-[31px] border-l border-slate-200 pl-2">
+                          {company.children.map((board) => row(board))}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
