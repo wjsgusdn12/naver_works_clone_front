@@ -9,7 +9,8 @@ import type { AddressBookMember } from "@/lib/api/address-book-api";
 import type { ChatRoom } from "@/lib/api/chat-api";
 import { formatRoomTime } from "@/lib/chat-format";
 import { RoomActionMenu } from "@/components/chat/room-action-menu";
-import { AtSign, Forward, MoreVertical, Pin } from "lucide-react";
+import { SentMark } from "@/components/chat/sent-mark";
+import { AtSign, MoreVertical, Pin } from "lucide-react";
 import { memo, useRef, useState } from "react";
 
 // 방 항목은 memo로 묶어, 메시지 입력·수신 등으로 부모가 다시 그려져도 자기 props가 같으면 건너뜀.
@@ -160,9 +161,7 @@ export const MessageRoomItem = memo(function MessageRoomItem({
             </span>
             <span className="mt-0.5 flex items-start gap-2">
               <span className="flex min-w-0 flex-1 items-start gap-1 text-slate-600">
-                {sentByMe && (
-                  <Forward className="mt-0.5 shrink-0 text-slate-600" size={15} strokeWidth={3} />
-                )}
+                {sentByMe && <SentMark className="mt-0.5" />}
                 <span className="min-w-0 flex-1 text-[16px]">
                   {isTypingPreview ? (
                     <small className="flex items-center gap-1 truncate text-slate-500">

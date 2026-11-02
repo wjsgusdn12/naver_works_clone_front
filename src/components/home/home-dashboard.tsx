@@ -5,6 +5,7 @@ import { FavoriteButton } from "@/components/common/favorite-button";
 import { useAuth } from "@/components/auth/auth-provider";
 import { ApiDashboardSection } from "@/components/home/api-dashboard";
 import { GroupAvatar } from "@/components/chat/group-avatar";
+import { SentMark } from "@/components/chat/sent-mark";
 import { useChatNotification } from "@/components/chat/chat-notification-provider";
 import { LoadingInline, Spinner } from "@/components/common/loading";
 import { MeBadge } from "@/components/common/me-badge";
@@ -475,8 +476,10 @@ export function HomeDashboard({
                             </span>
                           )}
                         </span>
-                        <span className="mt-0.5 block truncate text-xs text-slate-500">
-                          {room.lastMessage ?? ""}
+                        {/* 내가 보낸 메시지면 앞에 보낸 화살표(메시지 방 목록과 같은 표시) */}
+                        <span className="mt-0.5 flex min-w-0 items-center gap-1 text-xs text-slate-500">
+                          {room.lastSenderMembershipId === membershipId && <SentMark size={12} />}
+                          <span className="truncate">{room.lastMessage ?? ""}</span>
                         </span>
                       </span>
                       <span className="flex shrink-0 flex-col items-end gap-1">
