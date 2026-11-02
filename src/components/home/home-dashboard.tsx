@@ -639,7 +639,7 @@ function GhostToggle({
       type="button"
       aria-pressed={active}
       onClick={onClick}
-      className={`h-10 flex-1 cursor-pointer whitespace-nowrap rounded-lg border px-3 text-sm font-medium transition active:scale-95 ${active ? "border-blue-200 bg-blue-50 text-blue-700" : "border-slate-200 bg-transparent text-slate-600 hover:bg-slate-50"}`}
+      className={`h-11 flex-1 cursor-pointer whitespace-nowrap rounded-lg border px-3 text-[15px] font-medium transition active:scale-95 ${active ? "border-blue-200 bg-blue-50 text-blue-700" : "border-slate-200 bg-transparent text-slate-600 hover:bg-slate-50"}`}
     >
       {children}
     </button>
@@ -651,7 +651,7 @@ function BlueButton({ onClick, children }: { onClick: () => void; children: Reac
     <button
       type="button"
       onClick={onClick}
-      className="h-10 flex-1 cursor-pointer whitespace-nowrap rounded-lg bg-blue-600 px-3 text-sm font-semibold text-white transition hover:bg-blue-700 active:scale-95"
+      className="h-11 flex-1 cursor-pointer whitespace-nowrap rounded-lg bg-blue-600 px-3 text-[15px] font-semibold text-white transition hover:bg-blue-700 active:scale-95"
     >
       {children}
     </button>
