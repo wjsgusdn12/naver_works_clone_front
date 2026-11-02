@@ -36,10 +36,9 @@ type HomeDashboardProps = {
 const RECENT_ROOM_LIMIT = 30;
 // 즐겨찾기는 전부 보여 주되, 서버 한 페이지 최대치(100명)까지만 받음.
 const FAVORITE_LIMIT = 100;
-// 작은 카드(알림·즐겨찾기·공지·최신글) 목록 높이. 3줄 높이(알림 188px, 즐겨찾기 182px)에서 30% 늘린 값.
-// 넘치면 그 안에서 스크롤.
-const NOTIFICATION_LIST_HEIGHT = "max-h-[244px]";
-const FAVORITE_LIST_HEIGHT = "max-h-[237px]";
+// 작은 카드(알림·즐겨찾기·공지·최신글) 목록 높이. 카드끼리 같은 값으로 통일, 넘치면 그 안에서 스크롤.
+// 즐겨찾기 4명(한 줄 60px × 4 + 구분선 3px = 243px)까지는 스크롤바가 생기지 않는 높이.
+const LIST_HEIGHT = "max-h-[248px]";
 
 // 상대 시각. 오늘이면 시각, 올해면 월·일, 그 외는 연·월·일.
 const formatRelative = (value: string | null) => {
@@ -254,9 +253,7 @@ export function HomeDashboard({
             ) : notifications.length === 0 ? (
               <Empty message="새 알림이 없습니다." />
             ) : (
-              <ul
-                className={`${NOTIFICATION_LIST_HEIGHT} divide-y divide-slate-100 overflow-y-auto`}
-              >
+              <ul className={`${LIST_HEIGHT} divide-y divide-slate-100 overflow-y-auto`}>
                 {notifications.map((item) => (
                   <li key={item.id}>
                     <button
@@ -393,7 +390,7 @@ export function HomeDashboard({
                 onAction={() => router.push("/addressBook")}
               />
             ) : (
-              <ul className={`${FAVORITE_LIST_HEIGHT} divide-y divide-slate-100 overflow-y-auto`}>
+              <ul className={`${LIST_HEIGHT} divide-y divide-slate-100 overflow-y-auto`}>
                 {favorites.map((favorite) => {
                   const target = withLiveStatus(
                     favorite,
@@ -477,7 +474,7 @@ function BoardPostList({
     return <LoadingInline message="게시판을 불러오는 중입니다." className="py-8 text-sm" />;
   if (posts.length === 0) return <Empty message={emptyText} />;
   return (
-    <ul className={`${NOTIFICATION_LIST_HEIGHT} divide-y divide-slate-100 overflow-y-auto`}>
+    <ul className={`${LIST_HEIGHT} divide-y divide-slate-100 overflow-y-auto`}>
       {posts.map((post) => (
         <li key={post.id}>
           <button
