@@ -74,6 +74,7 @@ export function MessageRoomHeader({
           <div className="flex items-center gap-3">
             <MessageMemberAvatar
               name={headerProfile?.displayName ?? ""}
+              membershipId={headerMembershipId}
               presenceStatus={
                 selectedRoom?.type === "SELF" ? "ONLINE" : (directPresenceStatus ?? "OFFLINE")
               }

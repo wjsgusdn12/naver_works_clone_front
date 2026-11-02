@@ -71,6 +71,7 @@ export function UserProfileModal({
         <div className="mt-7 flex items-center gap-5">
           <UserAvatar
             name={member.displayName}
+            membershipId={member.membershipId}
             presenceStatus={member.presenceStatus}
             statusType={member.statusType}
             size="xl"

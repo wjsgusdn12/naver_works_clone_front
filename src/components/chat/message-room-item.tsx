@@ -1,5 +1,6 @@
 "use client";
 
+import { useAuth } from "@/components/auth/auth-provider";
 import { GroupAvatar } from "@/components/chat/group-avatar";
 import { MessageMemberAvatar } from "@/components/chat/message-member-avatar";
 import { useChatNotification } from "@/components/chat/chat-notification-provider";
@@ -52,6 +53,8 @@ export const MessageRoomItem = memo(function MessageRoomItem({
   const [menuPosition, setMenuPosition] = useState<{ left: number; top: number } | null>(null);
   // 1:1 방은 상대방, 나와의 채팅은 본인 프로필을 목록에 표시.
   const isSelf = room.type === "SELF";
+  // 나와의 채팅은 내 프로필 사진
+  const myMembershipId = useAuth().member?.membershipId;
   const isDirect = room.type === "DIRECT";
   const displayName = isSelf
     ? (currentMember?.displayName ?? "나")
@@ -106,6 +109,7 @@ export const MessageRoomItem = memo(function MessageRoomItem({
           ) : (
             <MessageMemberAvatar
               name={avatarName}
+              membershipId={isSelf ? myMembershipId : room.directMembershipId}
               presenceStatus={presenceStatus}
               statusType={
                 isSelf

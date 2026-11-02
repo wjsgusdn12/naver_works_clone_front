@@ -50,6 +50,7 @@ export function TypingBubble({
     >
       <MessageMemberAvatar
         name={senderProfile?.displayName ?? member.displayName}
+        membershipId={member.membershipId}
         presenceStatus={senderProfile?.presenceStatus ?? "OFFLINE"}
         statusType={senderProfile?.statusType}
         onClick={() => onProfileClick(member.membershipId)}

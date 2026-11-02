@@ -608,6 +608,7 @@ function PersonAvatar({
   return (
     <MessageMemberAvatar
       name={name}
+      membershipId={membershipId}
       size={size}
       presenceStatus={isMe ? "ONLINE" : (presenceByMembershipId[membershipId] ?? "OFFLINE")}
       statusType={isMe ? myStatusType : memberStatusByMembershipId[membershipId]?.statusType}

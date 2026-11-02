@@ -328,6 +328,7 @@ export function MessageSearchPanel({
     return (
       <MessageMemberAvatar
         name={name}
+        membershipId={membershipId}
         presenceStatus={isMe ? "ONLINE" : (presenceByMembershipId[membershipId ?? -1] ?? "OFFLINE")}
         statusType={
           isMe ? myStatusType : memberStatusByMembershipId[membershipId ?? -1]?.statusType

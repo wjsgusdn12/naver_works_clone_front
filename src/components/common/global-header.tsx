@@ -124,7 +124,8 @@ export function GlobalHeader({
   isSidebarCollapsed = false,
   role,
 }: GlobalHeaderProps) {
-  const { sessionExpiresAt } = useAuth();
+  const { sessionExpiresAt, member: authMember } = useAuth();
+  const myMembershipId = authMember?.membershipId;
   const {
     notificationCount,
     notifications,
@@ -383,6 +384,7 @@ export function GlobalHeader({
                     // 주소록·메시지와 같은 공통 아바타. 본인은 접속 중이라 온라인, 상태 설정이 있으면 그 아이콘.
                     <UserAvatar
                       name={profileName}
+                      membershipId={myMembershipId}
                       presenceStatus="ONLINE"
                       statusType={myStatusType}
                       size="sm"

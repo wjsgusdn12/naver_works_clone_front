@@ -112,6 +112,7 @@ export function RoomMessageSearchPanel({
     return (
       <MessageMemberAvatar
         name={item.senderName}
+        membershipId={item.senderMembershipId}
         presenceStatus={
           isMe ? "ONLINE" : (presenceByMembershipId[item.senderMembershipId] ?? "OFFLINE")
         }

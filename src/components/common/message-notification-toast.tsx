@@ -59,6 +59,7 @@ export function MessageNotificationToast({
         <UserAvatar
           size="md"
           name={notification.senderName}
+          membershipId={notification.senderMembershipId}
           presenceStatus={senderOnline ? "ONLINE" : "OFFLINE"}
           statusType={senderStatusType}
         />

@@ -229,6 +229,7 @@ export function HomeDashboard({
               <UserAvatar
                 size="lg"
                 name={displayName}
+                membershipId={membershipId}
                 presenceStatus={presenceByMembershipId[membershipId] ?? "ONLINE"}
                 statusType={myStatusType}
               />
@@ -364,6 +365,7 @@ export function HomeDashboard({
                       <UserAvatar
                         size="md"
                         name={target.displayName}
+                        membershipId={target.membershipId}
                         presenceStatus={target.presenceStatus}
                         statusType={target.statusType}
                       />
@@ -456,6 +458,9 @@ export function HomeDashboard({
                             room.type === "SELF"
                               ? displayName
                               : (room.directDisplayName ?? "사용자")
+                          }
+                          membershipId={
+                            room.type === "SELF" ? membershipId : room.directMembershipId
                           }
                           presenceStatus={
                             room.type === "SELF"

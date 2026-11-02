@@ -184,6 +184,7 @@ export function GroupRoomDetail({
                 <>
                   <MessageMemberAvatar
                     name={selectedInvite.displayName}
+                    membershipId={selectedInvite.membershipId}
                     presenceStatus={selectedInvite.presenceStatus}
                     statusType={selectedInvite.statusType}
                   />
@@ -222,6 +223,7 @@ export function GroupRoomDetail({
                   >
                     <MessageMemberAvatar
                       name={candidate.displayName}
+                      membershipId={candidate.membershipId}
                       presenceStatus={candidate.presenceStatus}
                       statusType={candidate.statusType}
                     />
@@ -282,6 +284,7 @@ export function GroupRoomDetail({
                 >
                   <MessageMemberAvatar
                     name={participant.displayName}
+                    membershipId={participant.membershipId}
                     presenceStatus={presenceStatus}
                     statusType={isMe ? myStatusType : profile?.statusType}
                   />

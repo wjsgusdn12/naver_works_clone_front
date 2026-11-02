@@ -176,6 +176,7 @@ export function MessageComposer({
               avatar={
                 <MessageMemberAvatar
                   name={replyTarget.senderName}
+                  membershipId={replyTarget.senderMembershipId}
                   presenceStatus={
                     contactMemberById.get(replyTarget.senderMembershipId)?.presenceStatus ??
                     (replyTarget.senderMembershipId === myMembershipId ? "ONLINE" : "OFFLINE")
@@ -219,6 +220,7 @@ export function MessageComposer({
               avatar={
                 <MessageMemberAvatar
                   name={editingTarget.senderName}
+                  membershipId={editingTarget.senderMembershipId}
                   presenceStatus="ONLINE"
                   statusType={myStatusType}
                 />
@@ -334,6 +336,7 @@ export function MessageComposer({
               ) : (
                 <MessageMemberAvatar
                   name={candidate.displayName}
+                  membershipId={candidate.membershipId}
                   presenceStatus={
                     contactMemberById.get(candidate.membershipId)?.presenceStatus ?? "OFFLINE"
                   }

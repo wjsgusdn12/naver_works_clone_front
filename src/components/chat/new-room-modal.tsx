@@ -162,6 +162,7 @@ export function NewRoomModal({
               >
                 <MessageMemberAvatar
                   name={member.displayName}
+                  membershipId={member.membershipId}
                   presenceStatus={member.presenceStatus}
                   statusType={member.statusType}
                   onClick={() => onProfileClick(member.membershipId)}

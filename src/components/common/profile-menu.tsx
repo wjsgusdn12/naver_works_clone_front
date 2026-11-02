@@ -16,7 +16,7 @@ import { useChatNotification } from "@/components/chat/chat-notification-provide
 import { CompanyMoveDialog } from "@/components/common/company-move-dialog";
 import { RecoveryCodeDialog } from "@/components/common/recovery-code-dialog";
 import { MyStatusPicker } from "@/components/common/my-status-picker";
-import { UserAvatar } from "@/components/common/user-avatar";
+import { ProfileImageEditor } from "@/components/common/profile-image-editor";
 import { authApi, type InviteCodeResponse } from "@/lib/api/auth-api";
 import type { MemberStatusType } from "@/lib/status-options";
 
@@ -123,14 +123,9 @@ export function ProfileMenu({
           aria-label="내 프로필"
           className="fixed right-3 top-[60px] z-[60] flex max-h-[calc(100vh-76px)] w-[400px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white text-slate-800 shadow-2xl"
         >
-          {/* 상단: 공통 아바타 + 이름·역할·소속 */}
+          {/* 상단: 아바타(카메라 버튼으로 사진 변경) + 이름·역할·소속 */}
           <div className="flex items-center gap-4 px-5 pb-4 pt-5">
-            <UserAvatar
-              name={member.displayName}
-              presenceStatus="ONLINE"
-              statusType={statusType}
-              size="lg"
-            />
+            <ProfileImageEditor statusType={statusType} onToast={toast} />
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <strong className="truncate text-base text-slate-900">{member.displayName}</strong>

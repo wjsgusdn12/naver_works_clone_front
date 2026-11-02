@@ -118,6 +118,7 @@ export function ReadStatusModal({
                 <>
                   <MessageMemberAvatar
                     name={person.name}
+                    membershipId={person.membershipId}
                     presenceStatus={badge.presenceStatus}
                     statusType={badge.statusType}
                   />

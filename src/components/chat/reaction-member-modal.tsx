@@ -98,6 +98,7 @@ export function ReactionMemberModal({
               >
                 <MessageMemberAvatar
                   name={member.displayName}
+                  membershipId={member.membershipId}
                   presenceStatus={badgeOf(member.membershipId).presenceStatus}
                   statusType={badgeOf(member.membershipId).statusType}
                 />

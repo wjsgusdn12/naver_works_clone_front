@@ -331,6 +331,7 @@ export const MessageBubble = memo(function MessageBubble({
           <span className="mt-3 w-10 shrink-0">
             <MessageMemberAvatar
               name={senderProfile?.displayName ?? message.senderName}
+              membershipId={message.senderMembershipId}
               presenceStatus={senderProfile?.presenceStatus ?? "OFFLINE"}
               statusType={senderProfile?.statusType}
               onClick={() => onProfileClick(message.senderMembershipId)}
