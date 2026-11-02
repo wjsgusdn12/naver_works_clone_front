@@ -61,7 +61,7 @@ export function LineChart({
   // 아래쪽 글자를 몇 칸마다 보여 줄지
   labelEvery: number;
   ariaLabel: string;
-  // false면 점을 숨기고 마우스가 올라간 시점만 점을 보여 줌(오늘 288점·이번 달 744점처럼 촘촘할 때).
+  // false면 점을 숨기고 마우스가 올라간 시점만 점을 보여 줌(최근 24시간 288점·최근 30일 720점처럼 촘촘할 때).
   showMarkers?: boolean;
 }) {
   const { ref, width } = useElementWidth();
@@ -255,7 +255,7 @@ export function LegendSwatch({ color, dashed }: { color: string; dashed?: boolea
 }
 
 // 목록 옆 작은 추이선. 마지막 점만 강조해 "지금" 값을 보여 줌.
-// 칸이 적으면 점선, 많으면(오늘 288칸·이번 달 744칸) 점선 무늬가 뭉개지므로 가는 실선으로 그림.
+// 칸이 적으면 점선, 많으면(최근 24시간 288칸·최근 30일 720칸) 점선 무늬가 뭉개지므로 가는 실선으로 그림.
 export function Sparkline({
   values,
   color,

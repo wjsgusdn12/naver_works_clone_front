@@ -63,12 +63,12 @@ const SPEED_GROUPS: {
 ];
 
 type Range = "HOUR" | "DAY" | "WEEK" | "MONTH";
-// 기간별 탭 글자, 이름, 점 하나의 길이(분). 최근 60분은 지금까지 밀려가는 창, 나머지는 달력 기준(오늘·이번 주 일~토·이번 달 1일~말일).
+// 기간별 탭 글자, 이름, 점 하나의 길이(분). 모두 지금부터 거꾸로 밀려가는 창(맨 오른쪽 점이 지금).
 const RANGES: Record<Range, { tab: string; name: string; stepMinutes: number }> = {
   HOUR: { tab: "최근 60분 · 1분 단위", name: "최근 60분", stepMinutes: 1 },
-  DAY: { tab: "오늘 · 5분 단위", name: "오늘", stepMinutes: 5 },
-  WEEK: { tab: "이번 주 · 1시간 단위", name: "이번 주", stepMinutes: 60 },
-  MONTH: { tab: "이번 달 · 1시간 단위", name: "이번 달", stepMinutes: 60 },
+  DAY: { tab: "최근 24시간 · 5분 단위", name: "최근 24시간", stepMinutes: 5 },
+  WEEK: { tab: "최근 7일 · 1시간 단위", name: "최근 7일", stepMinutes: 60 },
+  MONTH: { tab: "최근 30일 · 1시간 단위", name: "최근 30일", stepMinutes: 60 },
 };
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 // "10/27(화)"
@@ -108,31 +108,30 @@ const clock = (value: string) =>
 const RANKING_STEP: Record<Range, string> = {
   HOUR: "1분",
   DAY: "5분",
-  WEEK: "하루",
+  WEEK: "24시간",
   MONTH: "1시간",
 };
 
-// 전체 구간 글자: 14:00 ~ 14:59 / 10/30(금) 00:00 ~ 23:59 / 10/25(일) 00시 ~ 10/31(토) 23시 / 10/1(목) ~ 10/31(토)
+// 전체 구간 글자: 14:00 ~ 14:59 / 10/29(목) 14:05 ~ 10/30(금) 14:04 / 10/24(금) 15시 ~ 10/31(금) 14시
 const periodOf = (points: ApiDashboardTrendPoint[], range: Range) => {
   const first = points[0]?.startAt;
   const last = points.at(-1)?.startAt;
   if (!first || !last) return "";
   const end = clock(lastMinute(last, RANGES[range].stepMinutes));
   if (range === "HOUR") return `${clock(first)} ~ ${end}`;
-  if (range === "DAY") return `${monthDay(first)} ${clock(first)} ~ ${end}`;
-  if (range === "WEEK")
-    return `${monthDay(first)} ${hourOnly(first)} ~ ${monthDay(last)} ${hourOnly(last)}`;
-  return `${monthDay(first)} ~ ${monthDay(last)}`;
+  if (range === "DAY") return `${monthDay(first)} ${clock(first)} ~ ${monthDay(last)} ${end}`;
+  return `${monthDay(first)} ${hourOnly(first)} ~ ${monthDay(last)} ${hourOnly(last)}`;
 };
-// 아래쪽 글자(빈 글자는 표시 안 함): 최근 60분은 10분 단위 시각(17:10·17:20…), 오늘 3시간마다(정각), 이번 주는 날마다(그날 정오 위치),
-// 이번 달은 1·6·11…일 0시
+// 아래쪽 글자(빈 글자는 표시 안 함): 최근 60분은 10분 단위 시각(17:10·17:20…), 최근 24시간은 3시간마다(정각),
+// 최근 7일은 날마다(그날 정오 위치), 최근 30일은 창 안의 자정을 5개마다(월말→1일로 넘어가도 간격이 같음)
 const labelOf = (point: ApiDashboardTrendPoint, index: number, range: Range) => {
   const date = new Date(point.startAt);
   if (range === "HOUR") return date.getMinutes() % 10 === 0 ? clock(point.startAt) : "";
   if (range === "DAY")
     return date.getMinutes() === 0 && date.getHours() % 3 === 0 ? hourOnly(point.startAt) : "";
-  if (range === "WEEK") return index % 24 === 12 ? monthDay(point.startAt) : "";
-  return date.getHours() === 0 && (date.getDate() - 1) % 5 === 0 ? shortDay(point.startAt) : "";
+  if (range === "WEEK") return date.getHours() === 12 ? monthDay(point.startAt) : "";
+  // 1시간 점이라 n번째 자정은 index / 24의 몫이 n
+  return date.getHours() === 0 && Math.floor(index / 24) % 5 === 0 ? shortDay(point.startAt) : "";
 };
 // 마우스를 올렸을 때 제목: 14:05(1분) / 14:05 ~ 14:09 / 10/27(화) 13:00 ~ 13:59
 // 세밀한 기록이 없어 큰 단위 합계를 나눠 채운 칸은 추정값임을 함께 표시.
@@ -198,7 +197,7 @@ export function ApiDashboardSection({ accessToken }: { accessToken: string }) {
             </span>
           </h2>
           <p className="mt-1 text-sm text-slate-500">
-            모든 API 요청을 모아 최근 60분·오늘·이번 주(일~토)·이번 달 흐름을 보여 줍니다. 숫자
+            모든 API 요청을 모아 최근 60분·24시간·7일·30일 흐름을 보여 줍니다. 숫자
             카드와 그래프는 고른 기간을 따라갑니다.
           </p>
         </div>
