@@ -1,14 +1,16 @@
 "use client";
 
 import type { AddressBookMemberDetail } from "@/lib/api/address-book-api";
+import { useChatNotification } from "@/components/chat/chat-notification-provider";
 import { FavoriteButton } from "@/components/common/favorite-button";
 import { UserAvatar } from "@/components/common/user-avatar";
+import { withLiveStatus } from "@/lib/live-status";
 import { formatMemberStatus } from "@/lib/status-options";
 import { CalendarDays, Mail, MessageCircle, X } from "lucide-react";
 import { useEffect, useRef } from "react";
 
 export function UserProfileModal({
-  member,
+  member: snapshot,
   onClose,
   onToggleFavorite,
   onMessage,
@@ -20,6 +22,9 @@ export function UserProfileModal({
   onMessage: () => Promise<void>;
   showToast: (message: string) => void;
 }) {
+  // 처음 받은 상세 정보 위에 실시간 접속 상태·상태 설정을 덮어, 열어 둔 동안에도 상태가 바로 바뀜.
+  const { presenceByMembershipId, memberStatusByMembershipId } = useChatNotification();
+  const member = withLiveStatus(snapshot, presenceByMembershipId, memberStatusByMembershipId);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const close = (event: MouseEvent) => {

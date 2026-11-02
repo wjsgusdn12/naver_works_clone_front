@@ -1,12 +1,14 @@
 "use client";
 
+import { useChatNotification } from "@/components/chat/chat-notification-provider";
 import { FavoriteButton } from "@/components/common/favorite-button";
 import { MemberAvatar } from "@/components/address-book/member-avatar";
 import type { AddressBookMemberDetail } from "@/lib/api/address-book-api";
+import { withLiveStatus } from "@/lib/live-status";
 import { CalendarDays, ExternalLink, Mail, MessageCircle, X } from "lucide-react";
 
 export function MemberPanel({
-  member,
+  member: snapshot,
   onClose,
   onToggleFavorite,
   onMessage,
@@ -18,6 +20,9 @@ export function MemberPanel({
   onMessage: () => void;
   showToast: (message: string) => void;
 }) {
+  // 처음 받은 상세 정보 위에 실시간 접속 상태·상태 설정을 덮어, 열어 둔 동안에도 상태가 바로 바뀜.
+  const { presenceByMembershipId, memberStatusByMembershipId } = useChatNotification();
+  const member = withLiveStatus(snapshot, presenceByMembershipId, memberStatusByMembershipId);
   return (
     <aside className="relative w-80 shrink-0 overflow-y-auto border-l border-slate-200 bg-white p-4">
       <div className="flex justify-end gap-2">
