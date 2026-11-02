@@ -122,7 +122,7 @@ export function HomeCard({
   return (
     <section>
       <div className="flex items-center justify-between border-b border-slate-200 pb-2.5">
-        <h2 className="text-lg font-bold text-slate-900">{title}</h2>
+        <h2 className="text-xl font-bold text-slate-900">{title}</h2>
         <button
           type="button"
           onClick={onMore}
