@@ -89,28 +89,18 @@ export function BoardSidebar({
       boards.some((board) => board.type === item.type) &&
       (!query || item.label.toLowerCase().includes(query)),
   );
-  // 회사별: 회사 게시판 아래에 그 회사의 부서 게시판만
-  // 공통 게시판(공지·자유·문의)은 회사와 상관없으므로 회사 묶음에서 뺌
-  const companyScoped = boards.filter(
-    (board) => board.type === "COMPANY" || board.type === "DEPARTMENT",
-  );
+  // 회사별: 회사는 부서 게시판을 묶는 경로(폴더)일 뿐, 실제 게시판은 그 아래 부서 게시판.
+  const departmentBoards = boards.filter((board) => board.type === "DEPARTMENT");
   const companies = [
-    ...new Map(companyScoped.map((board) => [board.companyId, board])).values(),
-  ].map((sample) => {
-    const inCompany = boards.filter((board) => board.companyId === sample.companyId);
-    const companyBoard = inCompany.find((board) => board.type === "COMPANY") ?? null;
-    const children = inCompany
-      .filter((board) => board.type === "DEPARTMENT")
+    ...new Map(departmentBoards.map((board) => [board.companyId, board])).values(),
+  ].map((sample) => ({
+    companyId: sample.companyId,
+    companyName: sample.companyName,
+    children: departmentBoards
+      .filter((board) => board.companyId === sample.companyId)
       .sort((a, b) => a.name.localeCompare(b.name, "ko"))
-      .filter(matches);
-    return {
-      companyId: sample.companyId,
-      companyName: sample.companyName,
-      companyBoard,
-      children,
-      visible: (companyBoard && matches(companyBoard)) || children.length > 0,
-    };
-  });
+      .filter(matches),
+  }));
   const isSelected = (board: BoardItem) => menu.kind === "board" && menu.boardId === board.id;
 
   const row = (board: BoardItem, indent = 0) => (
@@ -227,33 +217,26 @@ export function BoardSidebar({
               onToggle={() => toggle("companies")}
             >
               {companies
-                .filter((company) => company.visible)
+                .filter((company) => company.children.length > 0)
                 .map((company) => {
                   const key = `company-${company.companyId}`;
                   // 검색 중에는 맞는 게시판이 보이도록 펼침
                   const open = !!query || !closed[key];
                   return (
                     <div key={company.companyId}>
-                      <div className="flex items-center">
-                        <button
-                          type="button"
-                          aria-label={`${company.companyName} ${open ? "접기" : "펼치기"}`}
-                          onClick={() => toggle(key)}
-                          disabled={company.children.length === 0}
-                          className="flex h-7 w-6 shrink-0 cursor-pointer items-center justify-center rounded text-slate-500 transition hover:bg-slate-200 disabled:invisible"
-                        >
+                      {/* 회사 줄: 게시판이 아니라 폴더. 누르면 부서 게시판 목록을 접고 폄 */}
+                      <button
+                        type="button"
+                        aria-expanded={open}
+                        onClick={() => toggle(key)}
+                        className="flex w-full cursor-pointer items-center gap-2 rounded-md py-1.5 pl-0.5 pr-2 text-left text-slate-700 transition hover:bg-slate-100"
+                      >
+                        <span className="flex w-5 shrink-0 justify-center text-slate-500">
                           {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                        </button>
-                        <div className="min-w-0 flex-1">
-                          {company.companyBoard ? (
-                            row(company.companyBoard)
-                          ) : (
-                            <span className="block truncate px-2 py-1.5 text-slate-600">
-                              {company.companyName}
-                            </span>
-                          )}
-                        </div>
-                      </div>
+                        </span>
+                        <Building2 size={15} className="shrink-0 opacity-70" aria-hidden="true" />
+                        <span className="truncate">{company.companyName}</span>
+                      </button>
                       {open && company.children.length > 0 && (
                         // 회사 아이콘 아래에서 시작하는 세로선 + 한 단계 더 들여쓴 부서 게시판(회사 소속이 한눈에 보이게)
                         <div className="mb-1 ml-[31px] border-l border-slate-200 pl-2">
