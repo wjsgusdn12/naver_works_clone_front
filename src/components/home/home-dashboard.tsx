@@ -581,7 +581,7 @@ function BoardPostList({
             <span className="flex w-full min-w-0 items-center gap-1.5">
               <PostBadges post={post} />
               <span
-                className={`min-w-0 flex-1 truncate text-sm ${post.read ? "text-slate-600" : "font-semibold text-slate-900"}`}
+                className={`min-w-0 flex-1 truncate text-sm ${post.read ? "text-slate-600" : "font-bold text-slate-950"}`}
               >
                 {post.title}
               </span>

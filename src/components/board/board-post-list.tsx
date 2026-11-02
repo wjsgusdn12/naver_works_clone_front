@@ -90,7 +90,7 @@ export function PostRow({
             <PostBadges post={post} />
             {post.boardType === "INQUIRY" && <AnswerBadge answered={post.answered} />}
             <span
-              className={`truncate text-[15px] ${post.read ? "text-slate-700" : "font-semibold text-slate-950"}`}
+              className={`truncate text-[15px] ${post.read ? "text-slate-700" : "font-bold text-slate-950"}`}
             >
               {search ? <Highlight text={post.title} keyword={search.keyword} /> : post.title}
             </span>
@@ -242,7 +242,7 @@ export function HomeCard({
                 {answerBadge && <AnswerBadge answered={post.answered} />}
                 <PostBadges post={post} />
                 <span
-                  className={`min-w-0 flex-1 truncate ${post.read ? "text-slate-600" : "font-semibold text-slate-900"}`}
+                  className={`min-w-0 flex-1 truncate ${post.read ? "text-slate-600" : "font-bold text-slate-950"}`}
                 >
                   {post.title}
                 </span>
