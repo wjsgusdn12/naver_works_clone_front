@@ -5,6 +5,7 @@ import {
   Bell,
   BookOpen,
   BookUser,
+  ClipboardList,
   CalendarDays,
   Grid2X2,
   Home,
@@ -40,6 +41,7 @@ const headerActions: HeaderAction[] = [
   { label: "메시지", icon: MessageCircle },
   { label: "캘린더", icon: CalendarDays },
   { label: "주소록", icon: BookUser },
+  { label: "게시판", icon: ClipboardList },
   { label: "관리자", icon: ShieldCheck, requiresAdmin: true },
   { label: "전체 서비스", icon: Grid2X2 },
   { label: "알림", icon: Bell },
@@ -285,13 +287,15 @@ export function GlobalHeader({
                   ? () => (isAuthenticated ? router.push("/message") : onServiceAction(label))
                   : label === "주소록"
                     ? () => (isAuthenticated ? router.push("/addressBook") : onServiceAction(label))
-                    : label === "알림"
-                      ? () => setIsNotificationPanelOpen((current) => !current)
-                      : label === "내 프로필"
-                        ? onProfileAction
-                        : label === "프로젝트 소개"
-                          ? () => setIsProjectGuideOpen(true)
-                          : () => onServiceAction(label);
+                    : label === "게시판"
+                      ? () => (isAuthenticated ? router.push("/board") : onServiceAction(label))
+                      : label === "알림"
+                        ? () => setIsNotificationPanelOpen((current) => !current)
+                        : label === "내 프로필"
+                          ? onProfileAction
+                          : label === "프로젝트 소개"
+                            ? () => setIsProjectGuideOpen(true)
+                            : () => onServiceAction(label);
 
             return (
               <span
