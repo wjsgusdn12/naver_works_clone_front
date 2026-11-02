@@ -72,7 +72,7 @@ const MENU_TITLE: Record<keyof typeof MENU_VIEW, string> = {
 const MENU_EMPTY: Record<keyof typeof MENU_VIEW, string> = {
   latest: "아직 올라온 글이 없습니다.",
   mustRead: "필독 글이 없습니다.",
-  important: "중요 글이 없습니다.",
+  important: "중요 표시한 글이 없습니다. 글 앞의 깃발을 눌러 표시해 보세요.",
   mine: "내가 쓴 글이 없습니다.",
   trash: "휴지통이 비어 있습니다. 지운 글은 30일 동안 여기에 보관됩니다.",
   drafts: "임시저장한 글이 없습니다.",
@@ -478,6 +478,26 @@ function BoardContent() {
     : [];
   const checkedIds = checked.key === listKey ? checked.ids : [];
   const allChecked = listPostIds.length > 0 && listPostIds.every((id) => checkedIds.includes(id));
+  // 목록 줄의 깃발: 중요 표시(개인) 켜기·끄기. 화면은 먼저 바꾸고 실패하면 되돌림.
+  const setListImportant = (postId: number, important: boolean) =>
+    setList(
+      (current) =>
+        current && {
+          ...current,
+          items: current.items.map((item) => (item.id === postId ? { ...item, important } : item)),
+        },
+    );
+  const toggleImportant = async (target: BoardPostSummary) => {
+    if (!accessToken) return;
+    setListImportant(target.id, !target.important);
+    try {
+      setListImportant(target.id, await boardApi.toggleImportant(accessToken, target.id));
+    } catch (error) {
+      setListImportant(target.id, target.important);
+      showToast(error instanceof Error ? error.message : "중요 표시를 바꾸지 못했습니다.");
+    }
+  };
+
   const toggleChecked = (postId: number) =>
     setChecked({
       key: listKey,
@@ -773,6 +793,7 @@ function BoardContent() {
                   status={currentList ? currentList.status : "loading"}
                   checkedIds={checkedIds}
                   onCheck={selectable ? toggleChecked : undefined}
+                  onToggleImportant={(target) => void toggleImportant(target)}
                   pinned={currentList?.pinned ?? []}
                   items={currentList?.items ?? []}
                   showBoard={menu.kind !== "board" && menu.kind !== "type"}

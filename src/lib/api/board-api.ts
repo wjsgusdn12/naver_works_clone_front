@@ -52,6 +52,7 @@ export type BoardPostSummary = {
   authorMembershipId: number;
   authorName: string;
   createdAt: string;
+  // 내가 중요 표시(깃발)한 글(나에게만 보이는 개인 표시)
   important: boolean;
   mustRead: boolean;
   read: boolean;
@@ -140,6 +141,7 @@ export type BoardPostDetail = {
   authorDepartmentName: string | null;
   createdAt: string;
   updatedAt: string | null;
+  // 내가 중요 표시(깃발)한 글(나에게만 보이는 개인 표시)
   important: boolean;
   mustRead: boolean;
   viewCount: number;
@@ -172,6 +174,7 @@ export type BoardSaveMode = "PUBLISH" | "DRAFT" | "SCHEDULE";
 export type BoardPostInput = {
   title: string;
   content: string;
+  // 예전 글쓴이용 중요 표시. 서버가 무시해 늘 false로 보냄(중요는 각자 하는 개인 표시)
   important: boolean;
   mustRead: boolean;
   attachmentIds: number[];
@@ -254,6 +257,9 @@ export const boardApi = {
   // 목록에서 고른 글을 한꺼번에 읽음으로(최대 100개). 결과는 새로 읽음 처리한 글 수.
   markRead: (token: string, postIds: number[]) =>
     apiRequest<number>("/api/v1/board/post/read", token, json({ postIds })),
+  // 중요 표시(개인 깃발) 켜기·끄기. 바뀐 상태(true: 표시됨)가 옴.
+  toggleImportant: (token: string, postId: number) =>
+    apiRequest<boolean>(`/api/v1/board/post/important?postId=${postId}`, token, { method: "POST" }),
   // 처음 여는 글이면 서버가 읽음 기록·조회수 1을 함께 처리.
   detail: (token: string, postId: number) =>
     apiRequest<BoardPostDetail>(`/api/v1/board/post/${postId}`, token),

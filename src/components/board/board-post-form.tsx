@@ -103,7 +103,6 @@ export function BoardPostForm({
   );
   const [title, setTitle] = useState(editing?.title ?? "");
   const [content, setContent] = useState(editing?.content ?? "");
-  const [important, setImportant] = useState(editing?.important ?? false);
   const [mustRead, setMustRead] = useState(editing?.mustRead ?? false);
   const [allowComment, setAllowComment] = useState(editing?.allowComment ?? true);
   const [commentNotify, setCommentNotify] = useState(editing?.commentNotify ?? true);
@@ -193,7 +192,8 @@ export function BoardPostForm({
     const input = {
       title: title.trim(),
       content,
-      important: flagsAllowed && important,
+      // 중요는 이제 각자 하는 개인 표시라 글쓴이가 정하지 않음
+      important: false,
       mustRead: flagsAllowed && mustRead,
       attachmentIds: files.map((file) => file.id).filter((id): id is number => id !== null),
       mode,
@@ -326,15 +326,9 @@ export function BoardPostForm({
         )}
       </div>
 
-      {/* 설정: 작은 체크박스 한 줄(문의하기는 중요·필독 없음, 댓글은 항상 받음) */}
+      {/* 설정: 작은 체크박스 한 줄(문의하기는 필독 없음, 댓글은 항상 받음) */}
       {flagsAllowed && (
         <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-slate-100 pt-4">
-          <CustomCheckbox
-            label="중요"
-            text="중요"
-            checked={important}
-            onChange={() => setImportant((value) => !value)}
-          />
           <CustomCheckbox
             label="필독"
             text="필독"

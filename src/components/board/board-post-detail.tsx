@@ -1,6 +1,6 @@
 "use client";
 
-import { AnswerBadge, PostBadges } from "@/components/board/board-post-list";
+import { AnswerBadge, ImportantFlagButton, PostBadges } from "@/components/board/board-post-list";
 import { RichContent } from "@/components/board/rich-content";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useChatNotification } from "@/components/chat/chat-notification-provider";
@@ -144,6 +144,19 @@ export function BoardPostDetailView({
     }
   };
 
+  // 중요 표시(개인 깃발). 화면은 먼저 바꾸고 실패하면 되돌림.
+  const toggleImportant = async () => {
+    const next = !post.important;
+    onChanged({ ...post, important: next });
+    try {
+      const saved = await boardApi.toggleImportant(accessToken, post.id);
+      if (saved !== next) onChanged({ ...post, important: saved });
+    } catch (error) {
+      onChanged({ ...post, important: !next });
+      onToast(error instanceof Error ? error.message : "중요 표시를 바꾸지 못했습니다.");
+    }
+  };
+
   const restore = async () => {
     setRestoring(true);
     try {
@@ -237,15 +250,25 @@ export function BoardPostDetailView({
 
       {/* 머리: 딱지 · 제목, 그 아래 한 줄(글쓴이 · 날짜 · 조회수 | 글자 버튼) */}
       <header>
-        {(post.mustRead || post.important || post.board.type === "INQUIRY") && (
+        {(post.mustRead || post.board.type === "INQUIRY") && (
           <div className="mb-2 flex items-center gap-1.5">
-            <PostBadges post={post} />
+            <PostBadges post={post} showImportant={false} />
             {post.board.type === "INQUIRY" && <AnswerBadge answered={!!post.answeredAt} />}
           </div>
         )}
-        <h2 className="break-all text-2xl font-semibold leading-snug text-slate-950">
-          {post.title}
-        </h2>
+        {/* 제목 앞 깃발: 나만 보는 중요 표시(사이드바 "중요" 목록) */}
+        <div className="flex items-start gap-1">
+          <span className="mt-0.5 -ml-1.5">
+            <ImportantFlagButton
+              important={post.important}
+              onToggle={() => void toggleImportant()}
+              size={18}
+            />
+          </span>
+          <h2 className="min-w-0 flex-1 break-all text-2xl font-semibold leading-snug text-slate-950">
+            {post.title}
+          </h2>
+        </div>
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-4">
           <div className="flex min-w-0 items-center gap-2 text-sm text-slate-500">
             <PersonAvatar membershipId={post.authorMembershipId} name={post.authorName} />

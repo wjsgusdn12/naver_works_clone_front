@@ -4,20 +4,61 @@ import { dateLabel, Highlight } from "@/components/chat/message-search-panel";
 import { CustomCheckbox } from "@/components/common/custom-checkbox";
 import { LoadingState } from "@/components/common/loading";
 import type { BoardPostSummary, BoardSearchScope } from "@/lib/api/board-api";
-import { ChevronRight, Eye, MessageSquare, Paperclip, RotateCw, SmilePlus } from "lucide-react";
+import {
+  ChevronRight,
+  Eye,
+  Flag,
+  MessageSquare,
+  Paperclip,
+  RotateCw,
+  SmilePlus,
+} from "lucide-react";
 
-// 필독·중요·답변 상태 딱지
-export function PostBadges({ post }: { post: Pick<BoardPostSummary, "mustRead" | "important"> }) {
+// 중요 표시(개인 깃발) 켜기·끄기 버튼. 표시하면 주황 깃발, 아니면 옅은 회색 깃발.
+export function ImportantFlagButton({
+  important,
+  onToggle,
+  size = 15,
+}: {
+  important: boolean;
+  onToggle: () => void;
+  size?: number;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-pressed={important}
+      aria-label={important ? "중요 표시 해제" : "중요 표시"}
+      title={important ? "중요 표시 해제" : "중요 표시(나만 보임)"}
+      className={`flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-md transition hover:bg-slate-100 active:scale-90 ${important ? "text-amber-500" : "text-slate-300 hover:text-slate-500"}`}
+    >
+      <Flag size={size} fill={important ? "currentColor" : "none"} aria-hidden="true" />
+    </button>
+  );
+}
+
+// 필독 딱지 + 내가 중요 표시한 글이면 작은 주황 깃발(showImportant가 false면 깃발은 따로 그리는 곳)
+export function PostBadges({
+  post,
+  showImportant = true,
+}: {
+  post: Pick<BoardPostSummary, "mustRead" | "important">;
+  showImportant?: boolean;
+}) {
   return (
     <>
+      {showImportant && post.important && (
+        <Flag
+          size={13}
+          fill="currentColor"
+          className="shrink-0 text-amber-500"
+          aria-label="중요 표시한 글"
+        />
+      )}
       {post.mustRead && (
         <span className="shrink-0 rounded bg-red-50 px-1.5 py-0.5 text-[11px] font-semibold text-red-600">
           필독
-        </span>
-      )}
-      {post.important && (
-        <span className="shrink-0 rounded bg-amber-50 px-1.5 py-0.5 text-[11px] font-semibold text-amber-700">
-          중요
         </span>
       )}
     </>
@@ -48,9 +89,12 @@ export function PostRow({
   onCheck,
   onOpen,
   search,
+  onToggleImportant,
 }: {
   post: BoardPostSummary;
   search?: PostSearchMark;
+  // 있으면 줄 앞에 중요 표시(깃발) 버튼
+  onToggleImportant?: () => void;
   // onCheck가 있으면 줄 앞에 체크박스(읽음 처리할 글 고르기)
   checked?: boolean;
   onCheck?: () => void;
@@ -73,6 +117,9 @@ export function PostRow({
           className="ml-1 shrink-0"
         />
       )}
+      {onToggleImportant && (
+        <ImportantFlagButton important={post.important} onToggle={onToggleImportant} />
+      )}
       <button
         type="button"
         onClick={onOpen}
@@ -87,7 +134,7 @@ export function PostRow({
                   : `예약 ${new Date(post.publishAt ?? "").toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}`}
               </span>
             )}
-            <PostBadges post={post} />
+            <PostBadges post={post} showImportant={!onToggleImportant} />
             {post.boardType === "INQUIRY" && <AnswerBadge answered={post.answered} />}
             <span
               className={`truncate text-[15px] ${post.read ? "text-slate-700" : "font-bold text-slate-950"}`}
@@ -269,9 +316,12 @@ export function PostListBody({
   onRetry,
   onOpen,
   search,
+  onToggleImportant,
 }: {
   // 검색 결과 화면이면 검색어 강조
   search?: PostSearchMark;
+  // 있으면 줄마다 중요 표시(깃발) 버튼
+  onToggleImportant?: (post: BoardPostSummary) => void;
   status: "loading" | "loaded" | "failed";
   pinned: BoardPostSummary[];
   items: BoardPostSummary[];
@@ -333,6 +383,7 @@ export function PostListBody({
             onCheck={onCheck && (() => onCheck(post.id))}
             onOpen={() => onOpen(post)}
             search={search}
+            onToggleImportant={onToggleImportant && (() => onToggleImportant(post))}
           />
         ))}
       </ul>
