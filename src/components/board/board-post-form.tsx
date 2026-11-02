@@ -162,7 +162,7 @@ export function BoardPostForm({
 
   return (
     <form
-      className="flex w-full max-w-4xl flex-col gap-4"
+      className="flex w-full flex-col gap-4"
       onSubmit={(event) => {
         event.preventDefault();
         void submit();

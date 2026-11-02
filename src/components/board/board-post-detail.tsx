@@ -104,7 +104,7 @@ export function BoardPostDetailView({
   };
 
   return (
-    <article className="w-full max-w-4xl">
+    <article className="w-full">
       <button
         type="button"
         onClick={onBack}
