@@ -5,7 +5,6 @@ import type { PreviewFile } from "@/components/chat/file-preview-modal";
 import { ItemActionMenu, type ActionMenuItem } from "@/components/common/item-action-menu";
 import type { ViewerImage } from "@/components/chat/image-viewer";
 import { CheckboxControl, CustomCheckbox } from "@/components/common/custom-checkbox";
-import { CustomSelect } from "@/components/common/custom-select";
 import { LoadingInline, LoadingState, Spinner } from "@/components/common/loading";
 import {
   chatApi,
@@ -15,6 +14,7 @@ import {
 } from "@/lib/api/chat-api";
 import { fileIconOf, formatFileSize } from "@/lib/attachment-files";
 import {
+  ChevronDown,
   Download,
   FolderOpen,
   Forward,
@@ -23,14 +23,15 @@ import {
   MoreVertical,
   RotateCw,
   X,
+  type LucideIcon,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 
 type Kind = "IMAGE" | "FILE" | "LINK";
-const KIND_OPTIONS: { value: Kind; label: string }[] = [
-  { value: "IMAGE", label: "사진/동영상" },
-  { value: "FILE", label: "파일" },
-  { value: "LINK", label: "링크" },
+const KIND_OPTIONS: { value: Kind; label: string; icon: LucideIcon }[] = [
+  { value: "IMAGE", label: "사진/동영상", icon: ImageIcon },
+  { value: "FILE", label: "파일", icon: FolderOpen },
+  { value: "LINK", label: "링크", icon: Link2 },
 ];
 const EMPTY_TEXT: Record<Kind, string> = {
   IMAGE: "주고받은 사진이 없습니다.",
@@ -106,7 +107,7 @@ const hostOf = (url: string) => {
   }
 };
 
-// 방 상세의 사진·파일·링크 모아보기 패널. 종류는 위쪽 선택 상자로 고르고, 목록은 날짜별로 묶음.
+// 방 상세의 사진·파일·링크 모아보기 패널. 종류는 타이틀을 눌러 여는 메뉴로 고르고, 목록은 날짜별로 묶음.
 // "선택"을 누르면 체크박스로 하나 또는 여러 개를 골라 한 번에 PC 저장·전달. 30개씩 이어서 불러옴.
 export function AttachmentGalleryPanel({
   roomId,
@@ -232,8 +233,8 @@ export function AttachmentGalleryPanel({
     return () => document.removeEventListener("keydown", closeByEscape);
   }, [onClose, menu]);
 
-  const changeKind = (value: string) => {
-    setKind(value as Kind);
+  const changeKind = (value: Kind) => {
+    setKind(value);
     setSelected(new Set());
     setMenu(null);
   };
@@ -311,8 +312,50 @@ export function AttachmentGalleryPanel({
 
   return (
     <aside className="flex h-full w-[min(420px,40vw)] shrink-0 animate-in slide-in-from-right flex-col border-l border-slate-200 bg-white shadow-xl">
-      <div className="flex items-center justify-between px-5 pb-3 pt-5">
-        <h2 className="text-base font-bold">사진·파일·링크</h2>
+      {/* 타이틀을 누르면 종류 고르기 메뉴가 열림(다시 누르면 닫힘) */}
+      <div className="flex items-center gap-1 px-5 pb-3 pt-5">
+        <button
+          type="button"
+          data-item-menu
+          aria-haspopup="menu"
+          aria-expanded={menu?.key === "kind"}
+          onClick={(event) => {
+            if (menu?.key === "kind") {
+              setMenu(null);
+              return;
+            }
+            const rect = event.currentTarget.getBoundingClientRect();
+            setMenu({
+              key: "kind",
+              position: { left: rect.left, top: rect.bottom + 4 },
+              items: KIND_OPTIONS.map((option) => ({
+                key: option.value,
+                label: option.label,
+                icon: option.icon,
+                active: option.value === kind,
+                onSelect: () => changeKind(option.value),
+              })),
+            });
+          }}
+          className="-ml-1 flex cursor-pointer items-center gap-1 rounded px-1 py-0.5 transition hover:bg-slate-100"
+        >
+          <h2 className="text-base font-bold">
+            {KIND_OPTIONS.find((option) => option.value === kind)?.label}
+          </h2>
+          <ChevronDown
+            size={18}
+            aria-hidden="true"
+            className={`text-slate-500 transition-transform ${menu?.key === "kind" ? "rotate-180" : ""}`}
+          />
+        </button>
+        <button
+          type="button"
+          onClick={toggleSelecting}
+          aria-pressed={selecting}
+          className={`ml-auto cursor-pointer rounded px-2 py-1 text-sm font-medium transition hover:bg-slate-100 ${selecting ? "text-blue-600" : "text-slate-600"}`}
+        >
+          {selecting ? "취소" : "선택"}
+        </button>
         <button
           type="button"
           aria-label="사진·파일·링크 모아보기 닫기"
@@ -322,24 +365,7 @@ export function AttachmentGalleryPanel({
           <X size={20} aria-hidden="true" />
         </button>
       </div>
-      <div className="flex items-center gap-2 px-5">
-        <CustomSelect
-          label="모아볼 종류"
-          value={kind}
-          onChange={changeKind}
-          options={KIND_OPTIONS}
-          className="flex-1"
-        />
-        <button
-          type="button"
-          onClick={toggleSelecting}
-          aria-pressed={selecting}
-          className={`h-12 shrink-0 cursor-pointer rounded-lg border px-4 text-sm font-medium transition active:scale-95 ${selecting ? "border-blue-600 bg-blue-50 text-blue-700" : "border-slate-300 text-slate-700 hover:border-blue-400"}`}
-        >
-          {selecting ? "취소" : "선택"}
-        </button>
-      </div>
-      <div className="mt-3 min-h-0 flex-1 overflow-y-auto px-5 pb-5">
+      <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-5">
         {list.status === "loading" ? (
           <LoadingState message={LOADING_TEXT[kind]} className="h-full min-h-48" />
         ) : list.status === "failed" ? (
