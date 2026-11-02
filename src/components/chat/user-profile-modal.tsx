@@ -1,9 +1,10 @@
 "use client";
 
 import type { AddressBookMemberDetail } from "@/lib/api/address-book-api";
+import { FavoriteButton } from "@/components/common/favorite-button";
 import { UserAvatar } from "@/components/common/user-avatar";
 import { formatMemberStatus } from "@/lib/status-options";
-import { CalendarDays, Mail, MessageCircle, Star, X } from "lucide-react";
+import { CalendarDays, Mail, MessageCircle, X } from "lucide-react";
 import { useEffect, useRef } from "react";
 
 export function UserProfileModal({
@@ -56,13 +57,11 @@ export function UserProfileModal({
           >
             <X size={22} />
           </button>
-          <button
-            aria-label="즐겨찾기 변경"
+          <FavoriteButton
+            active={member.favorite}
+            size="modal"
             onClick={() => void onToggleFavorite()}
-            className={`flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border transition active:scale-90 ${member.favorite ? "border-emerald-500 bg-emerald-500 text-white hover:bg-emerald-600" : "border-slate-500 bg-transparent text-slate-500 hover:bg-slate-100"}`}
-          >
-            <Star size={14} fill={member.favorite ? "currentColor" : "none"} strokeWidth={2.5} />
-          </button>
+          />
         </div>
         <div className="mt-7 flex items-center gap-5">
           <UserAvatar
