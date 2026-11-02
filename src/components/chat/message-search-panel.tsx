@@ -48,7 +48,7 @@ const emptyList = <T,>(): PagedList<T> => ({
 });
 
 // 오늘이면 "오후 3:28", 올해면 "10. 1.", 그 전이면 "2025. 10. 1."
-const dateLabel = (value: string) => {
+export const dateLabel = (value: string) => {
   const date = new Date(value);
   const now = new Date();
   if (date.toDateString() === now.toDateString())
@@ -64,7 +64,7 @@ const snippetOf = (line: string, keyword: string) => {
 };
 
 // 메시지에서 키워드가 있는 줄(과 그 앞 줄)을 최대 두 줄 보여 줌. 뒤에 줄이 더 있으면 "…".
-const previewLinesOf = (content: string, keyword: string) => {
+export const previewLinesOf = (content: string, keyword: string) => {
   const lines = content.split(/\r?\n/).filter((line) => line.trim());
   const found = lines.findIndex((line) => line.toLowerCase().includes(keyword.toLowerCase()));
   const start = found <= 0 ? 0 : found - 1;
@@ -74,7 +74,7 @@ const previewLinesOf = (content: string, keyword: string) => {
 };
 
 // 글 속 키워드(대소문자 무시)를 파란 굵은 글씨로 강조.
-function Highlight({ text, keyword }: { text: string; keyword: string }) {
+export function Highlight({ text, keyword }: { text: string; keyword: string }) {
   const lower = text.toLowerCase();
   const target = keyword.toLowerCase();
   const parts: ReactNode[] = [];
