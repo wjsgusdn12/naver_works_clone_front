@@ -14,7 +14,8 @@ import {
   type CommonBoardType,
 } from "@/components/board/board-sidebar";
 import { GlobalHeader } from "@/components/common/global-header";
-import { LoadingState, PageLoading } from "@/components/common/loading";
+import { CustomCheckbox } from "@/components/common/custom-checkbox";
+import { LoadingState, PageLoading, Spinner } from "@/components/common/loading";
 import { Pagination } from "@/components/common/pagination";
 import { Toast } from "@/components/common/toast";
 import { useToast } from "@/hooks/use-toast";
@@ -27,7 +28,7 @@ import {
   type BoardView,
 } from "@/lib/api/board-api";
 import { markAuthenticationRequired } from "@/lib/auth-required-notice";
-import { SquarePen } from "lucide-react";
+import { MailOpen, SquarePen } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 
@@ -141,6 +142,11 @@ function BoardContent() {
     failed: boolean;
   } | null>(null);
   const [renaming, setRenaming] = useState<BoardItem | null>(null);
+  const [checked, setChecked] = useState<{ key: string | null; ids: number[] }>({
+    key: null,
+    ids: [],
+  });
+  const [markingRead, setMarkingRead] = useState(false);
   // 빠르게 화면을 바꿀 때 늦게 온 이전 응답이 덮어쓰지 않게.
   const listVersionRef = useRef(0);
 
@@ -329,6 +335,47 @@ function BoardContent() {
           ? ""
           : MENU_TITLE[menu.kind];
   const currentList = list && list.key === listKey ? list : null;
+  // 읽음 처리할 글 고르기(휴지통 제외). 다른 목록·쪽으로 옮기면 key가 달라져 자동으로 비워짐.
+  const selectable = menu.kind !== "trash" && currentList?.status === "loaded";
+  const listPostIds = currentList
+    ? [...currentList.pinned, ...currentList.items].map((item) => item.id)
+    : [];
+  const checkedIds = checked.key === listKey ? checked.ids : [];
+  const allChecked = listPostIds.length > 0 && listPostIds.every((id) => checkedIds.includes(id));
+  const toggleChecked = (postId: number) =>
+    setChecked({
+      key: listKey,
+      ids: checkedIds.includes(postId)
+        ? checkedIds.filter((id) => id !== postId)
+        : [...checkedIds, postId],
+    });
+  const markCheckedRead = async () => {
+    if (!accessToken || checkedIds.length === 0 || markingRead) return;
+    setMarkingRead(true);
+    try {
+      await boardApi.markRead(accessToken, checkedIds);
+      const done = new Set(checkedIds);
+      // 화면의 글도 바로 읽음으로(안 읽었던 글은 조회수 1 증가)
+      const mark = (item: BoardPostSummary) =>
+        done.has(item.id) && !item.read
+          ? { ...item, read: true, viewCount: item.viewCount + 1 }
+          : item;
+      setList(
+        (current) =>
+          current && {
+            ...current,
+            pinned: current.pinned.map(mark),
+            items: current.items.map(mark),
+          },
+      );
+      setChecked({ key: null, ids: [] });
+      showToast(`${done.size}개 글을 읽음으로 표시했습니다.`);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "읽음으로 표시하지 못했습니다.");
+    } finally {
+      setMarkingRead(false);
+    }
+  };
   // 오른쪽 화면 공통 머리줄 제목. 글 보기는 그 글의 게시판 이름.
   const postBoard = currentPost?.detail?.board;
   const headerTitle =
@@ -503,8 +550,38 @@ function BoardContent() {
                     검색 결과 {currentList.totalElements}건
                   </p>
                 )}
+                {selectable && listPostIds.length > 0 && (
+                  // 목록 도구 줄: 왼쪽은 전체 선택·읽음, 오른쪽은 보기 설정 자리
+                  <div className="mb-2 flex items-center gap-2 px-1">
+                    <CustomCheckbox
+                      label="이 쪽 글 전체 선택"
+                      checked={allChecked}
+                      onChange={() =>
+                        setChecked({ key: listKey, ids: allChecked ? [] : listPostIds })
+                      }
+                    />
+                    <button
+                      type="button"
+                      onClick={() => void markCheckedRead()}
+                      disabled={checkedIds.length === 0 || markingRead}
+                      className="flex h-8 cursor-pointer items-center gap-1.5 rounded-md border border-slate-200 px-3 text-sm text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {markingRead ? (
+                        <Spinner size={13} />
+                      ) : (
+                        <MailOpen size={14} aria-hidden="true" />
+                      )}
+                      읽음
+                    </button>
+                    {checkedIds.length > 0 && (
+                      <span className="text-xs text-blue-600">{checkedIds.length}개 선택</span>
+                    )}
+                  </div>
+                )}
                 <PostListBody
                   status={currentList ? currentList.status : "loading"}
+                  checkedIds={checkedIds}
+                  onCheck={selectable ? toggleChecked : undefined}
                   pinned={currentList?.pinned ?? []}
                   items={currentList?.items ?? []}
                   showBoard={menu.kind !== "board" && menu.kind !== "type"}

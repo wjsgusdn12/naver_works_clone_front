@@ -176,6 +176,9 @@ export const boardApi = {
     if (options.keyword) query.set("keyword", options.keyword);
     return apiRequest<BoardPostPage>(`/api/v1/board/post/list?${query}`, token);
   },
+  // 목록에서 고른 글을 한꺼번에 읽음으로(최대 100개). 결과는 새로 읽음 처리한 글 수.
+  markRead: (token: string, postIds: number[]) =>
+    apiRequest<number>("/api/v1/board/post/read", token, json({ postIds })),
   // 처음 여는 글이면 서버가 읽음 기록·조회수 1을 함께 처리.
   detail: (token: string, postId: number) =>
     apiRequest<BoardPostDetail>(`/api/v1/board/post/${postId}`, token),

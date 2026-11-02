@@ -1,6 +1,7 @@
 "use client";
 
 import { dateLabel } from "@/components/chat/message-search-panel";
+import { CustomCheckbox } from "@/components/common/custom-checkbox";
 import { LoadingState } from "@/components/common/loading";
 import type { BoardPostSummary } from "@/lib/api/board-api";
 import { ChevronRight, Eye, MessageSquare, Paperclip, RotateCw } from "lucide-react";
@@ -40,9 +41,14 @@ export function PostRow({
   pinned = false,
   showBoard,
   showCompany = false,
+  checked,
+  onCheck,
   onOpen,
 }: {
   post: BoardPostSummary;
+  // onCheck가 있으면 줄 앞에 체크박스(읽음 처리할 글 고르기)
+  checked?: boolean;
+  onCheck?: () => void;
   // 관리자처럼 여러 회사 글이 섞이는 목록이면 회사 이름도
   showCompany?: boolean;
   // 게시판 맨 위에 고정한 중요 글(옅은 배경)
@@ -51,11 +57,21 @@ export function PostRow({
   onOpen: () => void;
 }) {
   return (
-    <li className={pinned ? "bg-amber-50/50" : ""}>
+    <li
+      className={`flex items-center border-b border-slate-100 ${checked ? "bg-blue-50/60" : pinned ? "bg-amber-50/50" : ""}`}
+    >
+      {onCheck && (
+        <CustomCheckbox
+          label={`${post.title} 선택`}
+          checked={!!checked}
+          onChange={onCheck}
+          className="ml-1 shrink-0"
+        />
+      )}
       <button
         type="button"
         onClick={onOpen}
-        className="flex w-full cursor-pointer items-center gap-4 border-b border-slate-100 px-2 py-3.5 text-left transition hover:bg-slate-50"
+        className="flex min-w-0 flex-1 cursor-pointer items-center gap-4 px-2 py-3.5 text-left transition hover:bg-slate-50"
       >
         <span className="min-w-0 flex-1">
           <span className="flex min-w-0 items-center gap-1.5">
@@ -218,6 +234,8 @@ export function PostListBody({
   showCompany = false,
   emptyText,
   footer,
+  checkedIds,
+  onCheck,
   onRetry,
   onOpen,
 }: {
@@ -228,6 +246,9 @@ export function PostListBody({
   showCompany?: boolean;
   emptyText: string;
   footer?: ReactNode;
+  // onCheck가 있으면 줄마다 체크박스(휴지통처럼 고를 일이 없는 목록은 넘기지 않음)
+  checkedIds?: number[];
+  onCheck?: (postId: number) => void;
   onRetry: () => void;
   onOpen: (post: BoardPostSummary) => void;
 }) {
@@ -265,6 +286,8 @@ export function PostListBody({
             pinned
             showBoard={showBoard}
             showCompany={showCompany}
+            checked={checkedIds?.includes(post.id)}
+            onCheck={onCheck && (() => onCheck(post.id))}
             onOpen={() => onOpen(post)}
           />
         ))}
@@ -274,6 +297,8 @@ export function PostListBody({
             post={post}
             showBoard={showBoard}
             showCompany={showCompany}
+            checked={checkedIds?.includes(post.id)}
+            onCheck={onCheck && (() => onCheck(post.id))}
             onOpen={() => onOpen(post)}
           />
         ))}
