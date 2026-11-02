@@ -806,12 +806,13 @@ function BoardContent() {
               </div>
             )}
           </div>
-          {/* 쪽 번호: 목록 화면 맨 아래 고정, 위에 회색 선(한 쪽뿐이어도 항상) */}
-          {listKey && currentList?.status === "loaded" && (
+          {/* 쪽 번호: 목록 화면 맨 아래 고정, 위에 회색 선(한 쪽뿐이어도 항상).
+              불러오는 동안에도 자리를 지키고, 쪽 수는 직전 목록 것을 그대로 보여 줌(화면이 출렁이지 않게). */}
+          {listKey && (
             <div className="sticky bottom-0 z-10 shrink-0 border-t border-slate-200 bg-white py-3">
               <Pagination
                 page={listPage}
-                totalPages={Math.max(currentList.totalPages, 1)}
+                totalPages={Math.max(currentList?.totalPages ?? list?.totalPages ?? 1, 1)}
                 onChange={(page) => go(listHref(menu, page, listKeyword, searchTab))}
                 label="글 목록 페이지"
               />
