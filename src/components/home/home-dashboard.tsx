@@ -1,5 +1,6 @@
 "use client";
 
+import { PostBadges } from "@/components/board/board-post-list";
 import { FavoriteBadge } from "@/components/common/favorite-badge";
 import { useAuth } from "@/components/auth/auth-provider";
 import { ApiDashboardSection } from "@/components/home/api-dashboard";
@@ -9,6 +10,7 @@ import { LoadingInline, Spinner } from "@/components/common/loading";
 import { MeBadge } from "@/components/common/me-badge";
 import { UserAvatar } from "@/components/common/user-avatar";
 import { addressBookApi, type AddressBookMember } from "@/lib/api/address-book-api";
+import { boardApi, type BoardHome, type BoardPostSummary } from "@/lib/api/board-api";
 import { chatApi, type ChatRoom } from "@/lib/api/chat-api";
 import { withLiveStatus } from "@/lib/live-status";
 import type { NotificationItem } from "@/lib/api/notification-api";
@@ -16,6 +18,7 @@ import {
   ArrowRight,
   Bell,
   BookUser,
+  ClipboardList,
   MessageCircleMore,
   NotebookPen,
   UsersRound,
@@ -76,6 +79,8 @@ export function HomeDashboard({
   } = useChatNotification();
   const [rooms, setRooms] = useState<ChatRoom[] | null>(null);
   const [favorites, setFavorites] = useState<AddressBookMember[] | null>(null);
+  // 게시판 홈 요약(공지사항·최신글). 실패하면 빈 값으로 두고 안내만 띄움.
+  const [board, setBoard] = useState<BoardHome | null>(null);
 
   // 채팅방 목록과 즐겨찾기 구성원을 한 번씩 조회. 실패해도 빈 목록으로 두고 안내만 띄움.
   useEffect(() => {
@@ -108,6 +113,24 @@ export function HomeDashboard({
         if (cancelled) return;
         setFavorites([]);
         showToast(error instanceof Error ? error.message : "즐겨찾기를 불러오지 못했습니다.");
+      });
+    boardApi
+      .home(accessToken)
+      .then((result) => {
+        if (!cancelled) setBoard(result);
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        setBoard({
+          latest: [],
+          inquiries: [],
+          notices: [],
+          free: [],
+          noticeBoardId: null,
+          freeBoardId: null,
+          inquiryBoardId: null,
+        });
+        showToast(error instanceof Error ? error.message : "게시판을 불러오지 못했습니다.");
       });
     return () => {
       cancelled = true;
@@ -176,6 +199,9 @@ export function HomeDashboard({
             </QuickButton>
             <QuickButton icon={BookUser} onClick={() => router.push("/addressBook")}>
               주소록
+            </QuickButton>
+            <QuickButton icon={ClipboardList} onClick={() => router.push("/board")}>
+              게시판
             </QuickButton>
             <QuickButton icon={NotebookPen} onClick={() => void openSelf()}>
               내 메모
@@ -391,10 +417,99 @@ export function HomeDashboard({
           </div>
         </section>
 
+        {/* 게시판: 공지사항과 볼 수 있는 모든 게시판의 최신글 5개씩 */}
+        <section className="mt-5 grid gap-5 xl:grid-cols-2">
+          <Card
+            title="공지사항"
+            description="회사 공지사항 최근 글입니다."
+            action={
+              <LinkButton
+                onClick={() =>
+                  router.push(
+                    board?.noticeBoardId ? `/board?boardId=${board.noticeBoardId}` : "/board",
+                  )
+                }
+              >
+                전체보기
+              </LinkButton>
+            }
+          >
+            <BoardPostList
+              posts={board?.notices ?? null}
+              emptyText="공지사항이 없습니다."
+              onOpen={(post) => router.push(`/board?postId=${post.id}`)}
+            />
+          </Card>
+          <Card
+            title="게시판 최신글"
+            description="볼 수 있는 모든 게시판의 새 글입니다."
+            action={
+              <LinkButton onClick={() => router.push("/board?menu=latest")}>전체보기</LinkButton>
+            }
+          >
+            <BoardPostList
+              posts={board?.latest ?? null}
+              emptyText="아직 올라온 글이 없습니다."
+              showBoard
+              onOpen={(post) => router.push(`/board?postId=${post.id}`)}
+            />
+          </Card>
+        </section>
+
         {/* 관리자에게만 보이는 API 상태. 서버도 ROLE_ADMIN을 다시 검사함(화면 숨김은 편의일 뿐). */}
         {member?.role === "ADMIN" && <ApiDashboardSection accessToken={accessToken} />}
       </div>
     </main>
+  );
+}
+
+// 홈 게시판 카드의 글 목록(최대 5개). 안 읽은 글은 굵게, showBoard면 게시판 이름도.
+function BoardPostList({
+  posts,
+  emptyText,
+  showBoard = false,
+  onOpen,
+}: {
+  posts: BoardPostSummary[] | null;
+  emptyText: string;
+  showBoard?: boolean;
+  onOpen: (post: BoardPostSummary) => void;
+}) {
+  if (posts === null)
+    return <LoadingInline message="게시판을 불러오는 중입니다." className="py-8 text-sm" />;
+  if (posts.length === 0) return <Empty message={emptyText} />;
+  return (
+    <ul className="divide-y divide-slate-100">
+      {posts.map((post) => (
+        <li key={post.id}>
+          <button
+            type="button"
+            className="flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-2.5 text-left transition hover:bg-slate-50"
+            onClick={() => onOpen(post)}
+          >
+            <PostBadges post={post} />
+            <span
+              className={`min-w-0 flex-1 truncate text-sm ${post.read ? "text-slate-600" : "font-semibold text-slate-900"}`}
+            >
+              {post.title}
+            </span>
+            {post.commentCount > 0 && (
+              <span className="shrink-0 text-xs font-semibold text-blue-600">
+                [{post.commentCount}]
+              </span>
+            )}
+            {showBoard && (
+              <span className="max-w-24 shrink-0 truncate text-xs text-slate-400">
+                {post.boardName}
+              </span>
+            )}
+            <span className="shrink-0 text-xs text-slate-400">
+              {formatRelative(post.createdAt)}
+            </span>
+          </button>
+        </li>
+      ))}
+    </ul>
   );
 }
 
