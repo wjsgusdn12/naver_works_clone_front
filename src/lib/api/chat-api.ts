@@ -312,6 +312,9 @@ const fetchBlob = async (token: string, path: string) => {
   return response.blob();
 };
 
+// 게시판 등 다른 API 모듈도 같은 요청·오류 처리를 쓰도록 공개.
+export { apiBaseUrl, request as apiRequest, fetchBlob as apiFetchBlob };
+
 export const chatApi = {
   uploadAttachment,
   attachmentBlob,
