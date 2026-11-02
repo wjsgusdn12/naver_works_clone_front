@@ -149,6 +149,9 @@ export function GlobalHeader({
   // 프로필 버튼과 메뉴 영역을 함께 참조해 바깥 클릭을 판별.
   const profileMenuRef = useRef<HTMLSpanElement>(null);
   const notificationPanelRef = useRef<HTMLSpanElement>(null);
+  // 전체 서비스 패널(상단바 메뉴를 그리드로)
+  const servicePanelRef = useRef<HTMLSpanElement>(null);
+  const [isServicePanelOpen, setIsServicePanelOpen] = useState(false);
   // 알림 설정 드롭다운(버튼 + 목록) 영역. 바깥 클릭 판별용.
   const notificationModeRef = useRef<HTMLDivElement>(null);
   const sessionRemainingSeconds =
@@ -220,6 +223,23 @@ export function GlobalHeader({
     };
   }, [isNotificationPanelOpen]);
 
+  // 전체 서비스 패널: 바깥 클릭·Esc로 닫음.
+  useEffect(() => {
+    if (!isServicePanelOpen) return;
+    const closeOutside = (event: MouseEvent) => {
+      if (!servicePanelRef.current?.contains(event.target as Node)) setIsServicePanelOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsServicePanelOpen(false);
+    };
+    document.addEventListener("mousedown", closeOutside);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("mousedown", closeOutside);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [isServicePanelOpen]);
+
   // 알림 설정 드롭다운: 바깥 클릭·Esc로 닫음. 알림 패널 안을 눌러도 드롭다운 밖이면 닫힘.
   useEffect(() => {
     if (!isNotificationModeOpen) return;
@@ -239,6 +259,27 @@ export function GlobalHeader({
     };
   }, [isNotificationModeOpen]);
 
+  // 상단바 메뉴 하나를 눌렀을 때의 동작. 구현된 서비스는 화면과 무관하게 공통 경로로 이동.
+  // 화면 이동이 있는 서비스(로그인 전에는 부모의 안내 동작)
+  const servicePaths: Record<string, string> = {
+    메시지: "/message",
+    주소록: "/addressBook",
+    게시판: "/board",
+  };
+  const runAction = (label: string) => {
+    const path = servicePaths[label];
+    if (label === "홈") onHomeAction();
+    else if (path) {
+      if (isAuthenticated) router.push(path);
+      else onServiceAction(label);
+    } else if (label === "알림") setIsNotificationPanelOpen((current) => !current);
+    else if (label === "내 프로필") onProfileAction();
+    else if (label === "프로젝트 소개") setIsProjectGuideOpen(true);
+    else onServiceAction(label);
+  };
+  const visibleActions = headerActions.filter(
+    ({ requiresAdmin }) => !requiresAdmin || role === "ADMIN",
+  );
   return (
     <header className="relative z-50 flex h-14 shrink-0 items-center justify-between gap-6 bg-zinc-950 px-3 text-white shadow-sm sm:px-4">
       <div className="flex min-w-fit items-center gap-8">
@@ -276,246 +317,271 @@ export function GlobalHeader({
           </span>
         )}
         {/* 서비스 목록을 순회해 동일한 스타일의 아이콘 버튼을 생성. */}
-        {headerActions
-          .filter(({ requiresAdmin }) => !requiresAdmin || role === "ADMIN")
-          .map(({ label, icon: Icon }) => {
-            // 구현된 서비스는 화면과 무관하게 공통 경로로 이동.
-            const onClick =
-              label === "홈"
-                ? onHomeAction
-                : label === "메시지"
-                  ? () => (isAuthenticated ? router.push("/message") : onServiceAction(label))
-                  : label === "주소록"
-                    ? () => (isAuthenticated ? router.push("/addressBook") : onServiceAction(label))
-                    : label === "게시판"
-                      ? () => (isAuthenticated ? router.push("/board") : onServiceAction(label))
-                      : label === "알림"
-                        ? () => setIsNotificationPanelOpen((current) => !current)
-                        : label === "내 프로필"
-                          ? onProfileAction
-                          : label === "프로젝트 소개"
-                            ? () => setIsProjectGuideOpen(true)
-                            : () => onServiceAction(label);
+        {visibleActions.map(({ label, icon: Icon }) => {
+          const onClick =
+            label === "전체 서비스"
+              ? () => setIsServicePanelOpen((current) => !current)
+              : () => runAction(label);
 
-            return (
-              <span
-                key={label}
-                ref={
-                  label === "내 프로필"
-                    ? profileMenuRef
-                    : label === "알림"
-                      ? notificationPanelRef
+          return (
+            <span
+              key={label}
+              ref={
+                label === "내 프로필"
+                  ? profileMenuRef
+                  : label === "알림"
+                    ? notificationPanelRef
+                    : label === "전체 서비스"
+                      ? servicePanelRef
                       : undefined
+              }
+              className="relative"
+            >
+              {/* 메뉴·패널이 열려 있는 동안은 툴팁이 겹치지 않도록 끔. */}
+              <Tooltip
+                label={label}
+                disabled={
+                  (label === "내 프로필" && isProfileMenuOpen) ||
+                  (label === "알림" && isNotificationPanelOpen) ||
+                  (label === "전체 서비스" && isServicePanelOpen)
                 }
-                className="relative"
               >
-                {/* 메뉴·패널이 열려 있는 동안은 툴팁이 겹치지 않도록 끔. */}
-                <Tooltip
-                  label={label}
-                  disabled={
-                    (label === "내 프로필" && isProfileMenuOpen) ||
-                    (label === "알림" && isNotificationPanelOpen)
+                <button
+                  type="button"
+                  aria-label={
+                    label === "알림" && notificationCount > 0
+                      ? `알림 ${notificationCount}개`
+                      : label
                   }
-                >
-                  <button
-                    type="button"
-                    aria-label={
-                      label === "알림" && notificationCount > 0
-                        ? `알림 ${notificationCount}개`
-                        : label
-                    }
-                    aria-expanded={
-                      label === "알림"
-                        ? isNotificationPanelOpen
-                        : label === "내 프로필"
-                          ? isProfileMenuOpen
+                  aria-expanded={
+                    label === "알림"
+                      ? isNotificationPanelOpen
+                      : label === "내 프로필"
+                        ? isProfileMenuOpen
+                        : label === "전체 서비스"
+                          ? isServicePanelOpen
                           : undefined
-                    }
-                    aria-haspopup={label === "알림" || label === "내 프로필" ? "menu" : undefined}
-                    onClick={onClick}
-                    className={`flex h-9 shrink-0 cursor-pointer items-center justify-center rounded-md text-zinc-300 transition hover:-translate-y-0.5 hover:bg-zinc-800 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${label === "내 프로필" && isAuthenticated ? "min-w-9 px-0.5" : label === "프로젝트 소개" ? "ml-3 w-9 hover:scale-110 hover:bg-transparent" : "w-9"}`}
-                  >
-                    {label === "내 프로필" && isAuthenticated ? (
-                      // 주소록·메시지와 같은 공통 아바타. 본인은 접속 중이라 온라인, 상태 설정이 있으면 그 아이콘.
-                      <UserAvatar
-                        name={profileName}
-                        presenceStatus="ONLINE"
-                        statusType={myStatusType}
-                        size="sm"
-                      />
-                    ) : label === "프로젝트 소개" ? (
-                      // 무지개 테두리가 돌고 빛이 지나가는 배지. 안쪽은 어두운 원이라 아이콘이 또렷하게 보임.
-                      <span className="project-guide-badge flex h-8 w-8 items-center justify-center">
-                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-950 text-amber-300">
-                          <Icon size={14} strokeWidth={2.4} aria-hidden="true" />
-                        </span>
+                  }
+                  aria-haspopup={
+                    label === "알림" || label === "내 프로필" || label === "전체 서비스"
+                      ? "menu"
+                      : undefined
+                  }
+                  onClick={onClick}
+                  className={`flex h-9 shrink-0 cursor-pointer items-center justify-center rounded-md text-zinc-300 transition hover:-translate-y-0.5 hover:bg-zinc-800 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${label === "내 프로필" && isAuthenticated ? "min-w-9 px-0.5" : label === "프로젝트 소개" ? "ml-3 w-9 hover:scale-110 hover:bg-transparent" : "w-9"}`}
+                >
+                  {label === "내 프로필" && isAuthenticated ? (
+                    // 주소록·메시지와 같은 공통 아바타. 본인은 접속 중이라 온라인, 상태 설정이 있으면 그 아이콘.
+                    <UserAvatar
+                      name={profileName}
+                      presenceStatus="ONLINE"
+                      statusType={myStatusType}
+                      size="sm"
+                    />
+                  ) : label === "프로젝트 소개" ? (
+                    // 무지개 테두리가 돌고 빛이 지나가는 배지. 안쪽은 어두운 원이라 아이콘이 또렷하게 보임.
+                    <span className="project-guide-badge flex h-8 w-8 items-center justify-center">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-950 text-amber-300">
+                        <Icon size={14} strokeWidth={2.4} aria-hidden="true" />
                       </span>
-                    ) : label === "알림" ? (
-                      <span className="relative">
-                        <Icon size={19} strokeWidth={1.9} aria-hidden="true" />
-                        {notificationCount > 0 && (
-                          <span
-                            aria-atomic="true"
-                            aria-live="polite"
-                            className="absolute -right-2 -top-2 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold leading-none text-white ring-2 ring-zinc-950"
-                          >
-                            {notificationCount > 99 ? "99+" : notificationCount}
-                          </span>
-                        )}
-                      </span>
-                    ) : (
+                    </span>
+                  ) : label === "알림" ? (
+                    <span className="relative">
                       <Icon size={19} strokeWidth={1.9} aria-hidden="true" />
-                    )}
-                  </button>
-                </Tooltip>
-                {label === "내 프로필" && isAuthenticated && onLogout && (
-                  // 알림 패널과 같은 폭·위치의 내 프로필 패널. 대화상자 상태를 들고 있어 항상 마운트.
-                  <ProfileMenu
-                    open={isProfileMenuOpen}
-                    onLogout={onLogout}
-                    onToast={onToast}
-                    sessionRemainingText={sessionRemainingText}
-                    onStatusChange={setMyStatusType}
-                  />
-                )}
-                {label === "알림" && isNotificationPanelOpen && (
-                  // 네이버웍스처럼 화면 오른쪽 끝에 붙는 세로로 긴 패널. 종 아이콘 위치와 무관하게 fixed로 고정하고 내부만 스크롤.
-                  <section className="fixed right-3 top-[60px] z-[60] flex h-[min(720px,calc(100vh-76px))] w-[400px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white text-slate-800 shadow-2xl">
-                    <div className="flex items-center justify-between px-5 pb-2 pt-4">
-                      <strong className="text-lg">서비스 알림</strong>
-                      <div className="flex items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={acknowledgeNotifications}
-                          disabled={notificationCount === 0}
-                          className="cursor-pointer rounded-md px-2 py-1 text-xs font-medium text-blue-600 transition hover:bg-blue-50 disabled:cursor-default disabled:text-slate-300 disabled:hover:bg-transparent"
+                      {notificationCount > 0 && (
+                        <span
+                          aria-atomic="true"
+                          aria-live="polite"
+                          className="absolute -right-2 -top-2 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold leading-none text-white ring-2 ring-zinc-950"
                         >
-                          모두 읽음
-                        </button>
-                        <div ref={notificationModeRef} className="relative">
-                          {/* 메시지 알림 수신 범위(전체·멘션만·끔) 설정. */}
-                          <button
-                            type="button"
-                            aria-label="알림 설정"
-                            aria-expanded={isNotificationModeOpen}
-                            onClick={() => setIsNotificationModeOpen((current) => !current)}
-                            className={`relative flex h-8 w-8 cursor-pointer items-center justify-center rounded-md transition hover:bg-slate-100 ${notificationEnabled ? "text-slate-700" : "text-slate-400"}`}
-                          >
-                            <Bell size={18} aria-hidden="true" />
-                            <span
-                              className={`absolute right-1 top-1 h-1.5 w-1.5 rounded-full ${notificationMode === "ALL" ? "bg-blue-500" : notificationMode === "MENTION" ? "bg-amber-500" : "bg-slate-300"}`}
-                            />
-                          </button>
-                          {isNotificationModeOpen && (
-                            <div className="absolute right-0 top-9 z-10 w-52 rounded-lg border border-slate-200 bg-white p-1 shadow-lg">
-                              <p className="px-3 pb-1 pt-2 text-[11px] font-semibold text-slate-400">
-                                메시지 알림 받기
-                              </p>
-                              {(
-                                [
-                                  ["ALL", "모든 메시지"],
-                                  ["MENTION", "내가 멘션된 메시지만"],
-                                  ["NONE", "받지 않기"],
-                                ] as const
-                              ).map(([mode, modeLabel]) => (
-                                <button
-                                  key={mode}
-                                  type="button"
-                                  onClick={() => {
-                                    setNotificationMode(mode);
-                                    setIsNotificationModeOpen(false);
-                                  }}
-                                  className={`w-full cursor-pointer rounded-md px-3 py-2 text-left text-xs transition hover:bg-slate-50 ${notificationMode === mode ? "bg-blue-50 font-semibold text-blue-600" : "text-slate-700"}`}
-                                >
-                                  {modeLabel}
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    {/* 분류 칩. 고른 칩만 파란색으로 강조. */}
-                    <div className="flex flex-wrap gap-2 px-5 pb-3 pt-1">
-                      {notificationChips.map((chip) => (
+                          {notificationCount > 99 ? "99+" : notificationCount}
+                        </span>
+                      )}
+                    </span>
+                  ) : (
+                    <Icon size={19} strokeWidth={1.9} aria-hidden="true" />
+                  )}
+                </button>
+              </Tooltip>
+              {label === "내 프로필" && isAuthenticated && onLogout && (
+                // 알림 패널과 같은 폭·위치의 내 프로필 패널. 대화상자 상태를 들고 있어 항상 마운트.
+                <ProfileMenu
+                  open={isProfileMenuOpen}
+                  onLogout={onLogout}
+                  onToast={onToast}
+                  sessionRemainingText={sessionRemainingText}
+                  onStatusChange={setMyStatusType}
+                />
+              )}
+              {label === "전체 서비스" && isServicePanelOpen && (
+                // 상단바 메뉴(전체 서비스 자신 제외)를 아이콘 + 이름 그리드로. 누르면 상단바 아이콘과 같은 동작.
+                <section
+                  role="menu"
+                  aria-label="전체 서비스"
+                  className="absolute right-0 top-11 z-[60] w-80 rounded-xl border border-slate-200 bg-white p-3 text-slate-800 shadow-2xl"
+                >
+                  <strong className="mb-2 block px-1 text-sm">전체 서비스</strong>
+                  <div className="grid grid-cols-4 gap-1">
+                    {visibleActions
+                      .filter((action) => action.label !== "전체 서비스")
+                      .map(({ label: itemLabel, icon: ItemIcon }) => (
                         <button
-                          key={chip.key}
+                          key={itemLabel}
                           type="button"
-                          aria-pressed={notificationFilter === chip.key}
-                          onClick={() => setNotificationFilter(chip.key)}
-                          className={`cursor-pointer rounded-full border px-3.5 py-1.5 text-sm font-medium transition ${notificationFilter === chip.key ? "border-blue-600 bg-blue-600 text-white" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`}
+                          role="menuitem"
+                          onClick={() => {
+                            setIsServicePanelOpen(false);
+                            runAction(itemLabel);
+                          }}
+                          className="flex cursor-pointer flex-col items-center gap-1.5 rounded-lg px-1 py-3 text-xs text-slate-700 transition hover:bg-slate-50 active:scale-95"
                         >
-                          {chip.label}
+                          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
+                            <ItemIcon size={19} strokeWidth={1.9} aria-hidden="true" />
+                          </span>
+                          <span className="w-full truncate text-center">{itemLabel}</span>
                         </button>
                       ))}
-                    </div>
-                    <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50 px-4 py-3">
-                      {!notificationsLoaded ? (
-                        <LoadingState message="알림을 불러오는 중입니다..." className="h-full" />
-                      ) : visibleNotifications.length === 0 ? (
-                        <p className="flex h-full items-center justify-center text-sm text-slate-400">
-                          최근 30일간 받은 알림이 없습니다.
-                        </p>
-                      ) : (
-                        <>
-                          {visibleNotifications.map((notification: NotificationItem) => {
-                            const meta = notificationCategoryMeta[notification.category];
-                            const CategoryIcon = meta.icon;
-                            return (
+                  </div>
+                </section>
+              )}
+              {label === "알림" && isNotificationPanelOpen && (
+                // 네이버웍스처럼 화면 오른쪽 끝에 붙는 세로로 긴 패널. 종 아이콘 위치와 무관하게 fixed로 고정하고 내부만 스크롤.
+                <section className="fixed right-3 top-[60px] z-[60] flex h-[min(720px,calc(100vh-76px))] w-[400px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white text-slate-800 shadow-2xl">
+                  <div className="flex items-center justify-between px-5 pb-2 pt-4">
+                    <strong className="text-lg">서비스 알림</strong>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={acknowledgeNotifications}
+                        disabled={notificationCount === 0}
+                        className="cursor-pointer rounded-md px-2 py-1 text-xs font-medium text-blue-600 transition hover:bg-blue-50 disabled:cursor-default disabled:text-slate-300 disabled:hover:bg-transparent"
+                      >
+                        모두 읽음
+                      </button>
+                      <div ref={notificationModeRef} className="relative">
+                        {/* 메시지 알림 수신 범위(전체·멘션만·끔) 설정. */}
+                        <button
+                          type="button"
+                          aria-label="알림 설정"
+                          aria-expanded={isNotificationModeOpen}
+                          onClick={() => setIsNotificationModeOpen((current) => !current)}
+                          className={`relative flex h-8 w-8 cursor-pointer items-center justify-center rounded-md transition hover:bg-slate-100 ${notificationEnabled ? "text-slate-700" : "text-slate-400"}`}
+                        >
+                          <Bell size={18} aria-hidden="true" />
+                          <span
+                            className={`absolute right-1 top-1 h-1.5 w-1.5 rounded-full ${notificationMode === "ALL" ? "bg-blue-500" : notificationMode === "MENTION" ? "bg-amber-500" : "bg-slate-300"}`}
+                          />
+                        </button>
+                        {isNotificationModeOpen && (
+                          <div className="absolute right-0 top-9 z-10 w-52 rounded-lg border border-slate-200 bg-white p-1 shadow-lg">
+                            <p className="px-3 pb-1 pt-2 text-[11px] font-semibold text-slate-400">
+                              메시지 알림 받기
+                            </p>
+                            {(
+                              [
+                                ["ALL", "모든 메시지"],
+                                ["MENTION", "내가 멘션된 메시지만"],
+                                ["NONE", "받지 않기"],
+                              ] as const
+                            ).map(([mode, modeLabel]) => (
                               <button
-                                key={notification.id}
+                                key={mode}
                                 type="button"
                                 onClick={() => {
-                                  markNotificationRead(notification.id);
-                                  // 이동할 곳이 없는 알림(로그인 알림 등)은 읽음 처리만 함.
-                                  if (!notification.linkPath) return;
-                                  setIsNotificationPanelOpen(false);
-                                  router.push(notification.linkPath);
+                                  setNotificationMode(mode);
+                                  setIsNotificationModeOpen(false);
                                 }}
-                                // 읽은 알림은 색을 바래게 해 안 읽은 것과 한눈에 구분.
-                                className={`mb-2.5 block w-full cursor-pointer rounded-xl border px-4 py-3.5 text-left transition hover:border-blue-100 ${notification.read ? "border-slate-100 bg-slate-50/70 opacity-60 hover:opacity-90" : "border-blue-100 bg-white"}`}
+                                className={`w-full cursor-pointer rounded-md px-3 py-2 text-left text-xs transition hover:bg-slate-50 ${notificationMode === mode ? "bg-blue-50 font-semibold text-blue-600" : "text-slate-700"}`}
                               >
-                                <div className="flex items-center justify-between gap-3">
-                                  <span className="flex min-w-0 items-center gap-2">
-                                    <span
-                                      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${meta.className}`}
-                                    >
-                                      <CategoryIcon size={14} aria-hidden="true" />
-                                    </span>
-                                    <span className="truncate text-xs font-medium text-slate-500">
-                                      {meta.label}
-                                    </span>
-                                    {!notification.read && (
-                                      <span
-                                        className="h-1.5 w-1.5 shrink-0 rounded-full bg-red-500"
-                                        aria-label="안 읽음"
-                                      />
-                                    )}
-                                  </span>
-                                  <time className="shrink-0 text-xs text-slate-400">
-                                    {formatNotificationDate(notification.createdAt)}
-                                  </time>
-                                </div>
-                                <p className="mt-2 truncate text-[15px] font-semibold text-slate-900">
-                                  {notification.title}
-                                </p>
-                                <p className="mt-1 line-clamp-2 whitespace-pre-wrap break-words text-sm leading-5 text-slate-500">
-                                  {notification.body}
-                                </p>
+                                {modeLabel}
                               </button>
-                            );
-                          })}
-                          <p className="py-6 text-center text-sm text-slate-400">
-                            최근 30일간 받은 알림을 모두 확인했습니다.
-                          </p>
-                        </>
-                      )}
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </section>
-                )}
-              </span>
-            );
-          })}
+                  </div>
+                  {/* 분류 칩. 고른 칩만 파란색으로 강조. */}
+                  <div className="flex flex-wrap gap-2 px-5 pb-3 pt-1">
+                    {notificationChips.map((chip) => (
+                      <button
+                        key={chip.key}
+                        type="button"
+                        aria-pressed={notificationFilter === chip.key}
+                        onClick={() => setNotificationFilter(chip.key)}
+                        className={`cursor-pointer rounded-full border px-3.5 py-1.5 text-sm font-medium transition ${notificationFilter === chip.key ? "border-blue-600 bg-blue-600 text-white" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`}
+                      >
+                        {chip.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50 px-4 py-3">
+                    {!notificationsLoaded ? (
+                      <LoadingState message="알림을 불러오는 중입니다..." className="h-full" />
+                    ) : visibleNotifications.length === 0 ? (
+                      <p className="flex h-full items-center justify-center text-sm text-slate-400">
+                        최근 30일간 받은 알림이 없습니다.
+                      </p>
+                    ) : (
+                      <>
+                        {visibleNotifications.map((notification: NotificationItem) => {
+                          const meta = notificationCategoryMeta[notification.category];
+                          const CategoryIcon = meta.icon;
+                          return (
+                            <button
+                              key={notification.id}
+                              type="button"
+                              onClick={() => {
+                                markNotificationRead(notification.id);
+                                // 이동할 곳이 없는 알림(로그인 알림 등)은 읽음 처리만 함.
+                                if (!notification.linkPath) return;
+                                setIsNotificationPanelOpen(false);
+                                router.push(notification.linkPath);
+                              }}
+                              // 읽은 알림은 색을 바래게 해 안 읽은 것과 한눈에 구분.
+                              className={`mb-2.5 block w-full cursor-pointer rounded-xl border px-4 py-3.5 text-left transition hover:border-blue-100 ${notification.read ? "border-slate-100 bg-slate-50/70 opacity-60 hover:opacity-90" : "border-blue-100 bg-white"}`}
+                            >
+                              <div className="flex items-center justify-between gap-3">
+                                <span className="flex min-w-0 items-center gap-2">
+                                  <span
+                                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${meta.className}`}
+                                  >
+                                    <CategoryIcon size={14} aria-hidden="true" />
+                                  </span>
+                                  <span className="truncate text-xs font-medium text-slate-500">
+                                    {meta.label}
+                                  </span>
+                                  {!notification.read && (
+                                    <span
+                                      className="h-1.5 w-1.5 shrink-0 rounded-full bg-red-500"
+                                      aria-label="안 읽음"
+                                    />
+                                  )}
+                                </span>
+                                <time className="shrink-0 text-xs text-slate-400">
+                                  {formatNotificationDate(notification.createdAt)}
+                                </time>
+                              </div>
+                              <p className="mt-2 truncate text-[15px] font-semibold text-slate-900">
+                                {notification.title}
+                              </p>
+                              <p className="mt-1 line-clamp-2 whitespace-pre-wrap break-words text-sm leading-5 text-slate-500">
+                                {notification.body}
+                              </p>
+                            </button>
+                          );
+                        })}
+                        <p className="py-6 text-center text-sm text-slate-400">
+                          최근 30일간 받은 알림을 모두 확인했습니다.
+                        </p>
+                      </>
+                    )}
+                  </div>
+                </section>
+              )}
+            </span>
+          );
+        })}
       </nav>
       {isProjectGuideOpen && <ProjectGuideModal onClose={() => setIsProjectGuideOpen(false)} />}
     </header>
