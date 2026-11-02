@@ -23,6 +23,7 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { useChatNotification } from "@/components/chat/chat-notification-provider";
 import { Tooltip } from "@/components/common/tooltip";
 import { LoadingState } from "@/components/common/loading";
+import { AdminModePanel } from "@/components/common/admin-mode-panel";
 import { NotificationModeMenu } from "@/components/common/notification-mode-menu";
 import { ProfileMenu } from "@/components/common/profile-menu";
 import { ProjectGuideModal } from "@/components/common/project-guide-modal";
@@ -33,7 +34,7 @@ import { useRouter } from "next/navigation";
 type HeaderAction = {
   label: string;
   icon: LucideIcon;
-  requiresAdmin?: boolean;
+  requiresLogin?: boolean;
 };
 
 // 아직 구현되지 않은 서비스도 동일한 헤더 구조로 먼저 제공.
@@ -43,7 +44,8 @@ const headerActions: HeaderAction[] = [
   { label: "캘린더", icon: CalendarDays },
   { label: "주소록", icon: BookUser },
   { label: "게시판", icon: ClipboardList },
-  { label: "관리자", icon: ShieldCheck, requiresAdmin: true },
+  // 관리자 모드 켜기·끄기 패널. 체험용이라 로그인한 누구나 볼 수 있음.
+  { label: "관리자", icon: ShieldCheck, requiresLogin: true },
   { label: "전체 서비스", icon: Grid2X2 },
   { label: "알림", icon: Bell },
   { label: "설정", icon: Settings },
@@ -149,6 +151,10 @@ export function GlobalHeader({
   // 전체 서비스 패널(상단바 메뉴를 그리드로)
   const servicePanelRef = useRef<HTMLSpanElement>(null);
   const [isServicePanelOpen, setIsServicePanelOpen] = useState(false);
+  // 관리자 모드 패널
+  const adminPanelRef = useRef<HTMLSpanElement>(null);
+  const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
+  const isAdminMode = role === "ADMIN";
   const sessionRemainingSeconds =
     sessionExpiresAt && now > 0
       ? Math.max(0, Math.floor((new Date(sessionExpiresAt).getTime() - now) / 1000))
@@ -235,6 +241,23 @@ export function GlobalHeader({
     };
   }, [isServicePanelOpen]);
 
+  // 관리자 모드 패널: 바깥 클릭·Esc로 닫음.
+  useEffect(() => {
+    if (!isAdminPanelOpen) return;
+    const closeOutside = (event: MouseEvent) => {
+      if (!adminPanelRef.current?.contains(event.target as Node)) setIsAdminPanelOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsAdminPanelOpen(false);
+    };
+    document.addEventListener("mousedown", closeOutside);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("mousedown", closeOutside);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [isAdminPanelOpen]);
+
   // 상단바 메뉴 하나를 눌렀을 때의 동작. 구현된 서비스는 화면과 무관하게 공통 경로로 이동.
   // 화면 이동이 있는 서비스(로그인 전에는 부모의 안내 동작)
   const servicePaths: Record<string, string> = {
@@ -251,10 +274,11 @@ export function GlobalHeader({
     } else if (label === "알림") setIsNotificationPanelOpen((current) => !current);
     else if (label === "내 프로필") onProfileAction();
     else if (label === "프로젝트 소개") setIsProjectGuideOpen(true);
+    else if (label === "관리자") setIsAdminPanelOpen((current) => !current);
     else onServiceAction(label);
   };
   const visibleActions = headerActions.filter(
-    ({ requiresAdmin }) => !requiresAdmin || role === "ADMIN",
+    ({ requiresLogin }) => !requiresLogin || isAuthenticated,
   );
   return (
     <header className="relative z-50 flex h-14 shrink-0 items-center justify-between gap-6 bg-zinc-950 px-3 text-white shadow-sm sm:px-4">
@@ -309,17 +333,20 @@ export function GlobalHeader({
                     ? notificationPanelRef
                     : label === "전체 서비스"
                       ? servicePanelRef
-                      : undefined
+                      : label === "관리자"
+                        ? adminPanelRef
+                        : undefined
               }
               className="relative"
             >
               {/* 메뉴·패널이 열려 있는 동안은 툴팁이 겹치지 않도록 끔. */}
               <Tooltip
-                label={label}
+                label={label === "관리자" ? `관리자 모드 ${isAdminMode ? "ON" : "OFF"}` : label}
                 disabled={
                   (label === "내 프로필" && isProfileMenuOpen) ||
                   (label === "알림" && isNotificationPanelOpen) ||
-                  (label === "전체 서비스" && isServicePanelOpen)
+                  (label === "전체 서비스" && isServicePanelOpen) ||
+                  (label === "관리자" && isAdminPanelOpen)
                 }
               >
                 <button
@@ -327,7 +354,9 @@ export function GlobalHeader({
                   aria-label={
                     label === "알림" && notificationCount > 0
                       ? `알림 ${notificationCount}개`
-                      : label
+                      : label === "관리자"
+                        ? `관리자 모드 ${isAdminMode ? "켜짐" : "꺼짐"}`
+                        : label
                   }
                   aria-expanded={
                     label === "알림"
@@ -336,12 +365,16 @@ export function GlobalHeader({
                         ? isProfileMenuOpen
                         : label === "전체 서비스"
                           ? isServicePanelOpen
-                          : undefined
+                          : label === "관리자"
+                            ? isAdminPanelOpen
+                            : undefined
                   }
                   aria-haspopup={
                     label === "알림" || label === "내 프로필" || label === "전체 서비스"
                       ? "menu"
-                      : undefined
+                      : label === "관리자"
+                        ? "dialog"
+                        : undefined
                   }
                   onClick={onClick}
                   className={`flex h-9 shrink-0 cursor-pointer items-center justify-center rounded-md text-zinc-300 transition hover:-translate-y-0.5 hover:bg-zinc-800 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${label === "내 프로필" && isAuthenticated ? "min-w-9 px-0.5" : label === "프로젝트 소개" ? "ml-3 w-9 hover:scale-110 hover:bg-transparent" : "w-9"}`}
@@ -360,6 +393,11 @@ export function GlobalHeader({
                       <span className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-950 text-amber-300">
                         <Icon size={14} strokeWidth={2.4} aria-hidden="true" />
                       </span>
+                    </span>
+                  ) : label === "관리자" && isAdminMode ? (
+                    // 관리자 모드 ON: 빨강·주황 방패가 빛나며 파동이 퍼지는 배지로 크게 강조.
+                    <span className="admin-mode-badge flex h-7 w-7 items-center justify-center">
+                      <Icon size={17} strokeWidth={2.4} aria-hidden="true" />
                     </span>
                   ) : label === "알림" ? (
                     <span className="relative">
@@ -389,6 +427,7 @@ export function GlobalHeader({
                   onStatusChange={setMyStatusType}
                 />
               )}
+              {label === "관리자" && isAdminPanelOpen && <AdminModePanel onToast={onToast} />}
               {label === "전체 서비스" && isServicePanelOpen && (
                 // 알림 패널과 같은 자리(오른쪽 끝)의 작은 패널. 상단바 메뉴(전체 서비스 자신 제외)를 아이콘+이름 3열로,
                 // 누르면 상단바 아이콘과 같은 동작.

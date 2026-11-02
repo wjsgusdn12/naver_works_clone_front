@@ -193,6 +193,14 @@ export const authApi = {
       body: JSON.stringify(input),
     }),
 
+  // 관리자 모드 켜기·끄기(상단바 관리자 메뉴). 새 권한은 이어서 토큰을 갱신해야 적용됨.
+  changeAdminMode: (accessToken: string, enabled: boolean) =>
+    request<AuthMember>("/api/v1/auth/adminMode", {
+      method: "POST",
+      headers: bearer(accessToken),
+      body: JSON.stringify({ enabled }),
+    }),
+
   // 복구 코드 재발급(내 프로필). 이전 코드는 즉시 무효.
   regenerateRecoveryCode: (accessToken: string) =>
     request<{ recoveryCode: string }>("/api/v1/auth/recoveryCode/regenerate", {

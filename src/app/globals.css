@@ -422,6 +422,57 @@ body {
   }
 }
 
+/* 상단바 관리자 모드 ON 배지: 빨강·주황 방패가 숨 쉬듯 빛나고, 바깥으로 경고등 같은 파동이 퍼져 나감. */
+@keyframes admin-mode-glow {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 2px rgba(251, 191, 36, 0.9),
+      0 0 10px 2px rgba(239, 68, 68, 0.55);
+  }
+  50% {
+    box-shadow:
+      0 0 0 2px rgba(254, 240, 138, 1),
+      0 0 20px 6px rgba(239, 68, 68, 0.85);
+  }
+}
+
+@keyframes admin-mode-ripple {
+  from {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.9);
+  }
+}
+
+.admin-mode-badge {
+  position: relative;
+  border-radius: 0.5rem;
+  background: linear-gradient(135deg, #f59e0b, #ef4444 55%, #db2777);
+  color: #fff;
+  animation: admin-mode-glow 1.6s ease-in-out infinite;
+}
+
+.admin-mode-badge::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 2px solid rgba(251, 191, 36, 0.9);
+  animation: admin-mode-ripple 1.6s ease-out infinite;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-mode-badge,
+  .admin-mode-badge::after {
+    animation: none;
+  }
+}
+
 /* API 상태 숫자 카드의 등락 배지: 값이 바뀔 때 살짝 떠오르며 나타나고, 화살표가 오르면 위로·내리면 아래로 한 번 튐. */
 @keyframes delta-badge-enter {
   from {
