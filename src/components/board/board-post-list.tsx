@@ -103,6 +103,15 @@ export function PostRow({
   );
 }
 
+// 글 줄 오른쪽 정보(작성자·날짜·조회수·댓글 수) 사이 구분 점
+function MetaDot() {
+  return (
+    <span aria-hidden="true" className="text-slate-300">
+      ·
+    </span>
+  );
+}
+
 // 게시판 홈 영역(제목 + 더보기 + 글 목록). 테두리·아이콘 없이 제목 아래 선과 목록만.
 export function HomeCard({
   title,
@@ -152,15 +161,18 @@ export function HomeCard({
                   {post.title}
                 </span>
                 {/* 작성자 · 날짜 · 조회수 · 댓글 수(리액션이 생기면 조회수와 댓글 수 사이) */}
-                <span className="flex shrink-0 items-center gap-2.5 text-xs text-slate-400">
+                <span className="flex shrink-0 items-center gap-1.5 text-xs text-slate-400">
                   <span className="max-w-20 truncate text-slate-500">{post.authorName}</span>
-                  <span className="w-16 text-right">{dateLabel(post.createdAt)}</span>
-                  <span className="flex w-9 items-center justify-end gap-0.5" title="조회수">
+                  <MetaDot />
+                  <span>{dateLabel(post.createdAt)}</span>
+                  <MetaDot />
+                  <span className="flex items-center gap-0.5" title="조회수">
                     <Eye size={12} aria-hidden="true" />
                     {post.viewCount}
                   </span>
+                  <MetaDot />
                   <span
-                    className={`flex w-9 items-center justify-end gap-0.5 ${post.commentCount > 0 ? "text-blue-600" : ""}`}
+                    className={`flex items-center gap-0.5 ${post.commentCount > 0 ? "text-blue-600" : ""}`}
                     title="댓글 수"
                   >
                     <MessageSquare size={12} aria-hidden="true" />
