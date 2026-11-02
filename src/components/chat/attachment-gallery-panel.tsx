@@ -2,7 +2,7 @@
 
 import { AttachmentImage } from "@/components/chat/attachment-image";
 import type { PreviewFile } from "@/components/chat/file-preview-modal";
-import { GalleryItemMenu, type GalleryMenuItem } from "@/components/chat/gallery-item-menu";
+import { ItemActionMenu, type ActionMenuItem } from "@/components/common/item-action-menu";
 import type { ViewerImage } from "@/components/chat/image-viewer";
 import { CheckboxControl, CustomCheckbox } from "@/components/common/custom-checkbox";
 import { CustomSelect } from "@/components/common/custom-select";
@@ -144,7 +144,7 @@ export function AttachmentGalleryPanel({
   const [menu, setMenu] = useState<{
     key: string;
     position: { left: number; top: number };
-    items: GalleryMenuItem[];
+    items: ActionMenuItem[];
   } | null>(null);
   const linkPolls = useRef(0);
 
@@ -289,7 +289,7 @@ export function AttachmentGalleryPanel({
     );
   };
 
-  const openMenu = (key: string, button: HTMLElement, items: GalleryMenuItem[]) => {
+  const openMenu = (key: string, button: HTMLElement, items: ActionMenuItem[]) => {
     if (menu?.key === key) {
       setMenu(null);
       return;
@@ -540,11 +540,7 @@ export function AttachmentGalleryPanel({
         </div>
       )}
       {menu && (
-        <GalleryItemMenu
-          position={menu.position}
-          items={menu.items}
-          onClose={() => setMenu(null)}
-        />
+        <ItemActionMenu position={menu.position} items={menu.items} onClose={() => setMenu(null)} />
       )}
     </aside>
   );
@@ -573,7 +569,7 @@ function RowMenuButton({
   return (
     <button
       type="button"
-      data-gallery-menu
+      data-item-menu
       aria-label={`${label} 메뉴`}
       aria-haspopup="menu"
       aria-expanded={open}
