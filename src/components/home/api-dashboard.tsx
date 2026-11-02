@@ -63,12 +63,35 @@ const SPEED_GROUPS: {
 ];
 
 type Range = "HOUR" | "DAY" | "WEEK" | "MONTH";
-// 기간별 탭 글자, 이름, 점 하나의 길이(분). 모두 지금부터 거꾸로 밀려가는 창(맨 오른쪽 점이 지금).
-const RANGES: Record<Range, { tab: string; name: string; stepMinutes: number }> = {
-  HOUR: { tab: "최근 60분 · 1분 단위", name: "최근 60분", stepMinutes: 1 },
-  DAY: { tab: "최근 24시간 · 5분 단위", name: "최근 24시간", stepMinutes: 5 },
-  WEEK: { tab: "최근 7일 · 1시간 단위", name: "최근 7일", stepMinutes: 60 },
-  MONTH: { tab: "최근 30일 · 1시간 단위", name: "최근 30일", stepMinutes: 60 },
+// 기간별 탭 글자, 이름, 비교 대상 이름, 점 하나의 길이(분). 모두 지금부터 거꾸로 밀려가는 창(맨 오른쪽 점이 지금).
+const RANGES: Record<
+  Range,
+  { tab: string; name: string; previousName: string; stepMinutes: number }
+> = {
+  HOUR: {
+    tab: "최근 60분 · 1분 단위",
+    name: "최근 60분",
+    previousName: "직전 60분",
+    stepMinutes: 1,
+  },
+  DAY: {
+    tab: "최근 24시간 · 5분 단위",
+    name: "최근 24시간",
+    previousName: "직전 24시간",
+    stepMinutes: 5,
+  },
+  WEEK: {
+    tab: "최근 7일 · 1시간 단위",
+    name: "최근 7일",
+    previousName: "직전 7일",
+    stepMinutes: 60,
+  },
+  MONTH: {
+    tab: "최근 30일 · 1시간 단위",
+    name: "최근 30일",
+    previousName: "직전 30일",
+    stepMinutes: 60,
+  },
 };
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 // "10/27(화)"
@@ -197,8 +220,8 @@ export function ApiDashboardSection({ accessToken }: { accessToken: string }) {
             </span>
           </h2>
           <p className="mt-1 text-sm text-slate-500">
-            모든 API 요청을 모아 최근 60분·24시간·7일·30일 흐름을 보여 줍니다. 숫자
-            카드와 그래프는 고른 기간을 따라갑니다.
+            모든 API 요청을 모아 최근 60분·24시간·7일·30일 흐름을 보여 줍니다. 숫자 카드와 그래프는
+            고른 기간을 따라갑니다.
           </p>
         </div>
         <div className="flex items-center gap-2 text-xs text-slate-500">
@@ -263,7 +286,13 @@ function ApiDashboardBody({
           [갱신 실패] {error} · 마지막으로 받은 숫자를 보여 주는 중
         </p>
       )}
-      <KpiRow summary={data?.summary ?? null} rangeName={RANGES[range].name} waiting={waiting} />
+      <KpiRow
+        summary={data?.summary ?? null}
+        previous={data?.previousSummary ?? null}
+        rangeName={RANGES[range].name}
+        previousName={RANGES[range].previousName}
+        waiting={waiting}
+      />
       <TrendSection
         points={data?.trend ?? null}
         range={range}
@@ -341,14 +370,80 @@ function DatabaseBadge({ status }: { status: ApiDashboard["database"] }) {
   );
 }
 
+// 직전 기간 대비 증감. tone: good(좋아짐·초록) / bad(나빠짐·빨강) / neutral(좋고 나쁨이 없음·회색)
+type Delta = {
+  arrow: "▲" | "▼" | "–";
+  text: string;
+  tone: "good" | "bad" | "neutral";
+  detail: string;
+};
+
+// 변화율(%). higherIsBad: 오르면 나쁜 숫자(응답 시간)면 true, 좋고 나쁨이 없으면(요청 수) null.
+// 직전 값이 0이면 비율을 낼 수 없어 null(화면에 "직전 기록 없음").
+const percentDelta = (
+  current: number,
+  previous: number,
+  higherIsBad: boolean | null,
+  detail: string,
+): Delta | null => {
+  if (previous <= 0 || current < 0) return null;
+  const change = Math.round(((current - previous) / previous) * 100);
+  const arrow = change > 0 ? "▲" : change < 0 ? "▼" : "–";
+  const tone =
+    change === 0 || higherIsBad === null ? "neutral" : change > 0 === higherIsBad ? "bad" : "good";
+  return { arrow, text: `${Math.abs(change)}%`, tone, detail };
+};
+
+// 비율 숫자(오류율 %)의 차이는 %p(퍼센트포인트)로. 0.4% → 0.5%면 ▲0.1%p.
+const pointDelta = (current: number, previous: number, detail: string): Delta => {
+  const change = Math.round((current - previous) * 10) / 10;
+  const arrow = change > 0 ? "▲" : change < 0 ? "▼" : "–";
+  return {
+    arrow,
+    text: `${Math.abs(change)}%p`,
+    tone: change === 0 ? "neutral" : change > 0 ? "bad" : "good",
+    detail,
+  };
+};
+
+const DELTA_TONE: Record<Delta["tone"], string> = {
+  good: "text-emerald-600",
+  bad: "text-red-600",
+  neutral: "text-slate-500",
+};
+
+// 숫자 옆 증감 표시. 색만으로 구분하지 않도록 화살표와 설명(마우스를 올리면 직전 값)을 함께 둠.
+function DeltaBadge({ delta, previousName }: { delta: Delta | null; previousName: string }) {
+  if (!delta) {
+    return <span className="text-xs text-slate-400">{previousName} 기록 없음</span>;
+  }
+  const label = `${previousName} 대비 ${delta.arrow === "▲" ? "증가" : delta.arrow === "▼" ? "감소" : "변화 없음"} · ${delta.detail}`;
+  return (
+    <Tooltip label={label} multiline>
+      <span className={`text-xs font-semibold tabular-nums ${DELTA_TONE[delta.tone]}`}>
+        <span aria-hidden="true">
+          {delta.arrow}
+          {delta.text}
+        </span>
+        <span className="sr-only">{label}</span>
+      </span>
+    </Tooltip>
+  );
+}
+
 // 큰 숫자 4개: 요청 수 · 서버 오류율 · 평균 응답 · p95 응답. 모두 고른 기간(탭)의 값.
+// 숫자 옆에는 직전 같은 길이 기간과 비교한 증감(▲▼).
 function KpiRow({
   summary: loaded,
+  previous,
   rangeName,
+  previousName,
   waiting,
 }: {
   summary: ApiDashboardSummary | null;
+  previous: ApiDashboardSummary | null;
   rangeName: string;
+  previousName: string;
   waiting: CardWaiting;
 }) {
   // 받기 전에는 0으로 틀만 만들고, 숫자 자리에 스피너(카드 크기는 그대로)
@@ -360,6 +455,9 @@ function KpiRow({
     avgMs: 0,
     p95Ms: 0,
   };
+  // 직전 기간에 요청이 없으면 비교할 수 없음. 응답 시간은 이번 기간에도 요청이 있어야 비교.
+  const comparable = previous !== null && previous.requests > 0;
+  const timed = comparable && summary.requests > 0;
   const tiles: {
     label: string;
     icon: LucideIcon;
@@ -367,6 +465,7 @@ function KpiRow({
     sub: string;
     help: string;
     warn?: boolean;
+    delta: Delta | null;
   }[] = [
     {
       label: "요청 수",
@@ -374,6 +473,14 @@ function KpiRow({
       value: `${formatNumber(summary.requests)}건`,
       sub: `오류 ${formatNumber(summary.clientErrors + summary.serverErrors)}건 포함`,
       help: "API가 처리한 요청 개수",
+      delta: comparable
+        ? percentDelta(
+            summary.requests,
+            previous.requests,
+            null,
+            `${formatNumber(previous.requests)}건`,
+          )
+        : null,
     },
     {
       label: "서버 오류율",
@@ -382,6 +489,9 @@ function KpiRow({
       sub: `5xx ${formatNumber(summary.serverErrors)}건 · 4xx ${formatNumber(summary.clientErrors)}건`,
       help: "서버 잘못(5xx)으로 실패한 비율. 4xx는 잘못된 요청·권한 없음처럼 요청 쪽 문제",
       warn: summary.serverErrors > 0,
+      delta: comparable
+        ? pointDelta(summary.errorRate, previous.errorRate, `${previous.errorRate}%`)
+        : null,
     },
     {
       label: "평균 응답",
@@ -389,6 +499,9 @@ function KpiRow({
       value: formatMs(summary.avgMs),
       sub: `요청 ${formatNumber(summary.requests)}건 기준`,
       help: "요청 하나를 처리하는 데 걸린 평균 시간",
+      delta: timed
+        ? percentDelta(summary.avgMs, previous.avgMs, true, formatMs(previous.avgMs))
+        : null,
     },
     {
       label: "p95 응답",
@@ -396,6 +509,11 @@ function KpiRow({
       value: formatP95(summary.p95Ms),
       sub: "100건 중 95건이 이 안에 끝남",
       help: "100건 중 95건이 이 시간 안에 끝났다는 뜻. 평균에 묻히는 느린 요청을 잡아내는 숫자. 응답 시간 구간 안에서 비례 계산한 추정값",
+      // 5초 초과(-1)는 정확한 값이 아니라 비교하지 않음
+      delta:
+        timed && summary.p95Ms >= 0 && previous.p95Ms >= 0
+          ? percentDelta(summary.p95Ms, previous.p95Ms, true, formatP95(previous.p95Ms))
+          : null,
     },
   ];
   return (
@@ -415,7 +533,12 @@ function KpiRow({
           </p>
           {loaded ? (
             <>
-              <p className="mt-1 text-2xl font-bold tracking-tight text-slate-900">{tile.value}</p>
+              <p className="mt-1 flex flex-wrap items-baseline gap-x-2">
+                <span className="text-2xl font-bold tracking-tight text-slate-900">
+                  {tile.value}
+                </span>
+                <DeltaBadge delta={tile.delta} previousName={previousName} />
+              </p>
               <p className="mt-0.5 text-xs text-slate-500">{tile.sub}</p>
             </>
           ) : (

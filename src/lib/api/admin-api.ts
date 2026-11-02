@@ -38,7 +38,7 @@ export type ApiDashboardEndpoint = {
   trendRequests: number[];
   trendAvgMs: number[];
 };
-// 기간별 API 순위. bins는 작은 추이선 칸의 시작 시각(이번 시간 1분×60, 오늘 5분×288, 이번 주 1일×7, 이번 달 1시간×말일×24).
+// 기간별 API 순위. bins는 작은 추이선 칸의 시작 시각(최근 60분 1분×60, 24시간 5분×288, 7일 24시간×7, 30일 1시간×720).
 export type ApiDashboardRanking = {
   bins: string[];
   top: ApiDashboardEndpoint[];
@@ -55,18 +55,20 @@ export type ApiDashboardServer = {
 };
 export type ApiDashboard = {
   generatedAt: string;
-  // 이번 시간·오늘·이번 주를 자르는 기준 시간대(예: Asia/Seoul)
+  // 서버 기준 시간대(예: Asia/Seoul)
   zone: string;
   mode: "SHARED" | "LOCAL";
   database: "UP" | "DOWN";
   servers: ApiDashboardServer[];
   range: ApiDashboardRange;
   summary: ApiDashboardSummary;
-  // HOUR 이번 시간 1분×60, DAY 오늘 5분×288, WEEK 이번 주(일~토) 1시간×168, MONTH 이번 달 1시간×말일×24
+  // 직전 같은 길이 기간(최근 24시간이면 그 전 24시간)의 합계. 숫자 카드 증감 표시용(경계 칸은 비례 추정).
+  previousSummary: ApiDashboardSummary;
+  // HOUR 최근 60분 1분×60, DAY 최근 24시간 5분×288, WEEK 최근 7일 1시간×168, MONTH 최근 30일 1시간×720
   trend: ApiDashboardTrendPoint[];
   ranking: ApiDashboardRanking;
 };
-// 기간 탭: 이번 시간·오늘·이번 주·이번 달
+// 기간 탭: 최근 60분·24시간·7일·30일
 export type ApiDashboardRange = "HOUR" | "DAY" | "WEEK" | "MONTH";
 
 const apiBaseUrl = () => {
