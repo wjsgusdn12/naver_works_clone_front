@@ -1,6 +1,7 @@
 "use client";
 
 import { PageLoading } from "@/components/common/loading";
+import { AdminModeBanner } from "@/components/common/admin-mode-banner";
 import { GlobalHeader } from "@/components/common/global-header";
 import { Toast } from "@/components/common/toast";
 import { HomeDashboard } from "@/components/home/home-dashboard";
@@ -60,6 +61,7 @@ export default function HomePage() {
         profileName={member.displayName}
         isAuthenticated
       />
+      <AdminModeBanner visible={member.role === "ADMIN"} />
       <HomeDashboard
         accessToken={accessToken}
         displayName={member.displayName}
