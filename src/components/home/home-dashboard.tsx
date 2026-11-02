@@ -38,9 +38,9 @@ type HomeDashboardProps = {
 const RECENT_ROOM_LIMIT = 30;
 // 주소록 카드는 전체 구성원을 보여 주되, 서버 한 페이지 최대치(100명)까지만 받음.
 const MEMBER_LIMIT = 100;
-// 한 줄 카드(주소록·최근 대화) 목록 높이. 두 카드가 같은 높이라 위·아래 줄이 맞고, 넘치면 그 안에서 스크롤.
-// 구성원 5명(한 줄 60px × 5 + 구분선 4px = 304px) 남짓 보이는 높이.
-const LIST_HEIGHT = "h-[320px]";
+// 카드 목록 영역: 넓은 화면에서는 카드 남는 높이를 꽉 채우고 그 안에서 스크롤(카드 높이는 격자 행 높이로 고정).
+// 좁은 화면(한 줄씩 쌓임)에서는 최대 높이만 둠.
+const LIST_FILL = "max-h-[360px] overflow-y-auto xl:absolute xl:inset-0 xl:max-h-none";
 
 // 상대 시각. 오늘이면 시각, 올해면 월·일, 그 외는 연·월·일.
 const formatRelative = (value: string | null) => {
@@ -211,11 +211,11 @@ export function HomeDashboard({
   return (
     <main className="min-h-0 flex-1 overflow-y-auto">
       <div className="mx-auto w-full max-w-7xl px-5 py-8 sm:px-8 lg:px-10">
-        {/* 3열 × 2행: 인사말·알림(왼쪽 두 줄) | 주소록 / 최근 대화 | 게시판 최신글(오른쪽 두 줄).
+        {/* 3열 × 2행(행 높이 고정): 인사말·알림(왼쪽 두 줄) | 주소록 위 / 최근 대화 아래 | 최신 게시글(오른쪽 두 줄).
             같은 행 카드는 높이가 자동으로 같아져 위·아래선이 맞음. 좁은 화면에서는 한 줄씩 쌓임. */}
-        <section className="grid gap-5 xl:grid-cols-3">
+        <section className="grid gap-5 xl:grid-cols-3 xl:grid-rows-[420px_420px]">
           {/* 인사말 카드(두 줄 높이): 내 프로필·날짜·인사말, 숫자 3칸, 알림 목록, 바로가기 4개 */}
-          <article className="flex flex-col rounded-xl border border-slate-200 bg-white p-5 shadow-sm xl:row-span-2">
+          <article className="flex flex-col rounded-xl border border-slate-200 bg-white p-5 shadow-sm xl:col-start-1 xl:row-span-2 xl:row-start-1">
             <div className="flex items-center gap-4">
               <UserAvatar
                 size="lg"
@@ -331,6 +331,8 @@ export function HomeDashboard({
           </article>
 
           <Card
+            fill
+            className="xl:col-start-2 xl:row-start-1"
             title="주소록"
             description="전체 구성원입니다. 별을 눌러 즐겨찾기를 켜고 끕니다."
             onTitleClick={() => router.push("/addressBook")}
@@ -340,7 +342,7 @@ export function HomeDashboard({
             ) : members.length === 0 ? (
               <Empty message="구성원이 없습니다." />
             ) : (
-              <ul className={`${LIST_HEIGHT} divide-y divide-slate-100 overflow-y-auto`}>
+              <ul className={`${LIST_FILL} divide-y divide-slate-100`}>
                 {members.map((item) => {
                   const target = withLiveStatus(
                     item,
@@ -392,6 +394,8 @@ export function HomeDashboard({
           </Card>
 
           <Card
+            fill
+            className="xl:col-start-2 xl:row-start-2"
             title="최근 대화"
             description="마지막 메시지가 최근인 순서입니다."
             onTitleClick={() => router.push("/message")}
@@ -405,7 +409,7 @@ export function HomeDashboard({
                 onAction={() => router.push("/addressBook")}
               />
             ) : (
-              <ul className={`${LIST_HEIGHT} divide-y divide-slate-100 overflow-y-auto`}>
+              <ul className={`${LIST_FILL} divide-y divide-slate-100`}>
                 {recentRooms.map((room) => (
                   <li key={room.id}>
                     <button
@@ -472,8 +476,8 @@ export function HomeDashboard({
 
           <Card
             fill
-            className="xl:row-span-2"
-            title="게시판 최신글"
+            className="xl:col-start-3 xl:row-span-2 xl:row-start-1"
+            title="최신 게시글"
             description="볼 수 있는 모든 게시판의 새 글입니다(공지사항 포함)."
             onTitleClick={() => router.push("/board?menu=latest")}
           >
@@ -510,7 +514,7 @@ function BoardPostList({
   if (posts.length === 0) return <Empty message={emptyText} />;
   return (
     // 한 글을 두 줄로: 위는 딱지·제목, 아래는 (게시판 ·) 작성자 · 날짜 · 조회수 · 댓글 수
-    <ul className="max-h-[480px] divide-y divide-slate-100 overflow-y-auto xl:absolute xl:inset-0 xl:max-h-none">
+    <ul className={`${LIST_FILL} divide-y divide-slate-100`}>
       {posts.map((post) => (
         <li key={post.id}>
           <button
