@@ -331,7 +331,7 @@ export function HomeDashboard({
             badge={<CountChip label="온라인" value={onlineCount} suffix="명" />}
             description="전체 구성원입니다. 별을 눌러 즐겨찾기를 켜고 끕니다."
             onTitleClick={() => router.push("/addressBook")}
-            action={
+            footer={
               <>
                 <GhostToggle active={favoriteOnly} onClick={() => setFavoriteOnly((on) => !on)}>
                   즐겨찾기만
@@ -409,7 +409,7 @@ export function HomeDashboard({
             }
             description="마지막 메시지가 최근인 순서입니다."
             onTitleClick={() => router.push("/message")}
-            action={
+            footer={
               <>
                 <GhostToggle
                   active={unreadRoomsOnly}
@@ -505,7 +505,7 @@ export function HomeDashboard({
             title="최신 게시글"
             description="볼 수 있는 모든 게시판의 새 글입니다(공지사항 포함)."
             onTitleClick={() => router.push("/board?menu=latest")}
-            action={
+            footer={
               <>
                 <GhostToggle
                   active={unreadPostsOnly}
@@ -624,7 +624,7 @@ function CountChip({
   );
 }
 
-// 카드 제목 줄 오른쪽 버튼. 투명 버튼은 켜고 끄는 보기 거르기(켜지면 연한 파랑), 파란 버튼은 바로 하는 동작.
+// 카드 맨 아래 버튼(줄을 반씩 나눠 채움). 투명 버튼은 켜고 끄는 보기 거르기(켜지면 연한 파랑), 파란 버튼은 바로 하는 동작.
 function GhostToggle({
   active,
   onClick,
@@ -639,7 +639,7 @@ function GhostToggle({
       type="button"
       aria-pressed={active}
       onClick={onClick}
-      className={`h-7 shrink-0 cursor-pointer whitespace-nowrap rounded-md border px-2.5 text-xs font-medium transition active:scale-95 ${active ? "border-blue-200 bg-blue-50 text-blue-700" : "border-slate-200 bg-transparent text-slate-600 hover:bg-slate-50"}`}
+      className={`h-8 flex-1 cursor-pointer whitespace-nowrap rounded-md border px-2.5 text-xs font-medium transition active:scale-95 ${active ? "border-blue-200 bg-blue-50 text-blue-700" : "border-slate-200 bg-transparent text-slate-600 hover:bg-slate-50"}`}
     >
       {children}
     </button>
@@ -651,7 +651,7 @@ function BlueButton({ onClick, children }: { onClick: () => void; children: Reac
     <button
       type="button"
       onClick={onClick}
-      className="h-7 shrink-0 cursor-pointer whitespace-nowrap rounded-md bg-blue-600 px-2.5 text-xs font-semibold text-white transition hover:bg-blue-700 active:scale-95"
+      className="h-8 flex-1 cursor-pointer whitespace-nowrap rounded-md bg-blue-600 px-2.5 text-xs font-semibold text-white transition hover:bg-blue-700 active:scale-95"
     >
       {children}
     </button>
@@ -665,7 +665,7 @@ function Card({
   description,
   onTitleClick,
   badge,
-  action,
+  footer,
   className = "",
   fill = false,
   children,
@@ -676,8 +676,8 @@ function Card({
   onTitleClick?: () => void;
   // 제목 바로 옆 작은 칩(예: "온라인 3명")
   badge?: ReactNode;
-  // 제목 줄 오른쪽 버튼들
-  action?: ReactNode;
+  // 카드 맨 아래 버튼 줄(투명 버튼 · 파란 버튼)
+  footer?: ReactNode;
   className?: string;
   fill?: boolean;
   children: ReactNode;
@@ -711,9 +711,11 @@ function Card({
           </div>
           <p className="mt-1 truncate text-sm text-slate-500">{description}</p>
         </div>
-        {action && <div className="flex shrink-0 items-center gap-1.5">{action}</div>}
       </div>
       <div className={fill ? "relative mt-3 min-h-0 flex-1" : "mt-3"}>{children}</div>
+      {footer && (
+        <div className="mt-3 flex shrink-0 gap-2 border-t border-slate-100 pt-3">{footer}</div>
+      )}
     </article>
   );
 }
