@@ -352,11 +352,11 @@ function BoardContent() {
         role={member.role}
         pageTitle="게시판"
         headerContent={
-          // 목록이면 그 목록 안에서, 홈·글 보기·글쓰기에서는 최신글(볼 수 있는 모든 게시판)에서 찾음
+          // 어느 화면에서든 게시판 전체(볼 수 있는 모든 게시판 = 최신글 목록)에서 찾음
           <BoardPostSearch
-            key={`${listKey ? menuHref(menu) : "latest"}|${listKeyword}`}
-            keyword={listKey ? listKeyword : ""}
-            onSearch={(keyword) => go(listHref(listKey ? menu : { kind: "latest" }, 0, keyword))}
+            key={`${menu.kind}|${listKeyword}`}
+            keyword={menu.kind === "latest" ? listKeyword : ""}
+            onSearch={(keyword) => go(listHref({ kind: "latest" }, 0, keyword))}
           />
         }
         isAuthenticated
