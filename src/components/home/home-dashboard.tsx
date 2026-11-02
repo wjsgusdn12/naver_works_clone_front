@@ -333,7 +333,7 @@ export function HomeDashboard({
             onTitleClick={() => router.push("/addressBook")}
             footer={
               <>
-                <GhostLink onClick={() => router.push("/addressBook")}>전체보기</GhostLink>
+                <GhostLink onClick={() => router.push("/addressBook?view=all")}>전체보기</GhostLink>
                 <BlueButton onClick={() => router.push("/message?create=group")}>
                   새 대화
                 </BlueButton>
@@ -512,7 +512,7 @@ export function HomeDashboard({
             onTitleClick={() => router.push("/board?menu=latest")}
             footer={
               <>
-                <GhostLink onClick={() => router.push("/board?menu=latest")}>전체보기</GhostLink>
+                <GhostLink onClick={() => router.push("/board")}>전체보기</GhostLink>
                 <BlueButton onClick={() => router.push("/board?write=1")}>글쓰기</BlueButton>
               </>
             }
