@@ -35,8 +35,19 @@ export function MemberTable({
   loading?: boolean;
 }) {
   return (
-    <div className="min-w-0 flex-1 overflow-auto">
-      <table className="w-full min-w-[900px] border-collapse text-left text-sm">
+    // 칸 너비를 고정 비율로 정해(table-fixed) 데이터를 받기 전후·페이지마다 머리글이 좌우로 움직이지 않게 함.
+    // 세로 스크롤바가 생겼다 사라져도 폭이 변하지 않도록 스크롤바 자리를 미리 확보.
+    <div className="min-w-0 flex-1 overflow-auto [scrollbar-gutter:stable]">
+      <table className="w-full min-w-[900px] table-fixed border-collapse text-left text-sm">
+        <colgroup>
+          <col className="w-11" />
+          <col className="w-[22%]" />
+          <col className="w-[13%]" />
+          <col className="w-[12%]" />
+          <col className="w-[14%]" />
+          <col className="w-[22%]" />
+          <col />
+        </colgroup>
         <thead className="border-b border-slate-200 bg-white text-slate-700">
           <tr>
             <th className="w-11 px-3 py-3" />
@@ -84,16 +95,16 @@ export function MemberTable({
                     </span>
                     <MemberAvatar member={target} />
                     {target.membershipId === myMembershipId && <MeBadge />}
-                    <b>{target.displayName}</b>
+                    <b className="truncate" title={target.displayName}>
+                      {target.displayName}
+                    </b>
                   </div>
                 </td>
-                <td className="px-4 py-3">
-                  {[target.jobTitle, target.jobGradeName].filter(Boolean).join(" / ") || "-"}
-                </td>
-                <td className="px-4 py-3">{target.departmentName ?? "-"}</td>
-                <td className="px-4 py-3">{target.companyName}</td>
-                <td className="px-4 py-3">{target.email}</td>
-                <td className="px-4 py-3">{target.phoneNumber ?? "-"}</td>
+                <Cell text={[target.jobTitle, target.jobGradeName].filter(Boolean).join(" / ")} />
+                <Cell text={target.departmentName} />
+                <Cell text={target.companyName} />
+                <Cell text={target.email} />
+                <Cell text={target.phoneNumber} />
               </tr>
             ))}
         </tbody>
@@ -107,5 +118,14 @@ export function MemberTable({
         )
       )}
     </div>
+  );
+}
+
+// 고정 너비 칸. 넘치면 "…"로 줄이고 마우스를 올리면 전체 글자. 비어 있으면 "-".
+function Cell({ text }: { text: string | null | undefined }) {
+  return (
+    <td className="truncate px-4 py-3" title={text || undefined}>
+      {text || "-"}
+    </td>
   );
 }
