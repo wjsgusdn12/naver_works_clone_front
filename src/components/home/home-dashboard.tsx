@@ -14,7 +14,13 @@ import { boardApi, type BoardHome, type BoardPostSummary } from "@/lib/api/board
 import { chatApi, type ChatRoom } from "@/lib/api/chat-api";
 import { withLiveStatus } from "@/lib/live-status";
 import type { NotificationItem } from "@/lib/api/notification-api";
-import { ArrowRight, BookUser, ClipboardList, MessageCircleMore, NotebookPen } from "lucide-react";
+import {
+  BookUser,
+  ChevronRight,
+  ClipboardList,
+  MessageCircleMore,
+  NotebookPen,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 
@@ -266,9 +272,7 @@ export function HomeDashboard({
           <Card
             title="공지사항"
             description="회사 공지사항 최근 글입니다."
-            action={
-              <LinkButton onClick={() => router.push("/board?type=NOTICE")}>전체보기</LinkButton>
-            }
+            onTitleClick={() => router.push("/board?type=NOTICE")}
           >
             <BoardPostList
               posts={board ? board.notices.slice(0, 5) : null}
@@ -281,7 +285,7 @@ export function HomeDashboard({
             fill
             title="최근 대화"
             description="마지막 메시지가 최근인 순서입니다."
-            action={<LinkButton onClick={() => router.push("/message")}>전체보기</LinkButton>}
+            onTitleClick={() => router.push("/message")}
           >
             {rooms === null ? (
               <LoadingInline message="대화 목록을 불러오는 중입니다." className="py-10 text-sm" />
@@ -360,7 +364,7 @@ export function HomeDashboard({
           <Card
             title="즐겨찾기 구성원"
             description="주소록에서 별표한 구성원입니다."
-            action={<LinkButton onClick={() => router.push("/addressBook")}>주소록</LinkButton>}
+            onTitleClick={() => router.push("/addressBook")}
           >
             {favorites === null ? (
               <LoadingInline message="즐겨찾기를 불러오는 중입니다." className="py-8 text-sm" />
@@ -421,9 +425,7 @@ export function HomeDashboard({
           <Card
             title="게시판 최신글"
             description="볼 수 있는 모든 게시판의 새 글입니다."
-            action={
-              <LinkButton onClick={() => router.push("/board?menu=latest")}>전체보기</LinkButton>
-            }
+            onTitleClick={() => router.push("/board?menu=latest")}
           >
             <BoardPostList
               posts={board ? board.latest.slice(0, 5) : null}
@@ -556,14 +558,15 @@ function StatTile({
 function Card({
   title,
   description,
-  action,
+  onTitleClick,
   className = "",
   fill = false,
   children,
 }: {
   title: string;
   description: string;
-  action?: ReactNode;
+  // 있으면 제목이 "제목 >" 링크가 됨(마우스를 올리면 파란색, 누르면 해당 화면).
+  onTitleClick?: () => void;
   className?: string;
   fill?: boolean;
   children: ReactNode;
@@ -572,28 +575,27 @@ function Card({
     <article
       className={`rounded-xl border border-slate-200 bg-white p-5 shadow-sm ${fill ? "flex flex-col" : ""} ${className}`}
     >
-      <div className="flex items-center justify-between">
-        <div>
+      <div>
+        {onTitleClick ? (
+          <button
+            type="button"
+            onClick={onTitleClick}
+            className="group flex cursor-pointer items-center gap-0.5 text-base font-bold text-slate-900 transition hover:text-blue-600"
+          >
+            {title}
+            <ChevronRight
+              size={18}
+              aria-hidden="true"
+              className="text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-blue-600"
+            />
+          </button>
+        ) : (
           <p className="text-base font-bold text-slate-900">{title}</p>
-          <p className="mt-1 text-sm text-slate-500">{description}</p>
-        </div>
-        {action}
+        )}
+        <p className="mt-1 text-sm text-slate-500">{description}</p>
       </div>
       <div className={fill ? "relative mt-3 min-h-0 flex-1" : "mt-3"}>{children}</div>
     </article>
-  );
-}
-
-function LinkButton({ onClick, children }: { onClick: () => void; children: ReactNode }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="inline-flex cursor-pointer items-center gap-1 rounded-sm text-sm font-medium text-blue-600 transition hover:text-blue-700 hover:underline"
-    >
-      {children}
-      <ArrowRight size={14} />
-    </button>
   );
 }
 
