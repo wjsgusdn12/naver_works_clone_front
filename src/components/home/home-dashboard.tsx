@@ -186,12 +186,40 @@ export function HomeDashboard({
   return (
     <main className="min-h-0 flex-1 overflow-y-auto">
       <div className="mx-auto w-full max-w-7xl px-5 py-8 sm:px-8 lg:px-10">
-        <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-sm text-slate-500">{today}</p>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-              {displayName}님, 안녕하세요.
-            </h1>
+        {/* 인사말 · 숫자 칩 3개(안 읽은 메시지·온라인 구성원·읽지 않은 알림) · 바로가기 버튼을 한 줄에 */}
+        <section className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:gap-6">
+            <div>
+              <p className="text-sm text-slate-500">{today}</p>
+              <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+                {displayName}님, 안녕하세요.
+              </h1>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <StatTile
+                label="안 읽은 메시지"
+                value={rooms === null ? null : unreadTotal}
+                suffix="건"
+                icon={MessageCircleMore}
+                accent="bg-blue-50 text-blue-600"
+                onClick={() => router.push("/message")}
+              />
+              <StatTile
+                label="온라인 구성원"
+                value={onlineCount}
+                suffix="명"
+                icon={UsersRound}
+                accent="bg-emerald-50 text-emerald-600"
+                onClick={() => router.push("/addressBook")}
+              />
+              <StatTile
+                label="읽지 않은 알림"
+                value={notificationsLoaded ? notificationCount : null}
+                suffix="건"
+                icon={Bell}
+                accent="bg-amber-50 text-amber-600"
+              />
+            </div>
           </div>
           <div className="flex gap-2">
             <QuickButton icon={MessageCircleMore} onClick={() => router.push("/message")}>
@@ -209,37 +237,9 @@ export function HomeDashboard({
           </div>
         </section>
 
-        {/* 위 숫자 카드 3개와 아래 카드들은 같은 12칸 격자·같은 간격(gap-5)을 써서 세로선이 일직선으로 맞음.
-            숫자 카드 1개 = 4칸, 최근 대화 = 8칸(카드 2개 폭), 오른쪽 열 = 4칸(카드 1개 폭). */}
-        <section className="mt-6 grid gap-5 sm:grid-cols-3">
-          <StatTile
-            label="안 읽은 메시지"
-            value={rooms === null ? null : unreadTotal}
-            suffix="건"
-            icon={MessageCircleMore}
-            accent="bg-blue-50 text-blue-600"
-            onClick={() => router.push("/message")}
-          />
-          <StatTile
-            label="온라인 구성원"
-            value={onlineCount}
-            suffix="명"
-            icon={UsersRound}
-            accent="bg-emerald-50 text-emerald-600"
-            onClick={() => router.push("/addressBook")}
-          />
-          <StatTile
-            label="읽지 않은 알림"
-            value={notificationsLoaded ? notificationCount : null}
-            suffix="건"
-            icon={Bell}
-            accent="bg-amber-50 text-amber-600"
-          />
-        </section>
-
-        <section className="mt-5 grid gap-5 xl:grid-cols-12">
+        {/* 카드 3등분: 최근 대화 | 알림·즐겨찾기 구성원 | 공지사항·게시판 최신글. 최근 대화는 옆 열 높이에 맞춤. */}
+        <section className="mt-6 grid gap-5 xl:grid-cols-3">
           <Card
-            className="xl:col-span-8"
             fill
             title="최근 대화"
             description="마지막 메시지가 최근인 순서입니다."
@@ -319,7 +319,7 @@ export function HomeDashboard({
             )}
           </Card>
 
-          <div className="flex flex-col gap-5 xl:col-span-4">
+          <div className="flex flex-col gap-5">
             <Card title="알림" description="최근 30일 알림입니다.">
               {!notificationsLoaded ? (
                 <LoadingInline message="알림을 불러오는 중입니다." className="py-8 text-sm" />
@@ -415,37 +415,36 @@ export function HomeDashboard({
               )}
             </Card>
           </div>
-        </section>
-
-        {/* 게시판: 공지사항과 볼 수 있는 모든 게시판의 최신글 5개씩 */}
-        <section className="mt-5 grid gap-5 xl:grid-cols-2">
-          <Card
-            title="공지사항"
-            description="회사 공지사항 최근 글입니다."
-            action={
-              <LinkButton onClick={() => router.push("/board?type=NOTICE")}>전체보기</LinkButton>
-            }
-          >
-            <BoardPostList
-              posts={board ? board.notices.slice(0, 5) : null}
-              emptyText="공지사항이 없습니다."
-              onOpen={(post) => router.push(`/board?postId=${post.id}`)}
-            />
-          </Card>
-          <Card
-            title="게시판 최신글"
-            description="볼 수 있는 모든 게시판의 새 글입니다."
-            action={
-              <LinkButton onClick={() => router.push("/board?menu=latest")}>전체보기</LinkButton>
-            }
-          >
-            <BoardPostList
-              posts={board ? board.latest.slice(0, 5) : null}
-              emptyText="아직 올라온 글이 없습니다."
-              showBoard
-              onOpen={(post) => router.push(`/board?postId=${post.id}`)}
-            />
-          </Card>
+          {/* 게시판: 공지사항과 볼 수 있는 모든 게시판의 최신글 5개씩 */}
+          <div className="flex flex-col gap-5">
+            <Card
+              title="공지사항"
+              description="회사 공지사항 최근 글입니다."
+              action={
+                <LinkButton onClick={() => router.push("/board?type=NOTICE")}>전체보기</LinkButton>
+              }
+            >
+              <BoardPostList
+                posts={board ? board.notices.slice(0, 5) : null}
+                emptyText="공지사항이 없습니다."
+                onOpen={(post) => router.push(`/board?postId=${post.id}`)}
+              />
+            </Card>
+            <Card
+              title="게시판 최신글"
+              description="볼 수 있는 모든 게시판의 새 글입니다."
+              action={
+                <LinkButton onClick={() => router.push("/board?menu=latest")}>전체보기</LinkButton>
+              }
+            >
+              <BoardPostList
+                posts={board ? board.latest.slice(0, 5) : null}
+                emptyText="아직 올라온 글이 없습니다."
+                showBoard
+                onOpen={(post) => router.push(`/board?postId=${post.id}`)}
+              />
+            </Card>
+          </div>
         </section>
 
         {/* 관리자에게만 보이는 API 상태. 서버도 ROLE_ADMIN을 다시 검사함(화면 숨김은 편의일 뿐). */}
@@ -471,7 +470,7 @@ function BoardPostList({
     return <LoadingInline message="게시판을 불러오는 중입니다." className="py-8 text-sm" />;
   if (posts.length === 0) return <Empty message={emptyText} />;
   return (
-    <ul className="divide-y divide-slate-100">
+    <ul className={`${NOTIFICATION_LIST_HEIGHT} divide-y divide-slate-100 overflow-y-auto`}>
       {posts.map((post) => (
         <li key={post.id}>
           <button
@@ -547,19 +546,19 @@ function StatTile({
     <Tag
       type={onClick ? "button" : undefined}
       onClick={onClick}
-      className={`flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-left shadow-sm ${onClick ? "cursor-pointer transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md" : ""}`}
+      className={`flex items-center gap-2 rounded-full border border-slate-200 bg-white py-1.5 pl-1.5 pr-3.5 text-left shadow-sm ${onClick ? "cursor-pointer transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md" : ""}`}
     >
-      {/* 한 줄: 아이콘 · 이름 · 값. 값을 불러오는 중이면 값 자리에 로딩 표시. */}
-      <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${accent}`}>
-        <Icon size={17} />
+      {/* 칩 한 개: 아이콘 · 이름 · 값. 값을 불러오는 중이면 값 자리에 로딩 표시. */}
+      <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${accent}`}>
+        <Icon size={15} />
       </span>
-      <span className="min-w-0 flex-1 truncate text-sm font-medium text-slate-600">{label}</span>
+      <span className="whitespace-nowrap text-sm font-medium text-slate-600">{label}</span>
       {value === null ? (
         <Spinner size={16} className="text-blue-500" />
       ) : (
-        <span className="shrink-0 text-xl font-bold tracking-tight text-slate-900">
+        <span className="shrink-0 text-base font-bold tracking-tight text-slate-900">
           {value}
-          <span className="ml-0.5 text-sm font-medium text-slate-500">{suffix}</span>
+          <span className="ml-0.5 text-xs font-medium text-slate-500">{suffix}</span>
         </span>
       )}
     </Tag>
