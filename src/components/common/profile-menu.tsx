@@ -3,7 +3,6 @@
 import {
   ArrowLeftRight,
   Check,
-  ChevronDown,
   ChevronRight,
   Copy,
   KeyRound,
@@ -11,21 +10,15 @@ import {
   Ticket,
   type LucideIcon,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useChatNotification } from "@/components/chat/chat-notification-provider";
 import { CompanyMoveDialog } from "@/components/common/company-move-dialog";
 import { RecoveryCodeDialog } from "@/components/common/recovery-code-dialog";
-import { LoadingInline } from "@/components/common/loading";
-import { StatusSetting } from "@/components/common/status-setting";
+import { MyStatusPicker } from "@/components/common/my-status-picker";
 import { UserAvatar } from "@/components/common/user-avatar";
-import { addressBookApi, type MemberStatus } from "@/lib/api/address-book-api";
 import { authApi, type InviteCodeResponse } from "@/lib/api/auth-api";
-import {
-  formatMemberStatus,
-  memberStatusOption,
-  type MemberStatusType,
-} from "@/lib/status-options";
+import type { MemberStatusType } from "@/lib/status-options";
 
 // 상단바 프로필 아이콘 아래 열리는 내 프로필 패널. 알림 패널과 같은 폭·위치, 꾸밈 없이 정보와 메뉴만.
 // 대화상자(복구 코드·회사 옮기기·초대 코드)는 패널 왼쪽에 붙어 열리고, 닫으면 패널이 그대로 남음.
@@ -54,79 +47,13 @@ export function ProfileMenu({
   const [inviteCode, setInviteCode] = useState<InviteCodeResponse | null>(null);
   const [isCompanyMoveOpen, setIsCompanyMoveOpen] = useState(false);
   const [copiedLoginId, setCopiedLoginId] = useState(false);
-  const [savedStatus, setSavedStatus] = useState<MemberStatus | null>(null);
-  const [isStatusSaving, setIsStatusSaving] = useState(false);
-  // 상태 드롭다운을 띄울 화면 위치. null이면 닫힘.
-  const [statusAnchor, setStatusAnchor] = useState<{
-    top: number;
-    left: number;
-    width: number;
-  } | null>(null);
-  const statusButtonRef = useRef<HTMLButtonElement>(null);
-  const statusDropdownRef = useRef<HTMLDivElement>(null);
-
-  // 드롭다운 바깥을 누르거나 Esc를 누르면 드롭다운만 닫음(프로필 패널은 유지).
-  useEffect(() => {
-    if (!statusAnchor) return;
-    const onPointerDown = (event: PointerEvent) => {
-      const target = event.target as Node;
-      if (statusDropdownRef.current?.contains(target) || statusButtonRef.current?.contains(target))
-        return;
-      setStatusAnchor(null);
-    };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      // 패널까지 닫히지 않도록 여기서 멈춤.
-      event.stopImmediatePropagation();
-      setStatusAnchor(null);
-    };
-    document.addEventListener("pointerdown", onPointerDown);
-    // 상단바의 Esc 처리보다 먼저 받도록 캡처 단계에서 등록.
-    window.addEventListener("keydown", onKeyDown, true);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      window.removeEventListener("keydown", onKeyDown, true);
-    };
-  }, [statusAnchor]);
-
-  // 패널이 닫히면 드롭다운 위치도 잊음. 렌더 중 이전 값과 비교해 맞춤.
-  const [wasOpen, setWasOpen] = useState(open);
-  if (wasOpen !== open) {
-    setWasOpen(open);
-    if (!open) setStatusAnchor(null);
-  }
-
-  const toggleStatusDropdown = () => {
-    if (statusAnchor) {
-      setStatusAnchor(null);
-      return;
-    }
-    const rect = statusButtonRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    setStatusAnchor({ top: rect.bottom + 6, left: rect.left, width: rect.width });
-  };
 
   const membershipId = member?.membershipId;
-  // 내 상태는 서버에서 한 번 읽고, 이후 WebSocket 이벤트(다른 탭에서 바꾼 경우 등)로 갱신.
-  const liveStatus =
-    membershipId === undefined ? undefined : memberStatusByMembershipId[membershipId];
-  useEffect(() => {
-    if (!accessToken || membershipId === undefined) return;
-    let cancelled = false;
-    addressBookApi
-      .myStatus(accessToken)
-      .then((result) => {
-        if (!cancelled) setSavedStatus(result);
-      })
-      .catch(() => undefined);
-    return () => {
-      cancelled = true;
-    };
-  }, [accessToken, membershipId]);
-  // 실시간 이벤트가 있으면 그것이 최신. 없으면 서버에서 읽은 값.
-  const myStatus = liveStatus ?? savedStatus;
-  const statusType = myStatus?.statusType ?? null;
-  const statusUntil = myStatus?.statusUntil ?? null;
+  // 내 상태(아바타 배지용). 로그인 때 서버에서 읽은 값과 WebSocket 이벤트로 갱신된 값.
+  const statusType =
+    membershipId === undefined
+      ? null
+      : (memberStatusByMembershipId[membershipId]?.statusType ?? null);
   useEffect(() => {
     onStatusChange(statusType);
   }, [onStatusChange, statusType]);
@@ -135,27 +62,6 @@ export function ProfileMenu({
 
   const toast = (message: string) => onToast?.(message);
   const isAdmin = member.role === "ADMIN";
-  const currentOption = memberStatusOption(statusType);
-  const CurrentIcon = currentOption?.icon;
-
-  const saveStatus = async (nextType: MemberStatusType | null, until: Date | null) => {
-    setIsStatusSaving(true);
-    try {
-      const next = await addressBookApi.updateStatus(
-        accessToken,
-        nextType,
-        until ? until.toISOString() : undefined,
-      );
-      setSavedStatus(next);
-      setStatusAnchor(null);
-      const text = formatMemberStatus(next.statusType, next.statusUntil);
-      toast(text ? `상태를 '${text}'(으)로 설정했습니다.` : "상태 설정을 해제했습니다.");
-    } catch (error) {
-      toast(error instanceof Error ? error.message : "상태를 바꾸지 못했습니다.");
-    } finally {
-      setIsStatusSaving(false);
-    }
-  };
 
   // 복구 코드는 해시만 저장돼 다시 볼 수 없으므로 "보기"가 곧 재발급.
   const regenerateRecoveryCode = async () => {
@@ -236,66 +142,16 @@ export function ProfileMenu({
             </div>
           </div>
 
-          {/* 패널 안을 스크롤하면 떠 있는 상태 드롭다운 위치가 어긋나므로 닫음. */}
-          <div className="min-h-0 flex-1 overflow-y-auto" onScroll={() => setStatusAnchor(null)}>
+          <div className="min-h-0 flex-1 overflow-y-auto">
             {/* 상태 설정. 줄을 누르면 바로 아래에 드롭다운 창이 떠서 목록을 보여 줌. */}
             <div className="mx-5 flex items-center gap-3 border-t border-slate-100 py-3">
               <span className="w-12 shrink-0 text-xs text-slate-400">상태</span>
-              <button
-                ref={statusButtonRef}
-                type="button"
-                aria-haspopup="dialog"
-                aria-expanded={statusAnchor !== null}
-                disabled={savedStatus === null && liveStatus === undefined}
-                onClick={toggleStatusDropdown}
-                className={`flex h-9 min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-lg border bg-white px-3 text-left text-sm transition disabled:cursor-default disabled:bg-slate-50 ${statusAnchor ? "border-blue-600 ring-4 ring-blue-100" : "border-slate-300 hover:border-blue-400"}`}
-              >
-                {currentOption && CurrentIcon ? (
-                  <span
-                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${currentOption.className}`}
-                  >
-                    <CurrentIcon size={12} strokeWidth={3} aria-hidden="true" />
-                  </span>
-                ) : (
-                  <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500" />
-                )}
-                <span className="min-w-0 flex-1 truncate text-slate-500">
-                  {savedStatus === null && liveStatus === undefined ? (
-                    <LoadingInline message="상태를 불러오는 중" size={12} />
-                  ) : (
-                    (formatMemberStatus(statusType, statusUntil) ?? "설정 안 함")
-                  )}
-                </span>
-                <ChevronDown
-                  size={16}
-                  aria-hidden="true"
-                  className={`shrink-0 text-slate-500 transition ${statusAnchor ? "rotate-180" : ""}`}
-                />
-              </button>
-              {statusAnchor && (
-                // 패널 스크롤 영역에 잘리지 않도록 화면 기준(fixed)으로 버튼 바로 아래에 띄움.
-                <div
-                  ref={statusDropdownRef}
-                  role="dialog"
-                  aria-label="상태 설정"
-                  style={{
-                    top: statusAnchor.top,
-                    left: statusAnchor.left,
-                    width: statusAnchor.width,
-                    maxHeight: `calc(100vh - ${statusAnchor.top + 16}px)`,
-                  }}
-                  className="fixed z-[70] animate-in fade-in zoom-in-95 overflow-y-auto rounded-xl border border-slate-200 bg-white p-2 shadow-xl"
-                >
-                  <StatusSetting
-                    // 저장 후 바뀐 값으로 목록을 새로 그림.
-                    key={`${statusType}-${statusUntil}`}
-                    statusType={statusType}
-                    statusUntil={statusUntil}
-                    saving={isStatusSaving}
-                    onSave={(nextType, until) => void saveStatus(nextType, until)}
-                  />
-                </div>
-              )}
+              <MyStatusPicker
+                accessToken={accessToken}
+                membershipId={member.membershipId}
+                onToast={toast}
+                className="flex-1"
+              />
             </div>
 
             {/* 아이디·이메일·세션. 아이디는 한 번에 복사. */}
