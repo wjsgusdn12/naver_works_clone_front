@@ -47,7 +47,7 @@ export function ItemActionMenu({
     <div
       data-item-menu
       role="menu"
-      className="fixed z-[200] w-36 rounded-xl border border-slate-200 bg-white py-1 shadow-lg animate-in fade-in zoom-in-95"
+      className="fixed z-[200] w-max min-w-36 rounded-xl border border-slate-200 bg-white py-1 shadow-lg animate-in fade-in zoom-in-95"
       style={position}
     >
       {items.map((item) => (
@@ -60,7 +60,7 @@ export function ItemActionMenu({
             onClose();
             item.onSelect();
           }}
-          className={`flex w-full cursor-pointer items-center gap-2 px-4 py-2.5 text-left text-sm hover:bg-slate-50 ${item.active ? "font-semibold text-blue-600" : "text-slate-700"}`}
+          className={`flex w-full cursor-pointer items-center gap-2 whitespace-nowrap px-4 py-2.5 text-left text-sm hover:bg-slate-50 ${item.active ? "font-semibold text-blue-600" : "text-slate-700"}`}
         >
           <item.icon size={15} aria-hidden="true" />
           <span className="flex-1">{item.label}</span>
