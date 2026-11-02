@@ -5,7 +5,7 @@ import { MessageMemberAvatar } from "@/components/chat/message-member-avatar";
 import { useChatNotification } from "@/components/chat/chat-notification-provider";
 import { MeBadge } from "@/components/common/me-badge";
 import { Tooltip } from "@/components/common/tooltip";
-import { Images } from "lucide-react";
+import { Images, Search, type LucideIcon } from "lucide-react";
 import type { PresenceStatus } from "@/lib/api/address-book-api";
 import type { ChatRoom } from "@/lib/api/chat-api";
 import type { MemberStatusType } from "@/lib/status-options";
@@ -21,6 +21,8 @@ export function MessageRoomHeader({
   directStatusType,
   headerMembershipId,
   onProfileClick,
+  roomSearchOpen,
+  onToggleRoomSearch,
   galleryOpen,
   onToggleGallery,
 }: {
@@ -38,7 +40,9 @@ export function MessageRoomHeader({
   directStatusType?: MemberStatusType | null;
   headerMembershipId: number | null | undefined;
   onProfileClick: (membershipId: number) => void;
-  // 오른쪽 "사진·파일·링크" 버튼으로 모아보기 패널을 열고 닫음(모든 방 종류 공통).
+  // 오른쪽 아이콘 버튼으로 대화 내용 검색·모아보기 패널을 열고 닫음(모든 방 종류 공통).
+  roomSearchOpen: boolean;
+  onToggleRoomSearch: () => void;
   galleryOpen: boolean;
   onToggleGallery: () => void;
 }) {
@@ -93,19 +97,49 @@ export function MessageRoomHeader({
           </div>
         )}
         {selectedRoom && (
-          <Tooltip label="주고받은 사진·파일·링크 모아보기">
-            <button
-              type="button"
-              aria-expanded={galleryOpen}
+          <div className="flex items-center gap-1">
+            <HeaderIconButton
+              label="대화 내용 검색"
+              icon={Search}
+              open={roomSearchOpen}
+              onClick={onToggleRoomSearch}
+            />
+            <HeaderIconButton
+              label="주고받은 사진·파일·링크 모아보기"
+              icon={Images}
+              open={galleryOpen}
               onClick={onToggleGallery}
-              className={`flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition active:scale-95 ${galleryOpen ? "bg-blue-50 text-blue-600" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"}`}
-            >
-              <Images size={18} aria-hidden="true" />
-              사진·파일·링크
-            </button>
-          </Tooltip>
+            />
+          </div>
         )}
       </div>
     </header>
+  );
+}
+
+// 헤더 오른쪽 아이콘 버튼. 이름은 툴팁과 aria-label로, 패널이 열려 있으면 파란 배경.
+function HeaderIconButton({
+  label,
+  icon: Icon,
+  open,
+  onClick,
+}: {
+  label: string;
+  icon: LucideIcon;
+  open: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <Tooltip label={label}>
+      <button
+        type="button"
+        aria-label={label}
+        aria-expanded={open}
+        onClick={onClick}
+        className={`flex cursor-pointer items-center rounded-lg p-2 transition active:scale-95 ${open ? "bg-blue-50 text-blue-600" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"}`}
+      >
+        <Icon size={20} aria-hidden="true" />
+      </button>
+    </Tooltip>
   );
 }

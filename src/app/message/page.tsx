@@ -24,6 +24,7 @@ import { ReadMemberModal } from "@/components/chat/read-member-modal";
 import { TypingBubble } from "@/components/chat/typing-bubble";
 import { UserProfileModal } from "@/components/chat/user-profile-modal";
 import { AttachmentGalleryPanel } from "@/components/chat/attachment-gallery-panel";
+import { RoomMessageSearchPanel } from "@/components/chat/room-message-search-panel";
 import type { PendingAttachment } from "@/components/chat/attachment-tray";
 import { FileDropOverlay } from "@/components/chat/file-drop-overlay";
 import { ImageViewer, type ViewerImage } from "@/components/chat/image-viewer";
@@ -178,6 +179,8 @@ function MessageContent() {
   const [pendingByRoomId, setPendingByRoomId] = useState<Record<number, PendingAttachment[]>>({});
   const [attachmentSending, setAttachmentSending] = useState(false);
   const [galleryOpen, setGalleryOpen] = useState(false);
+  // 열린 방 안에서 대화 내용 검색 패널(헤더 돋보기). 모아보기·그룹 상세와는 하나만 열림.
+  const [roomSearchOpen, setRoomSearchOpen] = useState(false);
   // 사진 크게 보기. 연 방이 바뀌면 보여 주지 않음.
   // fromSearch: 상단 검색 결과에서 연 경우 그 방(지금 연 방과 달라도 보여 주고, "대화에서 보기"는 그 방으로 이동).
   const [viewer, setViewer] = useState<{
@@ -1761,6 +1764,7 @@ function MessageContent() {
   const closeViewer = useCallback(() => setViewer(null), []);
   const closeFilePreview = useCallback(() => setFilePreview(null), []);
   const closeGallery = useCallback(() => setGalleryOpen(false), []);
+  const closeRoomSearch = useCallback(() => setRoomSearchOpen(false), []);
   // 첨부가 새로 오거나 지워지면 바뀌는 값. 모아보기 패널이 이 값을 보고 목록을 다시 받음.
   const attachmentRefreshKey = useMemo(() => {
     const ids = messages
@@ -2110,6 +2114,7 @@ function MessageContent() {
     const keyword = search.trim();
     if (!keyword) return;
     setGalleryOpen(false);
+    setRoomSearchOpen(false);
     setSearchRun((current) => ({ keyword, id: (current?.id ?? 0) + 1 }));
   };
   const closeSearch = useCallback(() => setSearchRun(null), []);
@@ -2250,11 +2255,19 @@ function MessageContent() {
             onToggleRoomManage={() => {
               setRoomManageOpen((open) => !open);
               setGalleryOpen(false);
+              setRoomSearchOpen(false);
+            }}
+            roomSearchOpen={roomSearchOpen}
+            onToggleRoomSearch={() => {
+              setRoomSearchOpen((open) => !open);
+              setGalleryOpen(false);
+              setRoomManageOpen(false);
             }}
             galleryOpen={galleryOpen}
             onToggleGallery={() => {
               setGalleryOpen((open) => !open);
               setRoomManageOpen(false);
+              setRoomSearchOpen(false);
             }}
             displayRoomName={displayRoomName}
             headerProfile={headerProfile}
@@ -2459,6 +2472,15 @@ function MessageContent() {
               />
               {isDraggingFile && <FileDropOverlay />}
             </div>
+            {roomSearchOpen && selectedRoom && accessToken && (
+              <RoomMessageSearchPanel
+                key={selectedRoom.id}
+                roomId={selectedRoom.id}
+                accessToken={accessToken}
+                onClose={closeRoomSearch}
+                onOpenMessage={stableJumpToOriginal}
+              />
+            )}
             {galleryOpen && selectedRoom && accessToken && (
               <AttachmentGalleryPanel
                 key={selectedRoom.id}
