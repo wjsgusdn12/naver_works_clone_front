@@ -388,23 +388,26 @@ function BoardContent() {
           onRename={setRenaming}
         />
         <section ref={contentRef} className="min-w-0 flex-1 overflow-y-auto bg-white">
-          <BoardContentHeader
-            title={headerTitle}
-            onBack={screen.kind === "menu" ? undefined : () => router.back()}
-            actions={
-              listKey &&
-              writeTarget && (
-                <button
-                  type="button"
-                  onClick={() => go(writeTarget.href)}
-                  className="flex cursor-pointer items-center gap-1.5 rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 active:scale-95"
-                >
-                  <SquarePen size={15} aria-hidden="true" />
-                  {writeTarget.inquiry ? "문의하기" : "글쓰기"}
-                </button>
-              )
-            }
-          />
+          {/* 게시판 홈에는 머리줄 없이 영역 목록만 */}
+          {!isHome && (
+            <BoardContentHeader
+              title={headerTitle}
+              onBack={screen.kind === "menu" ? undefined : () => router.back()}
+              actions={
+                listKey &&
+                writeTarget && (
+                  <button
+                    type="button"
+                    onClick={() => go(writeTarget.href)}
+                    className="flex cursor-pointer items-center gap-1.5 rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 active:scale-95"
+                  >
+                    <SquarePen size={15} aria-hidden="true" />
+                    {writeTarget.inquiry ? "문의하기" : "글쓰기"}
+                  </button>
+                )
+              }
+            />
+          )}
           <div className="p-6">
             {screen.kind === "write" ? (
               boards === null ? (
