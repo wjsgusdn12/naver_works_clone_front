@@ -8,10 +8,10 @@ import { MessageDialogShell } from "@/components/chat/message-change-dialog";
 import { MessageMemberAvatar } from "@/components/chat/message-member-avatar";
 import { ReactionEmoji } from "@/components/chat/reaction-emoji";
 import { ReactionPicker } from "@/components/chat/reaction-picker";
-import { LoadingState, Spinner } from "@/components/common/loading";
+import { Spinner } from "@/components/common/loading";
 import { MeBadge } from "@/components/common/me-badge";
 import { MoreMenu } from "@/components/common/more-menu";
-import { Tabs } from "@/components/common/tabs";
+import { ReadStatusModal } from "@/components/common/read-status-modal";
 import { Tooltip } from "@/components/common/tooltip";
 import {
   boardApi,
@@ -559,7 +559,7 @@ function DeleteDialog({
   );
 }
 
-// 필독 읽음 현황: 읽은 사람 / 안 읽은 사람 탭
+// 필독 읽음 현황: 공통 읽음 현황 모달에 읽은 사람 / 안 읽은 사람을 채움
 function ReadersDialog({
   accessToken,
   postId,
@@ -571,7 +571,6 @@ function ReadersDialog({
 }) {
   const [readers, setReaders] = useState<BoardReaders | null>(null);
   const [failed, setFailed] = useState(false);
-  const [tab, setTab] = useState<"read" | "unread">("read");
   useEffect(() => {
     let alive = true;
     boardApi
@@ -582,46 +581,13 @@ function ReadersDialog({
       alive = false;
     };
   }, [accessToken, postId]);
-  const list = readers ? readers[tab] : [];
   return (
-    <MessageDialogShell title="읽음 현황" onClose={onClose} widthClassName="max-w-md">
-      {failed ? (
-        <p className="py-10 text-center text-sm text-slate-500">읽음 현황을 불러오지 못했습니다.</p>
-      ) : !readers ? (
-        <LoadingState message="읽음 현황을 불러오는 중입니다..." className="min-h-48" />
-      ) : (
-        <>
-          <Tabs
-            items={[
-              { key: "read", label: "읽음", count: readers.read.length },
-              { key: "unread", label: "안 읽음", count: readers.unread.length },
-            ]}
-            value={tab}
-            onChange={setTab}
-            fill
-            ariaLabel="읽음 현황"
-          />
-          <ul className="mt-2 max-h-80 overflow-y-auto">
-            {list.length === 0 ? (
-              <li className="py-10 text-center text-sm text-slate-400">
-                {tab === "read" ? "아직 읽은 사람이 없습니다." : "모두 읽었습니다."}
-              </li>
-            ) : (
-              list.map((reader) => (
-                <li key={reader.membershipId} className="flex items-center gap-3 py-2">
-                  <PersonAvatar membershipId={reader.membershipId} name={reader.name} />
-                  <span className="text-sm text-slate-800">{reader.name}</span>
-                  {/* 부서 · 회사 */}
-                  <span className="min-w-0 truncate text-xs text-slate-400">
-                    {[reader.departmentName, reader.companyName].filter(Boolean).join(" · ")}
-                  </span>
-                </li>
-              ))
-            )}
-          </ul>
-        </>
-      )}
-    </MessageDialogShell>
+    <ReadStatusModal
+      read={readers?.read ?? null}
+      unread={readers?.unread ?? null}
+      failed={failed}
+      onClose={onClose}
+    />
   );
 }
 

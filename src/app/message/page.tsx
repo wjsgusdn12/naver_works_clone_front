@@ -20,7 +20,7 @@ import { MessageRoomSidebar } from "@/components/chat/message-room-sidebar";
 import { MessageRoomItem } from "@/components/chat/message-room-item";
 import { NewRoomModal } from "@/components/chat/new-room-modal";
 import { ReactionMemberModal } from "@/components/chat/reaction-member-modal";
-import { ReadMemberModal } from "@/components/chat/read-member-modal";
+import { ReadStatusModal } from "@/components/common/read-status-modal";
 import { TypingBubble } from "@/components/chat/typing-bubble";
 import { UserProfileModal } from "@/components/chat/user-profile-modal";
 import { AttachmentGalleryPanel } from "@/components/chat/attachment-gallery-panel";
@@ -2708,12 +2708,14 @@ function MessageContent() {
         />
       )}
       {readModal && (
-        <ReadMemberModal
-          modal={readModal}
-          contactMembers={contactMembers}
+        <ReadStatusModal
+          key={readModal.message.id}
+          read={readModal.readMembers.map((item) => ({ ...item, name: item.displayName }))}
+          unread={readModal.unreadMembers.map((item) => ({ ...item, name: item.displayName }))}
+          initialTab={readModal.read ? "read" : "unread"}
+          profiles={contactMembers}
+          onPersonClick={openUserProfile}
           onClose={() => setReadModal(null)}
-          onProfileClick={openUserProfile}
-          onTab={(read) => setReadModal((current) => current && { ...current, read })}
         />
       )}
       {forwardTarget && (
