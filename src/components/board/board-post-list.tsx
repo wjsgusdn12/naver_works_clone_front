@@ -112,6 +112,45 @@ function MetaDot() {
   );
 }
 
+// 글 미리보기 줄 오른쪽 정보: (게시판 ·) 작성자 · 날짜 · 조회수 · 댓글 수. 게시판 홈·메인 홈 카드 공통.
+// 리액션이 생기면 조회수와 댓글 수 사이에 넣음. dateText가 없으면 날짜 형식(dateLabel)으로.
+export function PostMeta({
+  post,
+  dateText,
+  showBoard = false,
+}: {
+  post: BoardPostSummary;
+  dateText?: string;
+  showBoard?: boolean;
+}) {
+  return (
+    <span className="flex shrink-0 items-center gap-1.5 text-xs text-slate-400">
+      {showBoard && (
+        <>
+          <span className="max-w-20 truncate">{post.boardName}</span>
+          <MetaDot />
+        </>
+      )}
+      <span className="max-w-20 truncate text-slate-500">{post.authorName}</span>
+      <MetaDot />
+      <span className="whitespace-nowrap">{dateText ?? dateLabel(post.createdAt)}</span>
+      <MetaDot />
+      <span className="flex items-center gap-0.5" title="조회수">
+        <Eye size={12} aria-hidden="true" />
+        {post.viewCount}
+      </span>
+      <MetaDot />
+      <span
+        className={`flex items-center gap-0.5 ${post.commentCount > 0 ? "text-blue-600" : ""}`}
+        title="댓글 수"
+      >
+        <MessageSquare size={12} aria-hidden="true" />
+        {post.commentCount}
+      </span>
+    </span>
+  );
+}
+
 // 게시판 홈 영역(제목 + 더보기 + 글 목록). 테두리·아이콘 없이 제목 아래 선과 목록만.
 export function HomeCard({
   title,
@@ -160,25 +199,7 @@ export function HomeCard({
                 >
                   {post.title}
                 </span>
-                {/* 작성자 · 날짜 · 조회수 · 댓글 수(리액션이 생기면 조회수와 댓글 수 사이) */}
-                <span className="flex shrink-0 items-center gap-1.5 text-xs text-slate-400">
-                  <span className="max-w-20 truncate text-slate-500">{post.authorName}</span>
-                  <MetaDot />
-                  <span>{dateLabel(post.createdAt)}</span>
-                  <MetaDot />
-                  <span className="flex items-center gap-0.5" title="조회수">
-                    <Eye size={12} aria-hidden="true" />
-                    {post.viewCount}
-                  </span>
-                  <MetaDot />
-                  <span
-                    className={`flex items-center gap-0.5 ${post.commentCount > 0 ? "text-blue-600" : ""}`}
-                    title="댓글 수"
-                  >
-                    <MessageSquare size={12} aria-hidden="true" />
-                    {post.commentCount}
-                  </span>
-                </span>
+                <PostMeta post={post} />
               </button>
             </li>
           ))}

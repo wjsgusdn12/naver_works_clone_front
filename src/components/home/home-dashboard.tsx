@@ -1,6 +1,6 @@
 "use client";
 
-import { PostBadges } from "@/components/board/board-post-list";
+import { PostBadges, PostMeta } from "@/components/board/board-post-list";
 import { FavoriteBadge } from "@/components/common/favorite-badge";
 import { useAuth } from "@/components/auth/auth-provider";
 import { ApiDashboardSection } from "@/components/home/api-dashboard";
@@ -488,19 +488,7 @@ function BoardPostList({
             >
               {post.title}
             </span>
-            {post.commentCount > 0 && (
-              <span className="shrink-0 text-xs font-semibold text-blue-600">
-                [{post.commentCount}]
-              </span>
-            )}
-            {showBoard && (
-              <span className="max-w-24 shrink-0 truncate text-xs text-slate-400">
-                {post.boardName}
-              </span>
-            )}
-            <span className="shrink-0 text-xs text-slate-400">
-              {formatRelative(post.createdAt)}
-            </span>
+            <PostMeta post={post} showBoard={showBoard} dateText={formatRelative(post.createdAt)} />
           </button>
         </li>
       ))}
