@@ -217,9 +217,9 @@ export function HomeDashboard({
   return (
     <main className="min-h-0 flex-1 overflow-y-auto">
       <div className="mx-auto w-full max-w-7xl px-5 py-8 sm:px-8 lg:px-10">
-        {/* 3열 × 2행(행 높이 294px 고정): 인사말·알림(왼쪽 두 줄) | 주소록 위 / 최근 대화 아래 | 최신 게시글(오른쪽 두 줄).
+        {/* 3열 × 2행(행 높이 340px 고정): 인사말·알림(왼쪽 두 줄) | 주소록 위 / 최근 대화 아래 | 최신 게시글(오른쪽 두 줄).
             같은 행 카드는 높이가 자동으로 같아져 위·아래선이 맞음. 좁은 화면에서는 한 줄씩 쌓임. */}
-        <section className="grid gap-5 xl:grid-cols-3 xl:grid-rows-[294px_294px]">
+        <section className="grid gap-5 xl:grid-cols-3 xl:grid-rows-[340px_340px]">
           {/* 인사말 카드(두 줄 높이): 내 프로필·날짜·인사말·상태, 알림 목록, 바로가기 4개 */}
           <article className="flex flex-col rounded-xl border border-slate-200 bg-white p-5 shadow-sm xl:col-start-1 xl:row-span-2 xl:row-start-1">
             <div className="flex items-center gap-4">
@@ -639,7 +639,7 @@ function GhostToggle({
       type="button"
       aria-pressed={active}
       onClick={onClick}
-      className={`h-8 flex-1 cursor-pointer whitespace-nowrap rounded-md border px-2.5 text-xs font-medium transition active:scale-95 ${active ? "border-blue-200 bg-blue-50 text-blue-700" : "border-slate-200 bg-transparent text-slate-600 hover:bg-slate-50"}`}
+      className={`h-10 flex-1 cursor-pointer whitespace-nowrap rounded-lg border px-3 text-sm font-medium transition active:scale-95 ${active ? "border-blue-200 bg-blue-50 text-blue-700" : "border-slate-200 bg-transparent text-slate-600 hover:bg-slate-50"}`}
     >
       {children}
     </button>
@@ -651,7 +651,7 @@ function BlueButton({ onClick, children }: { onClick: () => void; children: Reac
     <button
       type="button"
       onClick={onClick}
-      className="h-8 flex-1 cursor-pointer whitespace-nowrap rounded-md bg-blue-600 px-2.5 text-xs font-semibold text-white transition hover:bg-blue-700 active:scale-95"
+      className="h-10 flex-1 cursor-pointer whitespace-nowrap rounded-lg bg-blue-600 px-3 text-sm font-semibold text-white transition hover:bg-blue-700 active:scale-95"
     >
       {children}
     </button>
