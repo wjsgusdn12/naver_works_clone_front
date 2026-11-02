@@ -71,7 +71,7 @@ const notificationCategoryMeta: Record<
     icon: BookUser,
     className: "bg-emerald-50 text-emerald-600",
   },
-  SYSTEM: { label: "로그인 알림", icon: ShieldCheck, className: "bg-violet-50 text-violet-600" },
+  SYSTEM: { label: "시스템 알림", icon: ShieldCheck, className: "bg-violet-50 text-violet-600" },
 };
 
 // 카드 우측 날짜: 오늘이면 시각, 아니면 "10월 20일".
