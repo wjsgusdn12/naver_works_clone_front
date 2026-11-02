@@ -121,12 +121,12 @@ export function HomeCard({
 }) {
   return (
     <section>
-      <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
-        <h2 className="text-[15px] font-bold text-slate-900">{title}</h2>
+      <div className="flex items-center justify-between border-b border-slate-200 pb-2.5">
+        <h2 className="text-lg font-bold text-slate-900">{title}</h2>
         <button
           type="button"
           onClick={onMore}
-          className="flex cursor-pointer items-center text-xs text-slate-400 transition hover:text-slate-800"
+          className="flex cursor-pointer items-center text-xs font-medium text-blue-600 transition hover:text-blue-700"
         >
           더보기
           <ChevronRight size={13} aria-hidden="true" />
@@ -154,8 +154,14 @@ export function HomeCard({
                 {post.commentCount > 0 && (
                   <span className="shrink-0 text-xs text-blue-600">[{post.commentCount}]</span>
                 )}
-                <span className="w-16 shrink-0 text-right text-xs text-slate-400">
-                  {dateLabel(post.createdAt)}
+                {/* 작성자 · 날짜 · 조회수 */}
+                <span className="flex shrink-0 items-center gap-2.5 text-xs text-slate-400">
+                  <span className="max-w-20 truncate text-slate-500">{post.authorName}</span>
+                  <span className="w-16 text-right">{dateLabel(post.createdAt)}</span>
+                  <span className="flex w-9 items-center justify-end gap-0.5">
+                    <Eye size={12} aria-hidden="true" />
+                    {post.viewCount}
+                  </span>
                 </span>
               </button>
             </li>
