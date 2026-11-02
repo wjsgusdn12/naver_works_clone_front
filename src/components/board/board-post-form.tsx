@@ -2,7 +2,8 @@
 
 import { BoardEditor } from "@/components/board/board-editor";
 import { CustomCheckbox } from "@/components/common/custom-checkbox";
-import { CustomSelect } from "@/components/common/custom-select";
+import { COMMON_BOARDS } from "@/components/board/board-sidebar";
+import { CustomSelect, type SelectOption } from "@/components/common/custom-select";
 import { Spinner } from "@/components/common/loading";
 import { boardApi, type BoardItem, type BoardPostDetail } from "@/lib/api/board-api";
 import { fileIconOf, formatFileSize, MAX_ATTACHMENT_SIZE } from "@/lib/attachment-files";
@@ -13,6 +14,40 @@ import { useRef, useState } from "react";
 type FormFile = { key: string; id: number | null; name: string; size: number; progress: number };
 
 const MAX_FILES = 20;
+
+// 게시판 고르기 목록을 사이드바와 같은 순서로: 공통(공지·자유·문의) → 회사별(회사 게시판 → 부서).
+// 공통에서 다른 회사 것(관리자만 받음)은 이름 뒤에 회사명을 붙임.
+function boardOptions(boards: BoardItem[]): SelectOption[] {
+  const commons = COMMON_BOARDS.flatMap(({ type }) =>
+    boards
+      .filter((board) => board.type === type)
+      .sort(
+        (a, b) =>
+          Number(b.myCompany) - Number(a.myCompany) ||
+          a.companyName.localeCompare(b.companyName, "ko"),
+      )
+      .map((board) => {
+        const label = board.myCompany ? board.name : `${board.name} (${board.companyName})`;
+        return { value: String(board.id), label, group: "공통" };
+      }),
+  );
+  const rest = boards
+    .filter((board) => board.type === "COMPANY" || board.type === "DEPARTMENT")
+    .sort(
+      (a, b) =>
+        Number(b.myCompany) - Number(a.myCompany) ||
+        a.companyName.localeCompare(b.companyName, "ko") ||
+        Number(a.type === "DEPARTMENT") - Number(b.type === "DEPARTMENT") ||
+        a.name.localeCompare(b.name, "ko"),
+    )
+    .map((board) => ({
+      value: String(board.id),
+      label: board.name,
+      group: board.companyName,
+      selectedLabel: board.type === "COMPANY" ? board.name : `${board.companyName} · ${board.name}`,
+    }));
+  return [...commons, ...rest];
+}
 
 // 글쓰기·수정. 수정이면 게시판은 바꿀 수 없음. 문의하기에는 중요·필독을 걸 수 없음.
 export function BoardPostForm({
@@ -144,10 +179,7 @@ export function BoardPostForm({
             value={boardId ? String(boardId) : ""}
             onChange={(value) => setBoardId(Number(value) || null)}
             placeholder="게시판 선택"
-            options={boards.map((item) => ({
-              value: String(item.id),
-              label: item.myCompany ? item.name : `${item.companyName} · ${item.name}`,
-            }))}
+            options={boardOptions(boards)}
             className="w-72"
           />
         )}

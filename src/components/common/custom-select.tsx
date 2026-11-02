@@ -1,11 +1,13 @@
 "use client";
 
 import { Check, ChevronDown } from "lucide-react";
-import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
+import { Fragment, useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 
 // 프로젝트 공통 드롭다운. 브라우저 기본 select 대신 입력칸과 같은 모양의 버튼 + 목록으로 그림.
 // 값이 ""인 항목은 "선택 안 함"처럼 비우는 용도로 씀.
-export type SelectOption = { value: string; label: string };
+// group: 같은 값이 이어지는 항목 위에 머리글 한 줄(목록에서는 이름만 들여 씀).
+// selectedLabel: 고른 뒤 버튼에 보일 글자(없으면 label). 머리글 없이도 뜻이 통하게 할 때 씀.
+export type SelectOption = { value: string; label: string; group?: string; selectedLabel?: string };
 
 type CustomSelectProps = {
   value: string;
@@ -104,7 +106,7 @@ export function CustomSelect({
         className={`flex h-12 w-full cursor-pointer items-center justify-between gap-2 rounded-lg border bg-white px-3.5 text-left text-sm outline-none transition focus:ring-4 disabled:cursor-not-allowed disabled:bg-slate-50 ${open ? "border-blue-600 ring-4 ring-blue-100" : "border-slate-300 hover:border-blue-400 focus:border-blue-600 focus:ring-blue-100"}`}
       >
         <span className={`truncate ${selected ? "text-slate-900" : "text-slate-400"}`}>
-          {selected?.label ?? placeholder}
+          {selected ? (selected.selectedLabel ?? selected.label) : placeholder}
         </span>
         <ChevronDown
           size={16}
@@ -121,18 +123,29 @@ export function CustomSelect({
         >
           {options.map((option, index) => {
             const isSelected = option.value === value;
+            const header =
+              option.group && option.group !== options[index - 1]?.group ? option.group : null;
             return (
-              <li
-                key={option.value || "__empty"}
-                role="option"
-                aria-selected={isSelected}
-                onMouseEnter={() => setHighlight(index)}
-                onClick={() => choose(option)}
-                className={`flex cursor-pointer items-center justify-between gap-2 px-3.5 py-2 ${index === highlight ? "bg-blue-50 text-blue-700" : "text-slate-700"} ${option.value === "" ? "text-slate-500" : ""}`}
-              >
-                <span className="truncate">{option.label}</span>
-                {isSelected && <Check size={14} aria-hidden="true" className="shrink-0" />}
-              </li>
+              <Fragment key={option.value || "__empty"}>
+                {header && (
+                  <li
+                    role="presentation"
+                    className={`px-3.5 pb-1 pt-2 text-xs font-semibold text-slate-400 ${index > 0 ? "mt-1 border-t border-slate-100" : ""}`}
+                  >
+                    {header}
+                  </li>
+                )}
+                <li
+                  role="option"
+                  aria-selected={isSelected}
+                  onMouseEnter={() => setHighlight(index)}
+                  onClick={() => choose(option)}
+                  className={`flex cursor-pointer items-center justify-between gap-2 py-2 pr-3.5 ${option.group ? "pl-5" : "pl-3.5"} ${index === highlight ? "bg-blue-50 text-blue-700" : "text-slate-700"} ${option.value === "" ? "text-slate-500" : ""}`}
+                >
+                  <span className="truncate">{option.label}</span>
+                  {isSelected && <Check size={14} aria-hidden="true" className="shrink-0" />}
+                </li>
+              </Fragment>
             );
           })}
         </ul>
