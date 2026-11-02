@@ -152,8 +152,11 @@ export function HomeDashboard({
   }).format(new Date());
 
   const unreadTotal = (rooms ?? []).reduce((sum, room) => sum + room.unreadCount, 0);
-  const onlineCount = Object.entries(presenceByMembershipId).filter(
-    ([id, status]) => status === "ONLINE" && Number(id) !== membershipId,
+  // 주소록 카드 목록과 같은 기준(처음 받은 상태 위에 실시간 상태를 덮음)으로 셈. 로그인한 나도 포함.
+  const onlineCount = (members ?? []).filter(
+    (item) =>
+      withLiveStatus(item, presenceByMembershipId, memberStatusByMembershipId).presenceStatus ===
+      "ONLINE",
   ).length;
   const visibleMembers = (members ?? []).filter((item) => !favoriteOnly || item.favorite);
   const recentRooms = [...(rooms ?? [])]
