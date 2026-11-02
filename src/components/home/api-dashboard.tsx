@@ -370,61 +370,77 @@ function DatabaseBadge({ status }: { status: ApiDashboard["database"] }) {
   );
 }
 
-// 직전 기간 대비 증감. tone: good(좋아짐·초록) / bad(나빠짐·빨강) / neutral(좋고 나쁨이 없음·회색)
-type Delta = {
-  arrow: "▲" | "▼" | "–";
-  text: string;
-  tone: "good" | "bad" | "neutral";
-  detail: string;
-};
+// 직전 기간 대비 증감. 색은 주식 표기처럼 방향으로만: 상승 빨강 · 하락 파랑 · 변화 없음 회색.
+type DeltaDirection = "up" | "down" | "flat";
+type Delta = { direction: DeltaDirection; text: string; detail: string };
 
-// 변화율(%). higherIsBad: 오르면 나쁜 숫자(응답 시간)면 true, 좋고 나쁨이 없으면(요청 수) null.
-// 직전 값이 0이면 비율을 낼 수 없어 null(화면에 "직전 기록 없음").
-const percentDelta = (
-  current: number,
-  previous: number,
-  higherIsBad: boolean | null,
-  detail: string,
-): Delta | null => {
+const directionOf = (change: number): DeltaDirection =>
+  change > 0 ? "up" : change < 0 ? "down" : "flat";
+
+// 변화율(%). 직전 값이 0이면 비율을 낼 수 없어 null(화면에 "직전 기록 없음").
+const percentDelta = (current: number, previous: number, detail: string): Delta | null => {
   if (previous <= 0 || current < 0) return null;
   const change = Math.round(((current - previous) / previous) * 100);
-  const arrow = change > 0 ? "▲" : change < 0 ? "▼" : "–";
-  const tone =
-    change === 0 || higherIsBad === null ? "neutral" : change > 0 === higherIsBad ? "bad" : "good";
-  return { arrow, text: `${Math.abs(change)}%`, tone, detail };
+  return { direction: directionOf(change), text: `${Math.abs(change)}%`, detail };
 };
 
-// 비율 숫자(오류율 %)의 차이는 %p(퍼센트포인트)로. 0.4% → 0.5%면 ▲0.1%p.
+// 비율 숫자(오류율 %)의 차이는 %p(퍼센트포인트)로. 0.4% → 0.5%면 0.1%p 상승.
 const pointDelta = (current: number, previous: number, detail: string): Delta => {
   const change = Math.round((current - previous) * 10) / 10;
-  const arrow = change > 0 ? "▲" : change < 0 ? "▼" : "–";
-  return {
-    arrow,
-    text: `${Math.abs(change)}%p`,
-    tone: change === 0 ? "neutral" : change > 0 ? "bad" : "good",
-    detail,
-  };
+  return { direction: directionOf(change), text: `${Math.abs(change)}%p`, detail };
 };
 
-const DELTA_TONE: Record<Delta["tone"], string> = {
-  good: "text-emerald-600",
-  bad: "text-red-600",
-  neutral: "text-slate-500",
+const DELTA_STYLE: Record<DeltaDirection, { badge: string; word: string }> = {
+  up: { badge: "bg-red-50 text-red-600 ring-red-100", word: "상승" },
+  down: { badge: "bg-blue-50 text-blue-600 ring-blue-100", word: "하락" },
+  flat: { badge: "bg-slate-100 text-slate-500 ring-slate-200", word: "변화 없음" },
 };
 
-// 숫자 옆 증감 표시. 색만으로 구분하지 않도록 화살표와 설명(마우스를 올리면 직전 값)을 함께 둠.
+// 등락 화살표: 모서리가 둥근 작은 삼각형(위·아래), 변화 없음은 짧은 가로줄.
+// 나타날 때 오르면 위로·내리면 아래로 한 번 튐(globals.css delta-arrow-*).
+function DeltaArrow({ direction }: { direction: DeltaDirection }) {
+  if (direction === "flat") {
+    return (
+      <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+        <path d="M2.5 5h5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      </svg>
+    );
+  }
+  return (
+    <svg
+      width="10"
+      height="10"
+      viewBox="0 0 10 10"
+      aria-hidden="true"
+      className={direction === "up" ? "delta-arrow-up" : "delta-arrow-down"}
+    >
+      <path
+        d={direction === "up" ? "M5 2.4 8 7.4H2Z" : "M5 7.6 8 2.6H2Z"}
+        fill="currentColor"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+// 숫자 옆 등락 배지. 색만으로 구분하지 않도록 화살표와 설명(마우스를 올리면 직전 값)을 함께 둠.
+// 값이 바뀌면 key가 바뀌어 다시 나타나는 애니메이션이 재생됨(같은 값으로 갱신되면 그대로).
 function DeltaBadge({ delta, previousName }: { delta: Delta | null; previousName: string }) {
   if (!delta) {
     return <span className="text-xs text-slate-400">{previousName} 기록 없음</span>;
   }
-  const label = `${previousName} 대비 ${delta.arrow === "▲" ? "증가" : delta.arrow === "▼" ? "감소" : "변화 없음"} · ${delta.detail}`;
+  const style = DELTA_STYLE[delta.direction];
+  const label = `${previousName} 대비 ${delta.text} ${style.word} · ${previousName} ${delta.detail}`;
   return (
     <Tooltip label={label} multiline>
-      <span className={`text-xs font-semibold tabular-nums ${DELTA_TONE[delta.tone]}`}>
-        <span aria-hidden="true">
-          {delta.arrow}
-          {delta.text}
-        </span>
+      <span
+        key={`${delta.direction}-${delta.text}`}
+        className={`delta-badge inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[11px] leading-none font-semibold tabular-nums ring-1 ring-inset ${style.badge}`}
+      >
+        <DeltaArrow direction={delta.direction} />
+        <span aria-hidden="true">{delta.text}</span>
         <span className="sr-only">{label}</span>
       </span>
     </Tooltip>
@@ -474,12 +490,7 @@ function KpiRow({
       sub: `오류 ${formatNumber(summary.clientErrors + summary.serverErrors)}건 포함`,
       help: "API가 처리한 요청 개수",
       delta: comparable
-        ? percentDelta(
-            summary.requests,
-            previous.requests,
-            null,
-            `${formatNumber(previous.requests)}건`,
-          )
+        ? percentDelta(summary.requests, previous.requests, `${formatNumber(previous.requests)}건`)
         : null,
     },
     {
@@ -499,9 +510,7 @@ function KpiRow({
       value: formatMs(summary.avgMs),
       sub: `요청 ${formatNumber(summary.requests)}건 기준`,
       help: "요청 하나를 처리하는 데 걸린 평균 시간",
-      delta: timed
-        ? percentDelta(summary.avgMs, previous.avgMs, true, formatMs(previous.avgMs))
-        : null,
+      delta: timed ? percentDelta(summary.avgMs, previous.avgMs, formatMs(previous.avgMs)) : null,
     },
     {
       label: "p95 응답",
@@ -512,7 +521,7 @@ function KpiRow({
       // 5초 초과(-1)는 정확한 값이 아니라 비교하지 않음
       delta:
         timed && summary.p95Ms >= 0 && previous.p95Ms >= 0
-          ? percentDelta(summary.p95Ms, previous.p95Ms, true, formatP95(previous.p95Ms))
+          ? percentDelta(summary.p95Ms, previous.p95Ms, formatP95(previous.p95Ms))
           : null,
     },
   ];
