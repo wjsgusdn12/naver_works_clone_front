@@ -405,7 +405,11 @@ export function HomeDashboard({
             className="xl:col-start-2 xl:row-start-2"
             title="최근 대화"
             badge={
-              <CountChip label="안 읽음" value={rooms === null ? null : unreadTotal} suffix="건" />
+              <CountChip
+                label="읽지 않음"
+                value={rooms === null ? null : unreadTotal}
+                suffix="건"
+              />
             }
             description="마지막 메시지가 최근인 순서입니다."
             onTitleClick={() => router.push("/message")}
@@ -506,7 +510,7 @@ export function HomeDashboard({
             badge={
               // 카드에 불러온 최신 글(최대 10개) 중 안 읽은 글 수
               <CountChip
-                label="안 읽음"
+                label="읽지 않음"
                 value={board ? board.latest.filter((post) => !post.read).length : null}
                 suffix="건"
               />
