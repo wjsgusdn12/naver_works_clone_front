@@ -28,6 +28,8 @@ pnpm-debug.log*
 .idea/
 .vscode/
 *.tsbuildinfo
+# Next가 실행할 때마다 자동으로 다시 만드는 파일
+next-env.d.ts
 
 # OS files
 .DS_Store
