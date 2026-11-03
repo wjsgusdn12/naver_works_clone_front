@@ -459,6 +459,24 @@ function BoardContent() {
       : commonType && (boards ?? []).some((board) => board.type === commonType && board.canWrite)
         ? { href: `/board?write=1&type=${commonType}`, inquiry: commonType === "INQUIRY" }
         : null;
+  // 머리줄 ← 버튼이 갈 곳. 브라우저 뒤로가기가 아니라 지금 화면이 속한 곳으로(어디서 들어왔든 같은 곳):
+  // 글 보기 → 그 글의 게시판(자유·공지·문의는 전체게시판 메뉴, 회사·부서 게시판은 그 게시판),
+  // 글쓰기 → 쓰려던 게시판, 글 수정 → 그 글.
+  const backHref = (() => {
+    if (screen.kind === "edit") return `/board?postId=${screen.postId}`;
+    if (screen.kind === "write") {
+      if (screen.boardId) return `/board?boardId=${screen.boardId}`;
+      return screen.type ? `/board?type=${screen.type}` : "/board";
+    }
+    if (screen.kind === "post") {
+      const board = currentPost?.detail?.board;
+      if (!board) return "/board";
+      return COMMON_BOARDS.some((item) => item.type === board.type)
+        ? `/board?type=${board.type}`
+        : `/board?boardId=${board.id}`;
+    }
+    return "/board";
+  })();
   const listTitle =
     menu.kind === "type"
       ? commonLabel
@@ -615,7 +633,7 @@ function BoardContent() {
           {!isHome && (
             <BoardContentHeader
               title={headerTitle}
-              onBack={screen.kind === "menu" ? undefined : leave.back}
+              onBack={screen.kind === "menu" ? undefined : () => go(backHref)}
               actions={
                 listKey &&
                 writeTarget && (
