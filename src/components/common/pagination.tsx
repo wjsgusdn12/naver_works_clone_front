@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 
 // 공통 페이지네이션. 페이지 번호는 0부터 시작하고 화면에는 1부터 보여 줌.
 type PaginationProps = {
@@ -13,7 +13,7 @@ type PaginationProps = {
 };
 
 // 현재 페이지 주변으로 최대 5개의 번호만 보여 줌.
-const visiblePages = (page: number, totalPages: number) => {
+export const visiblePages = (page: number, totalPages: number) => {
   const start = Math.max(0, Math.min(page - 2, totalPages - 5));
   const end = Math.min(totalPages, start + 5);
   return Array.from({ length: end - start }, (_, index) => start + index);
@@ -34,6 +34,15 @@ export function Pagination({
       aria-label={label}
       className={`flex items-center justify-center gap-1.5 text-sm ${className}`}
     >
+      {/* « 맨 앞 · ‹ 이전 · 번호 · › 다음 · » 맨 끝 */}
+      <button
+        disabled={page === 0}
+        aria-label="첫 페이지"
+        className={arrowClassName}
+        onClick={() => onChange(0)}
+      >
+        <ChevronsLeft size={16} aria-hidden="true" />
+      </button>
       <button
         disabled={page === 0}
         aria-label="이전 페이지"
@@ -59,6 +68,14 @@ export function Pagination({
         onClick={() => onChange(page + 1)}
       >
         <ChevronRight size={16} aria-hidden="true" />
+      </button>
+      <button
+        disabled={page >= totalPages - 1}
+        aria-label="마지막 페이지"
+        className={arrowClassName}
+        onClick={() => onChange(totalPages - 1)}
+      >
+        <ChevronsRight size={16} aria-hidden="true" />
       </button>
     </nav>
   );
