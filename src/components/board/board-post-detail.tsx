@@ -275,7 +275,12 @@ export function BoardPostDetailView({
             {post.authorDepartmentName && <span>{post.authorDepartmentName}</span>}
             <span className="text-slate-300">·</span>
             <span>{dateTime(post.createdAt)}</span>
-            {post.updatedAt && <span className="text-slate-400">(수정됨)</span>}
+            {post.updatedAt && (
+              // 사람이 고쳤거나 시스템이 본문을 채운 글(매일 증시 보고). 올려 두면 고친 시각을 보여 줌.
+              <Tooltip label={`${dateTime(post.updatedAt)} 수정`} placement="top">
+                <span className="cursor-default text-slate-400">(수정됨)</span>
+              </Tooltip>
+            )}
             <span className="text-slate-300">·</span>
             <span className="flex items-center gap-0.5" title="조회수">
               <Eye size={13} aria-hidden="true" />
