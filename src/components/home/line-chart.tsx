@@ -42,7 +42,7 @@ function useElementWidth() {
   return { ref, width };
 }
 
-// 점과 선으로 이은 추이 그래프. 가로 눈금선은 점선, 마우스를 올리면 점선 세로줄과 그 시점의 값들을 보여 줌.
+// 선으로 이은 추이 그래프. 가로 눈금선은 옅은 실선, 마우스를 올리면 세로줄·그 시점의 점·값들을 보여 줌.
 export function LineChart({
   labels,
   tooltipTitles,
@@ -50,7 +50,7 @@ export function LineChart({
   formatValue,
   labelEvery,
   ariaLabel,
-  showMarkers = true,
+  showMarkers = false,
 }: {
   // 아래쪽 시간 글자(점마다 하나)
   labels: string[];
@@ -61,7 +61,7 @@ export function LineChart({
   // 아래쪽 글자를 몇 칸마다 보여 줄지
   labelEvery: number;
   ariaLabel: string;
-  // false면 점을 숨기고 마우스가 올라간 시점만 점을 보여 줌(최근 24시간 288점·최근 30일 720점처럼 촘촘할 때).
+  // 기본(false): 점은 숨기고 마우스가 올라간 시점만 점을 보여 줌. true면 모든 시점에 점.
   showMarkers?: boolean;
 }) {
   const { ref, width } = useElementWidth();
@@ -117,7 +117,7 @@ export function LineChart({
     >
       {width > 0 && (
         <svg width={width} height={HEIGHT} className="block overflow-visible">
-          {/* 가로 눈금선(점선)과 왼쪽 값 */}
+          {/* 가로 눈금선(옅은 실선, 바닥선만 조금 진하게)과 왼쪽 값 */}
           {ticks.map((tick) => (
             <g key={tick}>
               <line
@@ -125,15 +125,15 @@ export function LineChart({
                 x2={width - PADDING.right}
                 y1={y(tick)}
                 y2={y(tick)}
-                stroke={CHART_COLORS.grid}
-                strokeDasharray={tick === 0 ? undefined : "3 4"}
+                stroke={tick === 0 ? CHART_COLORS.crosshair : CHART_COLORS.grid}
+                strokeOpacity={tick === 0 ? 0.6 : 0.7}
               />
               <text
                 x={PADDING.left - 8}
                 y={y(tick)}
                 textAnchor="end"
                 dominantBaseline="middle"
-                className="fill-slate-400 text-[11px]"
+                className="fill-slate-400 text-[10px] tabular-nums"
               >
                 {formatValue(tick)}
               </text>
@@ -147,13 +147,13 @@ export function LineChart({
                 x={x(index)}
                 y={HEIGHT - 6}
                 textAnchor={index === 0 ? "start" : index === count - 1 ? "end" : "middle"}
-                className="fill-slate-400 text-[11px]"
+                className="fill-slate-400 text-[10px] tabular-nums"
               >
                 {label}
               </text>
             ) : null,
           )}
-          {/* 마우스가 올라간 시점의 세로 점선 */}
+          {/* 마우스가 올라간 시점의 세로줄 */}
           {hovered !== null && (
             <line
               x1={x(hovered)}
@@ -161,7 +161,7 @@ export function LineChart({
               y1={PADDING.top}
               y2={PADDING.top + plotHeight}
               stroke={CHART_COLORS.crosshair}
-              strokeDasharray="4 4"
+              strokeOpacity={0.6}
             />
           )}
           {series.map((item) => (
@@ -170,12 +170,12 @@ export function LineChart({
                 d={pathOf(item.values, item.connectGaps)}
                 fill="none"
                 stroke={item.color}
-                strokeWidth={2}
+                strokeWidth={1.75}
                 strokeLinejoin="round"
                 strokeLinecap="round"
-                strokeDasharray={item.dashed ? "6 5" : undefined}
+                strokeDasharray={item.dashed ? "5 4" : undefined}
               />
-              {/* 각 시점의 점(모든 계열 같은 모양: 채운 점 + 흰 테두리). 점이 너무 촘촘하면 마우스 위치만 표시. */}
+              {/* 점은 마우스가 올라간 시점에만(앞뒤가 비어 선으로 안 보이는 혼자인 값은 작게 늘 표시) */}
               {item.values.map((value, index) =>
                 value === null ||
                 (!showMarkers && hovered !== index && !isolated(item, index)) ? null : (
@@ -183,10 +183,10 @@ export function LineChart({
                     key={index}
                     cx={x(index)}
                     cy={y(value)}
-                    r={hovered === index ? 5 : count > 120 ? 2.5 : 4}
+                    r={hovered === index ? 4 : 2.5}
                     fill={item.color}
                     stroke={CHART_COLORS.surface}
-                    strokeWidth={count > 120 ? 1 : 1.5}
+                    strokeWidth={1.5}
                   />
                 ),
               )}
@@ -212,7 +212,7 @@ export function LineChart({
       )}
       {hovered !== null && width > 0 && (
         <div
-          className="pointer-events-none absolute z-10 min-w-36 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs shadow-lg"
+          className="pointer-events-none absolute z-10 min-w-36 rounded-md border border-slate-200 bg-white/95 px-3 py-2 text-xs shadow-sm backdrop-blur-sm"
           style={{
             top: PADDING.top,
             left: x(hovered),
@@ -235,27 +235,25 @@ export function LineChart({
   );
 }
 
-// 범례·툴팁에 쓰는 작은 선 견본(점선 계열은 점선으로).
+// 범례·툴팁에 쓰는 작은 선 견본(점선 계열은 점선으로). 점은 그리지 않음.
 export function LegendSwatch({ color, dashed }: { color: string; dashed?: boolean }) {
   return (
-    <svg width="18" height="8" aria-hidden="true" className="shrink-0">
+    <svg width="16" height="8" aria-hidden="true" className="shrink-0">
       <line
         x1="1"
-        x2="17"
+        x2="15"
         y1="4"
         y2="4"
         stroke={color}
-        strokeWidth="2"
+        strokeWidth="1.75"
         strokeDasharray={dashed ? "4 3" : undefined}
         strokeLinecap="round"
       />
-      <circle cx="9" cy="4" r="2.5" fill={color} stroke={CHART_COLORS.surface} strokeWidth="1" />
     </svg>
   );
 }
 
-// 목록 옆 작은 추이선. 마지막 점만 강조해 "지금" 값을 보여 줌.
-// 칸이 적으면 점선, 많으면(최근 24시간 288칸·최근 30일 720칸) 점선 무늬가 뭉개지므로 가는 실선으로 그림.
+// 목록 옆 작은 추이선. 가는 실선 하나만(점 없음).
 export function Sparkline({
   values,
   color,
@@ -269,7 +267,6 @@ export function Sparkline({
   const height = 28;
   const numbers = values.filter((value): value is number => value !== null);
   const max = Math.max(1, ...numbers);
-  const dense = values.length > 48;
   const step = values.length > 1 ? (width - 6) / (values.length - 1) : 0;
   const point = (value: number, index: number) => ({
     x: 3 + index * step,
@@ -284,8 +281,6 @@ export function Sparkline({
     path += `${drawing ? "L" : "M"}${x.toFixed(1)},${y.toFixed(1)}`;
     drawing = true;
   });
-  const lastIndex = values.findLastIndex((value) => value !== null);
-  const last = lastIndex >= 0 ? point(values[lastIndex]!, lastIndex) : null;
   return (
     <svg width={width} height={height} role="img" aria-label={label} className="shrink-0">
       <title>{label}</title>
@@ -294,21 +289,10 @@ export function Sparkline({
         d={path}
         fill="none"
         stroke={color}
-        strokeWidth={dense ? 1.25 : 1.5}
-        strokeDasharray={dense ? undefined : "3 3"}
+        strokeWidth={1.25}
         strokeLinejoin="round"
         strokeLinecap="round"
       />
-      {last && (
-        <circle
-          cx={last.x}
-          cy={last.y}
-          r="3"
-          fill={color}
-          stroke={CHART_COLORS.surface}
-          strokeWidth="1.5"
-        />
-      )}
     </svg>
   );
 }

@@ -13,20 +13,7 @@ import {
   type ApiDashboardSummary,
   type ApiDashboardTrendPoint,
 } from "@/lib/api/admin-api";
-import {
-  Activity,
-  AlertTriangle,
-  CheckCircle2,
-  Database,
-  Gauge,
-  Info,
-  RotateCw,
-  Server,
-  Table2,
-  Timer,
-  XCircle,
-  type LucideIcon,
-} from "lucide-react";
+import { Info, RotateCw, Table2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 // 이 주기마다 숫자를 새로 받음.
@@ -209,25 +196,22 @@ export function ApiDashboardSection({ accessToken }: { accessToken: string }) {
   }, [load]);
 
   return (
-    <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-6">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="flex items-center gap-2 text-base font-bold text-slate-900">
-            <Activity size={18} className="text-blue-600" aria-hidden="true" />
-            API 상태
-            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">
-              관리자 전용
-            </span>
-          </h2>
-          <p className="mt-1 text-sm text-slate-500">
-            모든 API 요청을 모아 최근 60분·24시간·7일·30일 흐름을 보여 줍니다. 숫자 카드와 그래프는
-            고른 기간을 따라갑니다.
+          <p className="text-[11px] font-medium tracking-[0.12em] text-slate-400 uppercase">
+            Admin only
+          </p>
+          <h2 className="mt-0.5 text-lg font-semibold tracking-tight text-slate-950">API 상태</h2>
+          <p className="mt-1 text-xs text-slate-500">
+            모든 API 요청을 모아 최근 60분·24시간·7일·30일 흐름을 보여 줍니다. 숫자와 그래프는 고른
+            기간을 따라갑니다.
           </p>
         </div>
-        <div className="flex items-center gap-2 text-xs text-slate-500">
+        <div className="flex items-center gap-3 text-xs text-slate-500">
           {data && <ModeBadge mode={data.mode} />}
           {data && <DatabaseBadge status={data.database} />}
-          {data && <span>{clock(data.generatedAt)} 기준</span>}
+          {data && <span className="tabular-nums">{clock(data.generatedAt)} 기준</span>}
           <Tooltip label="지금 새로 불러오기 (30초마다 자동)">
             <button
               type="button"
@@ -302,7 +286,7 @@ function ApiDashboardBody({
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <EndpointList
           title={`많이 호출된 API · ${RANGES[range].name}`}
-          description={`${RANGES[range].name} 호출 수 · 오른쪽 점선은 ${RANKING_STEP[range]} 단위 흐름`}
+          description={`${RANGES[range].name} 호출 수 · 오른쪽 선은 ${RANKING_STEP[range]} 단위 흐름`}
           ranking={data?.ranking ?? null}
           items={data?.ranking.top ?? []}
           metric="requests"
@@ -311,7 +295,7 @@ function ApiDashboardBody({
         />
         <EndpointList
           title={`느린 API · ${RANGES[range].name}`}
-          description={`${RANGES[range].name} 평균 응답 시간(5회 이상 호출) · 점선은 ${RANKING_STEP[range]} 단위 평균`}
+          description={`${RANGES[range].name} 평균 응답 시간(5회 이상 호출) · 오른쪽 선은 ${RANKING_STEP[range]} 단위 평균`}
           ranking={data?.ranking ?? null}
           items={data?.ranking.slow ?? []}
           metric="avgMs"
@@ -349,9 +333,7 @@ function ModeBadge({ mode }: { mode: ApiDashboard["mode"] }) {
           : "요청 집계는 DB에 모아 재시작해도 남습니다. Redis 없이 실행 중이라(로컬 개발) 아래 서버 목록에는 이 서버만 보입니다."
       }
     >
-      <span
-        className={`rounded-full px-2 py-1 font-medium ${mode === "SHARED" ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}
-      >
+      <span className="cursor-default text-slate-500">
         {mode === "SHARED" ? "서버 통합 집계" : "DB 보관 집계"}
       </span>
     </Tooltip>
@@ -361,10 +343,8 @@ function ModeBadge({ mode }: { mode: ApiDashboard["mode"] }) {
 function DatabaseBadge({ status }: { status: ApiDashboard["database"] }) {
   const up = status === "UP";
   return (
-    <span
-      className={`flex items-center gap-1 rounded-full px-2 py-1 font-medium ${up ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}
-    >
-      <Database size={12} aria-hidden="true" />
+    // 색 글자만(정상 초록·끊김 빨강)
+    <span className={up ? "text-emerald-600" : "font-medium text-red-600"}>
       DB {up ? "정상" : "연결 안 됨"}
     </span>
   );
@@ -391,9 +371,9 @@ const pointDelta = (current: number, previous: number, detail: string): Delta =>
 };
 
 const DELTA_STYLE: Record<DeltaDirection, { badge: string; word: string }> = {
-  up: { badge: "bg-red-50 text-red-600 ring-red-100", word: "상승" },
-  down: { badge: "bg-blue-50 text-blue-600 ring-blue-100", word: "하락" },
-  flat: { badge: "bg-slate-100 text-slate-500 ring-slate-200", word: "변화 없음" },
+  up: { badge: "text-red-600", word: "상승" },
+  down: { badge: "text-blue-600", word: "하락" },
+  flat: { badge: "text-slate-400", word: "변화 없음" },
 };
 
 // 등락 화살표: 모서리가 둥근 작은 삼각형(위·아래), 변화 없음은 짧은 가로줄.
@@ -437,7 +417,7 @@ function DeltaBadge({ delta, previousName }: { delta: Delta | null; previousName
     <Tooltip label={label} multiline>
       <span
         key={`${delta.direction}-${delta.text}`}
-        className={`delta-badge inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[11px] leading-none font-semibold tabular-nums ring-1 ring-inset ${style.badge}`}
+        className={`delta-badge inline-flex items-center gap-0.5 text-xs leading-none font-medium tabular-nums ${style.badge}`}
       >
         <DeltaArrow direction={delta.direction} />
         <span aria-hidden="true">{delta.text}</span>
@@ -476,7 +456,6 @@ function KpiRow({
   const timed = comparable && summary.requests > 0;
   const tiles: {
     label: string;
-    icon: LucideIcon;
     value: string;
     sub: string;
     help: string;
@@ -485,7 +464,6 @@ function KpiRow({
   }[] = [
     {
       label: "요청 수",
-      icon: Activity,
       value: `${formatNumber(summary.requests)}건`,
       sub: `오류 ${formatNumber(summary.clientErrors + summary.serverErrors)}건 포함`,
       help: "API가 처리한 요청 개수",
@@ -495,7 +473,6 @@ function KpiRow({
     },
     {
       label: "서버 오류율",
-      icon: summary.serverErrors > 0 ? AlertTriangle : CheckCircle2,
       value: `${summary.errorRate}%`,
       sub: `5xx ${formatNumber(summary.serverErrors)}건 · 4xx ${formatNumber(summary.clientErrors)}건`,
       help: "서버 잘못(5xx)으로 실패한 비율. 4xx는 잘못된 요청·권한 없음처럼 요청 쪽 문제",
@@ -506,7 +483,6 @@ function KpiRow({
     },
     {
       label: "평균 응답",
-      icon: Timer,
       value: formatMs(summary.avgMs),
       sub: `요청 ${formatNumber(summary.requests)}건 기준`,
       help: "요청 하나를 처리하는 데 걸린 평균 시간",
@@ -514,7 +490,6 @@ function KpiRow({
     },
     {
       label: "p95 응답",
-      icon: Gauge,
       value: formatP95(summary.p95Ms),
       sub: "100건 중 95건이 이 안에 끝남",
       help: "100건 중 95건이 이 시간 안에 끝났다는 뜻. 평균에 묻히는 느린 요청을 잡아내는 숫자. 응답 시간 구간 안에서 비례 계산한 추정값",
@@ -526,29 +501,26 @@ function KpiRow({
     },
   ];
   return (
-    <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    // 칸 사이 1px 선(바탕색 틈)으로만 나눔. 아이콘·상자 없이 이름 · 큰 숫자 · 증감 · 설명.
+    <div className="mt-5 grid gap-px border-y border-slate-200 bg-slate-200 sm:grid-cols-2 xl:grid-cols-4">
       {tiles.map((tile) => (
-        <div key={tile.label} className="rounded-xl border border-slate-200 px-4 py-3">
-          <p className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
-            <tile.icon
-              size={14}
-              className={tile.warn ? "text-red-500" : "text-slate-400"}
-              aria-hidden="true"
-            />
-            {tile.label} · {rangeName}
+        <div key={tile.label} className="bg-white px-4 py-4">
+          <p className="flex items-center gap-1.5 text-xs text-slate-500">
+            <span className={tile.warn ? "font-medium text-red-600" : ""}>{tile.label}</span>
+            <span className="text-slate-300">{rangeName}</span>
             <Tooltip label={tile.help} multiline className="ml-auto">
-              <Info size={13} className="text-slate-300" aria-label={tile.help} />
+              <Info size={12} className="text-slate-300" aria-label={tile.help} />
             </Tooltip>
           </p>
           {loaded ? (
             <>
-              <p className="mt-1 flex flex-wrap items-baseline gap-x-2">
-                <span className="text-2xl font-bold tracking-tight text-slate-900">
+              <p className="mt-1.5 flex flex-wrap items-baseline gap-x-2">
+                <span className="text-[26px] leading-tight font-semibold tracking-tight text-slate-950 tabular-nums">
                   {tile.value}
                 </span>
                 <DeltaBadge delta={tile.delta} previousName={previousName} />
               </p>
-              <p className="mt-0.5 text-xs text-slate-500">{tile.sub}</p>
+              <p className="mt-1 text-[11px] text-slate-400">{tile.sub}</p>
             </>
           ) : (
             <div className="mt-1 flex h-12 items-center">
@@ -750,10 +722,11 @@ function ChartCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className={`rounded-xl border border-slate-200 p-4 ${className}`}>
+    // 상자 없이 위 얇은 선 + 제목·범례
+    <div className={`border-t border-slate-200 pt-3 ${className}`}>
       <div className="mb-2 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-slate-800">
-          {title} <span className="text-xs font-normal text-slate-400">({unit})</span>
+        <h3 className="text-sm font-medium text-slate-800">
+          {title} <span className="text-xs font-normal text-slate-400">{unit}</span>
         </h3>
         {/* 범례: 색과 함께 선 모양(실선·점선)과 이름으로 구분. */}
         <div className="flex items-center gap-3 text-xs text-slate-500">
@@ -822,9 +795,7 @@ function EndpointName({ endpoint }: { endpoint: string }) {
   if (!path) return <span className="truncate text-xs text-slate-600">{endpoint}</span>;
   return (
     <span className="flex min-w-0 items-center gap-1.5">
-      <span
-        className={`shrink-0 rounded px-1.5 py-0.5 font-mono text-[10px] font-bold ${method === "GET" ? "bg-blue-50 text-blue-700" : "bg-violet-50 text-violet-700"}`}
-      >
+      <span className="w-10 shrink-0 font-mono text-[10px] font-semibold text-slate-400">
         {method}
       </span>
       <span className="truncate font-mono text-xs text-slate-700" title={path}>
@@ -834,7 +805,7 @@ function EndpointName({ endpoint }: { endpoint: string }) {
   );
 }
 
-// API 순위(고른 기간 기준). 막대 대신 오른쪽에 점선 추이선을 붙여 "언제 많이/느리게 불렸는지"를 함께 보여 줌.
+// API 순위(고른 기간 기준). 막대 대신 오른쪽에 가는 추이선을 붙여 "언제 많이/느리게 불렸는지"를 함께 보여 줌.
 function EndpointList({
   title,
   description,
@@ -923,9 +894,11 @@ function ServerList({
   const servers = loaded ?? [];
   return (
     <div className="mt-6">
-      <h3 className="flex items-center gap-1.5 text-sm font-semibold text-slate-800">
-        <Server size={15} className="text-slate-400" aria-hidden="true" />
-        가동 중인 서버 {loaded ? `${servers.length}대` : ""}
+      <h3 className="border-t border-slate-200 pt-3 text-sm font-medium text-slate-800">
+        가동 중인 서버{" "}
+        <span className="text-xs font-normal text-slate-400">
+          {loaded ? `${servers.length}대` : ""}
+        </span>
       </h3>
       <p className="text-xs text-slate-500">
         {mode === "SHARED"
@@ -952,7 +925,6 @@ function ServerList({
             ) : servers.length === 0 ? (
               <tr>
                 <td colSpan={4} className="py-4 text-center text-xs text-slate-500">
-                  <XCircle size={14} className="mr-1 inline text-red-500" aria-hidden="true" />
                   보고 중인 서버가 없습니다.
                 </td>
               </tr>
@@ -966,14 +938,11 @@ function ServerList({
                   <tr key={server.instanceId} className="border-b border-slate-100 last:border-0">
                     <td className="py-2.5">
                       <span className="flex items-center gap-1.5">
-                        <CheckCircle2 size={14} className="text-emerald-500" aria-hidden="true" />
                         <span className="font-mono text-xs text-slate-800">
                           {server.instanceId}
                         </span>
                         {server.current && (
-                          <span className="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">
-                            지금 응답한 서버
-                          </span>
+                          <span className="text-[11px] text-slate-400">· 지금 응답한 서버</span>
                         )}
                       </span>
                     </td>
