@@ -11,6 +11,18 @@ export const CHART_COLORS = {
     slow: "#f08c8b",
     verySlow: "#b42c2c",
   },
+  // 증시 보고(게시글): 오름 빨강·내림 파랑(한국 증시 표기), 보합 회색.
+  // 히트맵은 등락률 크기에 따라 옅음→진함 4단계(가운데는 회색 — 빨강·파랑 두 색 + 회색 중간값).
+  market: {
+    up: "#dc2626",
+    down: "#2563eb",
+    flat: "#94a3b8",
+    heat: {
+      up: ["#fee2e2", "#fca5a5", "#ef4444", "#b91c1c"],
+      down: ["#dbeafe", "#93c5fd", "#3b82f6", "#1d4ed8"],
+      flat: "#f1f5f9",
+    },
+  },
   // 그래프 틀: 가로 눈금선·기준선, 마우스 위치 세로선, 점 테두리(바탕색)
   grid: "#e2e8f0",
   crosshair: "#94a3b8",

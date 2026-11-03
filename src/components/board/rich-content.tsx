@@ -1,6 +1,15 @@
 "use client";
 
 import { BoardImage } from "@/components/board/board-image";
+import {
+  Callout,
+  MarketBanner,
+  MarketBreadth,
+  MarketHeatmap,
+  MarketHero,
+  MarketRanks,
+  MarketStats,
+} from "@/components/board/market-blocks";
 import type { ReactNode } from "react";
 
 // 편집기(Tiptap) 문서 JSON을 React 요소로 그림. HTML 문자열을 넣지 않아(dangerouslySetInnerHTML 미사용)
@@ -125,6 +134,25 @@ function renderNode(node: DocNode, key: number): ReactNode {
       return <br key={key} />;
     case "horizontalRule":
       return <hr key={key} className="border-slate-200" />;
+    // 매일 증시 보고 꾸밈 블록
+    case "marketHero":
+      return <MarketHero key={key} attrs={node.attrs ?? {}} />;
+    case "marketBanner":
+      return <MarketBanner key={key} attrs={node.attrs ?? {}} />;
+    case "marketStats":
+      return <MarketStats key={key} attrs={node.attrs ?? {}} />;
+    case "marketBreadth":
+      return <MarketBreadth key={key} attrs={node.attrs ?? {}} />;
+    case "marketHeatmap":
+      return <MarketHeatmap key={key} attrs={node.attrs ?? {}} />;
+    case "marketRanks":
+      return <MarketRanks key={key} attrs={node.attrs ?? {}} />;
+    case "callout":
+      return (
+        <Callout key={key} attrs={node.attrs}>
+          {children}
+        </Callout>
+      );
     case "table":
       // 좁은 화면에서는 표만 가로로 밀어 봄
       return (
