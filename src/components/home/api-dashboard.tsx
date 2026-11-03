@@ -600,6 +600,7 @@ function TrendSection({
     },
   ];
   // 오류율(%): 5xx(서버 잘못)와 4xx(요청 쪽 문제)를 나눔. 요청이 적은 칸은 비율이 크게 출렁여 비움.
+  // 비운 칸은 건너뛰고 앞뒤 점을 바로 이어 선으로 보이게 함(안 그러면 요청이 드문 때 점만 흩어짐).
   const rateValue = (point: ApiDashboardTrendPoint, errors: number) =>
     isFuture(point) || isMerged(point) || point.requests < MIN_RATE_REQUESTS
       ? null
@@ -609,6 +610,7 @@ function TrendSection({
       key: "5xx",
       label: "5xx",
       color: ERROR_COLOR,
+      connectGaps: true,
       values: points.map((point) => rateValue(point, point.serverErrors)),
     },
     {
@@ -616,6 +618,7 @@ function TrendSection({
       label: "4xx",
       color: CLIENT_ERROR_COLOR,
       dashed: true,
+      connectGaps: true,
       values: points.map((point) => rateValue(point, point.clientErrors)),
     },
   ];
