@@ -3,10 +3,10 @@
 import { visiblePages } from "@/components/common/pagination";
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 
-// 카드 안 목록 전용 작은 쪽 번호. 공통 Pagination보다 작고, 지금 쪽은 배경 없이 포인트 파랑 굵은 글자.
+// 카드 안 목록 전용 작은 쪽 번호. 공통 Pagination보다 조금 작고, 지금 쪽은 배경 없이 포인트 파랑 굵은 글자.
 // « 맨 앞 · ‹ 이전 · 번호(최대 5개) · › 다음 · » 맨 끝. 쪽 번호는 0부터, 화면에는 1부터.
 const arrowClassName =
-  "flex h-6 w-6 items-center justify-center rounded text-slate-400 transition enabled:cursor-pointer enabled:hover:text-blue-600 disabled:opacity-30";
+  "flex h-7 w-7 items-center justify-center rounded text-slate-400 transition enabled:cursor-pointer enabled:hover:text-blue-600 disabled:opacity-30";
 
 export function CardPagination({
   page,
@@ -27,7 +27,7 @@ export function CardPagination({
   return (
     <nav
       aria-label={label}
-      className={`flex items-center justify-center gap-0.5 text-xs ${className}`}
+      className={`flex items-center justify-center gap-1 text-sm ${className}`}
     >
       <button
         disabled={first}
@@ -35,7 +35,7 @@ export function CardPagination({
         className={arrowClassName}
         onClick={() => onChange(0)}
       >
-        <ChevronsLeft size={14} aria-hidden="true" />
+        <ChevronsLeft size={16} aria-hidden="true" />
       </button>
       <button
         disabled={first}
@@ -43,13 +43,13 @@ export function CardPagination({
         className={arrowClassName}
         onClick={() => onChange(page - 1)}
       >
-        <ChevronLeft size={14} aria-hidden="true" />
+        <ChevronLeft size={16} aria-hidden="true" />
       </button>
       {visiblePages(page, totalPages).map((target) => (
         <button
           key={target}
           aria-current={target === page ? "page" : undefined}
-          className={`flex h-6 min-w-6 cursor-pointer items-center justify-center px-1 transition ${target === page ? "font-bold text-blue-600" : "text-slate-400 hover:text-slate-800"}`}
+          className={`flex h-7 min-w-7 cursor-pointer items-center justify-center px-1 transition ${target === page ? "font-bold text-blue-600" : "text-slate-400 hover:text-slate-800"}`}
           onClick={() => onChange(target)}
         >
           {target + 1}
@@ -61,7 +61,7 @@ export function CardPagination({
         className={arrowClassName}
         onClick={() => onChange(page + 1)}
       >
-        <ChevronRight size={14} aria-hidden="true" />
+        <ChevronRight size={16} aria-hidden="true" />
       </button>
       <button
         disabled={last}
@@ -69,7 +69,7 @@ export function CardPagination({
         className={arrowClassName}
         onClick={() => onChange(totalPages - 1)}
       >
-        <ChevronsRight size={14} aria-hidden="true" />
+        <ChevronsRight size={16} aria-hidden="true" />
       </button>
     </nav>
   );
