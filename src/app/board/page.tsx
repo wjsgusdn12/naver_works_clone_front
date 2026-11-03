@@ -5,6 +5,17 @@ import { BoardContentHeader } from "@/components/board/board-content-header";
 import { BoardPostDetailView } from "@/components/board/board-post-detail";
 import { BoardPostForm, formatPublishAt } from "@/components/board/board-post-form";
 import { BoardPostSearch } from "@/components/board/board-post-search";
+import {
+  activeFilterCount,
+  BoardSearchFilterDialog,
+  EMPTY_SEARCH_FILTER,
+  periodFrom,
+  searchFilterFromKey,
+  searchFilterKey,
+  searchFilterOf,
+  writeSearchFilter,
+  type BoardSearchFilter,
+} from "@/components/board/board-search-filter";
 import { HomeCard, PostListBody } from "@/components/board/board-post-list";
 import { BoardRenameDialog } from "@/components/board/board-rename-dialog";
 import {
@@ -160,12 +171,19 @@ const SEARCH_TABS: { key: SearchTab; label: string; count: keyof BoardSearchCoun
 const searchTabOf = (value: string | null): SearchTab =>
   SEARCH_TABS.find((tab) => tab.key === value)?.key ?? "POST";
 
-// 목록 주소에 쪽 번호(화면에는 1부터, 1쪽이면 생략)·검색어·검색 탭을 붙임.
-const listHref = (menu: BoardMenu, page: number, keyword: string, tab: SearchTab = "POST") => {
+// 목록 주소에 쪽 번호(화면에는 1부터, 1쪽이면 생략)·검색어·검색 탭·검색 필터를 붙임.
+const listHref = (
+  menu: BoardMenu,
+  page: number,
+  keyword: string,
+  tab: SearchTab = "POST",
+  filter: BoardSearchFilter = EMPTY_SEARCH_FILTER,
+) => {
   const query = new URLSearchParams();
   if (page > 0) query.set("page", String(page + 1));
   if (keyword) query.set("q", keyword);
   if (keyword && tab !== "POST") query.set("tab", tab);
+  if (keyword) writeSearchFilter(query, filter);
   const extra = query.toString();
   const base = menuHref(menu);
   return extra ? `${base}${base.includes("?") ? "&" : "?"}${extra}` : base;
@@ -222,9 +240,15 @@ function BoardContent() {
   const searching = menu.kind === "latest" && listKeyword !== "";
   const searchTab = searchTabOf(searchParams.get("tab"));
   const searchScope: BoardSearchScope = searching ? searchTab : "ALL";
+  // 검색 필터(최신글 검색일 때만 주소에 있음)
+  const searchFilter = searching
+    ? searchFilterOf(new URLSearchParams(searchParams.toString()))
+    : EMPTY_SEARCH_FILTER;
+  const filterKey = searchFilterKey(searchFilter);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const listKey =
     screen.kind === "menu" && screen.menu.kind !== "home"
-      ? `${listHref(screen.menu, listPage, listKeyword, searchTab)}|${prefs.size}|${prefs.sort}|${prefs.unread}`
+      ? `${listHref(screen.menu, listPage, listKeyword, searchTab, searchFilter)}|${prefs.size}|${prefs.sort}|${prefs.unread}`
       : null;
   // 목록 쪽을 넘기면 오른쪽 화면을 맨 위로
   const contentRef = useRef<HTMLElement>(null);
@@ -293,6 +317,7 @@ function BoardContent() {
       keyword: string,
       listPrefs: ListPrefs,
       scope: BoardSearchScope,
+      filter: BoardSearchFilter,
     ) => {
       if (!accessToken) return;
       const version = ++listVersionRef.current;
@@ -301,7 +326,13 @@ function BoardContent() {
           accessToken,
           view,
           { boardId, type },
-          { page, keyword, scope, ...listPrefs },
+          {
+            page,
+            keyword,
+            scope,
+            ...listPrefs,
+            filter: { ...filter, from: periodFrom(filter.period) },
+          },
         );
         if (version !== listVersionRef.current) return;
         setList({ key, status: "loaded", ...result });
@@ -327,31 +358,34 @@ function BoardContent() {
           listKeyword,
           prefs,
           searchScope,
+          searchFilter,
         ),
       );
-    // prefs는 listKey에 들어 있어 바뀌면 다시 불러옴
+    // prefs·검색 필터는 listKey에 들어 있어 바뀌면 다시 불러옴
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listKey, listView, listBoardId, listType, listPage, listKeyword, searchScope, loadList]);
 
-  // 검색 결과 탭별 건수. 검색어가 바뀔 때만 다시 셈(탭·쪽을 옮겨도 그대로).
+  // 검색 결과 탭별 건수. 검색어·필터가 바뀔 때만 다시 셈(탭·쪽을 옮겨도 그대로).
   const [searchCounts, setSearchCounts] = useState<{
-    keyword: string;
+    key: string;
     counts: BoardSearchCounts;
   } | null>(null);
+  const countsKey = `${listKeyword}|${filterKey}`;
   useEffect(() => {
     if (!accessToken || !searching) return;
     let cancelled = false;
+    const filter = searchFilterFromKey(filterKey);
     boardApi
-      .searchCounts(accessToken, listKeyword)
+      .searchCounts(accessToken, listKeyword, { ...filter, from: periodFrom(filter.period) })
       .then((counts) => {
-        if (!cancelled) setSearchCounts({ keyword: listKeyword, counts });
+        if (!cancelled) setSearchCounts({ key: countsKey, counts });
       })
       .catch(() => undefined);
     return () => {
       cancelled = true;
     };
-  }, [accessToken, searching, listKeyword]);
-  const currentCounts = searchCounts?.keyword === listKeyword ? searchCounts.counts : null;
+  }, [accessToken, searching, listKeyword, filterKey, countsKey]);
+  const currentCounts = searchCounts?.key === countsKey ? searchCounts.counts : null;
 
   // 보기 설정을 바꾸면 기억해 두고 1쪽부터
   const changePrefs = (next: Partial<ListPrefs>) => {
@@ -362,7 +396,7 @@ function BoardContent() {
     } catch {
       // 저장 못 해도 이번 화면에서는 적용됨
     }
-    if (listPage > 0) router.replace(listHref(menu, 0, listKeyword, searchTab));
+    if (listPage > 0) router.replace(listHref(menu, 0, listKeyword, searchTab, searchFilter));
   };
 
   // 글 보기·수정
@@ -598,7 +632,11 @@ function BoardContent() {
           <BoardPostSearch
             key={`${menu.kind}|${listKeyword}`}
             keyword={menu.kind === "latest" ? listKeyword : ""}
-            onSearch={(keyword) => go(listHref({ kind: "latest" }, 0, keyword))}
+            membershipId={member.membershipId}
+            filterCount={activeFilterCount(searchFilter)}
+            // 새 검색어로 찾아도 켜 둔 필터는 그대로
+            onSearch={(keyword) => go(listHref({ kind: "latest" }, 0, keyword, "POST", searchFilter))}
+            onOpenFilter={() => setIsFilterOpen(true)}
           />
         }
         isAuthenticated
@@ -745,7 +783,7 @@ function BoardContent() {
                       count: currentCounts ? currentCounts[tab.count] : undefined,
                     }))}
                     value={searchTab}
-                    onChange={(tab) => go(listHref(menu, 0, listKeyword, tab))}
+                    onChange={(tab) => go(listHref(menu, 0, listKeyword, tab, searchFilter))}
                   />
                 ) : (
                   listKeyword &&
@@ -845,6 +883,7 @@ function BoardContent() {
                       listKeyword,
                       prefs,
                       searchScope,
+                      searchFilter,
                     )
                   }
                   search={searching ? { keyword: listKeyword, scope: searchTab } : undefined}
@@ -860,7 +899,7 @@ function BoardContent() {
               <Pagination
                 page={listPage}
                 totalPages={Math.max(currentList?.totalPages ?? list?.totalPages ?? 1, 1)}
-                onChange={(page) => go(listHref(menu, page, listKeyword, searchTab))}
+                onChange={(page) => go(listHref(menu, page, listKeyword, searchTab, searchFilter))}
                 label="글 목록 페이지"
               />
             </div>
@@ -872,6 +911,19 @@ function BoardContent() {
           board={renaming}
           onClose={() => setRenaming(null)}
           onSave={(name) => rename(renaming, name)}
+        />
+      )}
+      {isFilterOpen && (
+        // 상세 검색: 검색어와 필터를 함께 정해 최신글(볼 수 있는 게시판 전체)에서 찾음
+        <BoardSearchFilterDialog
+          keyword={searching ? listKeyword : ""}
+          filter={searchFilter}
+          boards={boards ?? []}
+          onClose={() => setIsFilterOpen(false)}
+          onApply={(keyword, filter) => {
+            setIsFilterOpen(false);
+            go(listHref({ kind: "latest" }, 0, keyword, searching ? searchTab : "POST", filter));
+          }}
         />
       )}
       {toast && (

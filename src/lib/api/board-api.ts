@@ -224,6 +224,22 @@ const uploadAttachment = (token: string, file: File, onProgress: (percent: numbe
     xhr.send(form);
   });
 
+// 검색 필터(검색어가 있을 때만 씀). field: 제목·내용 중 찾을 칸, from: 이 시각(ISO) 이후 등록,
+// boardId: 이 게시판에서만, fileOnly: 첨부 있는 글만.
+export type BoardSearchFilterQuery = {
+  field?: "ALL" | "TITLE" | "CONTENT";
+  from?: string;
+  boardId?: number | null;
+  fileOnly?: boolean;
+};
+
+const appendFilter = (query: URLSearchParams, filter: BoardSearchFilterQuery) => {
+  if (filter.field && filter.field !== "ALL") query.set("field", filter.field);
+  if (filter.from) query.set("from", filter.from);
+  if (filter.boardId) query.set("searchBoardId", String(filter.boardId));
+  if (filter.fileOnly) query.set("fileOnly", "true");
+};
+
 export const boardApi = {
   sidebar: (token: string) => apiRequest<BoardSidebar>("/api/v1/board/sidebar", token),
   home: (token: string) => apiRequest<BoardHome>("/api/v1/board/home", token),
@@ -239,6 +255,7 @@ export const boardApi = {
       sort?: BoardListSort;
       unread?: boolean;
       scope?: BoardSearchScope;
+      filter?: BoardSearchFilterQuery;
     } = {},
   ) => {
     const query = new URLSearchParams({ view });
@@ -250,14 +267,15 @@ export const boardApi = {
     if (options.sort) query.set("sort", options.sort);
     if (options.unread) query.set("unread", "true");
     if (options.scope && options.scope !== "ALL") query.set("scope", options.scope);
+    if (options.keyword && options.filter) appendFilter(query, options.filter);
     return apiRequest<BoardPostPage>(`/api/v1/board/post/list?${query}`, token);
   },
   // 검색 결과 화면 탭별 건수(게시글·작성자·파일·댓글)
-  searchCounts: (token: string, keyword: string) =>
-    apiRequest<BoardSearchCounts>(
-      `/api/v1/board/post/search/counts?${new URLSearchParams({ keyword })}`,
-      token,
-    ),
+  searchCounts: (token: string, keyword: string, filter?: BoardSearchFilterQuery) => {
+    const query = new URLSearchParams({ keyword });
+    if (filter) appendFilter(query, filter);
+    return apiRequest<BoardSearchCounts>(`/api/v1/board/post/search/counts?${query}`, token);
+  },
   // 목록에서 고른 글을 한꺼번에 읽음으로(최대 100개). 결과는 새로 읽음 처리한 글 수.
   markRead: (token: string, postIds: number[]) =>
     apiRequest<number>("/api/v1/board/post/read", token, json({ postIds })),
