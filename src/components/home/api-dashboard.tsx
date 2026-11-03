@@ -9,6 +9,7 @@ import {
   adminApi,
   type ApiDashboard,
   type ApiDashboardEndpoint,
+  type ApiDashboardPool,
   type ApiDashboardRanking,
   type ApiDashboardSummary,
   type ApiDashboardTrendPoint,
@@ -23,6 +24,18 @@ const REQUEST_COLOR = CHART_COLORS.primary;
 const ERROR_COLOR = CHART_COLORS.secondary;
 const AVG_COLOR = CHART_COLORS.primary;
 const P95_COLOR = CHART_COLORS.secondary;
+// 오류율 그래프의 4xx 선(5xx 주황과 구분되는 옅은 파랑 + 점선), 한도·기준선(회색 점선)
+const CLIENT_ERROR_COLOR = CHART_COLORS.speed.normal;
+const LIMIT_COLOR = CHART_COLORS.crosshair;
+// 오류율은 요청이 이보다 적은 칸을 비움(2건 중 1건 실패 = 50%처럼 크게 출렁여 오해를 줌)
+const MIN_RATE_REQUESTS = 5;
+// 가용성 목표(SLO): 서버 잘못(5xx) 없이 처리한 요청 비율. 허용 5xx = 요청의 0.1%(오류 예산).
+const SLO_TARGET = 99.9;
+// 오류 예산 사용률(%): 지금까지의 5xx ÷ 허용 5xx
+const budgetUsed = (requests: number, serverErrors: number) =>
+  (serverErrors / (requests * (1 - SLO_TARGET / 100))) * 100;
+const formatPercent = (value: number) =>
+  `${value >= 10 ? Math.round(value) : value >= 1 ? value.toFixed(1) : value.toFixed(2)}%`;
 // 응답 시간 분포: 빠를수록 진한 파랑, 느릴수록 진한 빨강. 느린 두 계열은 점선으로 모양도 구분.
 const SPEED_GROUPS: {
   key: string;
@@ -279,6 +292,7 @@ function ApiDashboardBody({
       />
       <TrendSection
         points={data?.trend ?? null}
+        pool={data?.pool ?? null}
         range={range}
         generatedAt={data?.generatedAt ?? ""}
         waiting={waiting}
@@ -537,16 +551,18 @@ function KpiRow({
   );
 }
 
-// 추이 영역: 고른 기간의 그래프 2개 + 표로 보기.
+// 추이 영역: 운영 신호별 그래프 6개(트래픽·오류 / 지연 / 포화·목표) + 표로 보기.
 // 아직 오지 않은 시간은 0이 아니라 빈칸이라 선이 "지금"에서 끊김.
-// 요청 수와 응답 시간은 단위가 달라(건 vs ms) 한 그래프에 섞지 않고 나눠 그림.
+// 단위가 다른 숫자(건·%·ms)는 한 그래프에 섞지 않고 나눠 그림.
 function TrendSection({
   points: loaded,
+  pool,
   range,
   generatedAt,
   waiting,
 }: {
   points: ApiDashboardTrendPoint[] | null;
+  pool: ApiDashboardPool | null;
   range: Range;
   // 이 시각보다 뒤에 시작하는 점은 아직 오지 않은 시간
   generatedAt: string;
@@ -573,6 +589,7 @@ function TrendSection({
   // 요청이 없던 구간의 응답 시간은 0이 아니라 "기록 없음". 응답 시간 선은 그 칸을 건너뛰고 앞뒤 점을 바로 이음.
   const responseValue = (point: ApiDashboardTrendPoint, value: number) =>
     isFuture(point) || isMerged(point) || point.requests === 0 ? null : value < 0 ? 5000 : value;
+  // 요청 수 전용(오류는 오른쪽 오류율 그래프로)
   const requestSeries: LineSeries[] = [
     {
       key: "requests",
@@ -581,15 +598,64 @@ function TrendSection({
       connectGaps: true,
       values: points.map((point) => countValue(point, point.requests)),
     },
+  ];
+  // 오류율(%): 5xx(서버 잘못)와 4xx(요청 쪽 문제)를 나눔. 요청이 적은 칸은 비율이 크게 출렁여 비움.
+  const rateValue = (point: ApiDashboardTrendPoint, errors: number) =>
+    isFuture(point) || isMerged(point) || point.requests < MIN_RATE_REQUESTS
+      ? null
+      : (errors / point.requests) * 100;
+  const errorRateSeries: LineSeries[] = [
     {
-      key: "errors",
-      label: "오류(4xx·5xx)",
+      key: "5xx",
+      label: "5xx",
       color: ERROR_COLOR,
+      values: points.map((point) => rateValue(point, point.serverErrors)),
+    },
+    {
+      key: "4xx",
+      label: "4xx",
+      color: CLIENT_ERROR_COLOR,
       dashed: true,
-      connectGaps: true,
-      values: points.map((point) => countValue(point, point.errors)),
+      values: points.map((point) => rateValue(point, point.clientErrors)),
     },
   ];
+  // 오류 예산: 목표(99.9%)가 허용하는 5xx(요청의 0.1%) 중 지금까지 쓴 비율을 기간 처음부터 누적으로.
+  // 칸마다 그때까지의 누적(요청, 5xx). 아직 오지 않은 칸·묶음에 포함된 칸은 앞 칸 값을 그대로 이어받고 선은 비움.
+  const running = points.reduce<{ requests: number; serverErrors: number }[]>((totals, point) => {
+    const before = totals.at(-1) ?? { requests: 0, serverErrors: 0 };
+    const counted = !isFuture(point) && !isMerged(point);
+    return [
+      ...totals,
+      counted
+        ? {
+            requests: before.requests + point.requests,
+            serverErrors: before.serverErrors + point.serverErrors,
+          }
+        : before,
+    ];
+  }, []);
+  const budgetValues = points.map((point, index) =>
+    isFuture(point) || isMerged(point) || running[index].requests === 0
+      ? null
+      : budgetUsed(running[index].requests, running[index].serverErrors),
+  );
+  const cumulativeRequests = running.at(-1)?.requests ?? 0;
+  const cumulativeServerErrors = running.at(-1)?.serverErrors ?? 0;
+  const budgetSeries: LineSeries[] = [
+    { key: "used", label: "예산 사용", color: REQUEST_COLOR, connectGaps: true, values: budgetValues },
+    {
+      key: "limit",
+      label: "한도 100%",
+      color: LIMIT_COLOR,
+      dashed: true,
+      values: points.map((point) => (isFuture(point) ? null : 100)),
+      connectGaps: true,
+    },
+  ];
+  const availability =
+    cumulativeRequests === 0 ? null : (1 - cumulativeServerErrors / cumulativeRequests) * 100;
+  const budget =
+    cumulativeRequests === 0 ? null : budgetUsed(cumulativeRequests, cumulativeServerErrors);
   const responseSeries: LineSeries[] = [
     {
       key: "avg",
@@ -645,64 +711,210 @@ function TrendSection({
           titles={tableIndexes.map((index) => titles[index])}
         />
       ) : (
-        <div className="mt-4 grid gap-6 xl:grid-cols-2">
-          <ChartCard
-            title="요청 · 오류"
-            unit="건"
-            series={requestSeries}
-            waiting={waiting}
-            empty={!!loaded && !hasData}
-          >
-            <LineChart
-              labels={labels}
-              tooltipTitles={titles}
+        // 운영에서 보는 신호별로 세 줄: 트래픽·오류 / 지연 / 포화·목표
+        <>
+          <ChartRow label="트래픽 · 오류">
+            <ChartCard
+              title="요청 수"
+              unit="건"
               series={requestSeries}
-              formatValue={(value) => `${formatNumber(Math.round(value))}`}
-              labelEvery={1}
-              ariaLabel={`${config.name} 요청과 오류 추이`}
-            />
-          </ChartCard>
-          <ChartCard
-            title="응답 시간"
-            unit="ms"
-            series={responseSeries}
-            waiting={waiting}
-            empty={!!loaded && !hasData}
-          >
-            <LineChart
-              labels={labels}
-              tooltipTitles={titles}
+              waiting={waiting}
+              empty={!!loaded && !hasData}
+            >
+              <LineChart
+                labels={labels}
+                tooltipTitles={titles}
+                series={requestSeries}
+                formatValue={(value) => `${formatNumber(Math.round(value))}`}
+                labelEvery={1}
+                ariaLabel={`${config.name} 요청 수 추이`}
+              />
+            </ChartCard>
+            <ChartCard
+              title="오류율"
+              unit="%"
+              series={errorRateSeries}
+              waiting={waiting}
+              empty={!!loaded && !hasData}
+              note={`요청 ${MIN_RATE_REQUESTS}건 미만인 칸은 비율이 크게 출렁여 비워 둡니다.`}
+            >
+              <LineChart
+                labels={labels}
+                tooltipTitles={titles}
+                series={errorRateSeries}
+                formatValue={formatPercent}
+                labelEvery={1}
+                ariaLabel={`${config.name} 5xx·4xx 오류율 추이`}
+              />
+            </ChartCard>
+          </ChartRow>
+          <ChartRow label="지연">
+            <ChartCard
+              title="응답 시간"
+              unit="ms"
               series={responseSeries}
-              formatValue={formatMs}
-              labelEvery={1}
-              ariaLabel={`${config.name} 평균·p95 응답 시간 추이`}
-            />
-          </ChartCard>
-          {/* 응답 시간 분포: 평균·p95로는 안 보이는 "가끔 느린 요청"을 빠르기 묶음별 요청 수로 */}
-          <ChartCard
-            title="응답 시간 분포"
-            unit="건"
-            series={speedSeries}
-            className="xl:col-span-2"
-            waiting={waiting}
-            empty={!!loaded && !hasData}
-          >
-            <LineChart
-              labels={labels}
-              tooltipTitles={titles}
+              waiting={waiting}
+              empty={!!loaded && !hasData}
+            >
+              <LineChart
+                labels={labels}
+                tooltipTitles={titles}
+                series={responseSeries}
+                formatValue={formatMs}
+                labelEvery={1}
+                ariaLabel={`${config.name} 평균·p95 응답 시간 추이`}
+              />
+            </ChartCard>
+            {/* 응답 시간 분포: 평균·p95로는 안 보이는 "가끔 느린 요청"을 빠르기 묶음별 요청 수로 */}
+            <ChartCard
+              title="응답 시간 분포"
+              unit="건"
               series={speedSeries}
-              formatValue={(value) => `${formatNumber(Math.round(value))}`}
-              labelEvery={1}
-              ariaLabel={`${config.name} 빠르기별 요청 수 추이`}
-            />
-          </ChartCard>
-        </div>
+              waiting={waiting}
+              empty={!!loaded && !hasData}
+            >
+              <LineChart
+                labels={labels}
+                tooltipTitles={titles}
+                series={speedSeries}
+                formatValue={(value) => `${formatNumber(Math.round(value))}`}
+                labelEvery={1}
+                ariaLabel={`${config.name} 빠르기별 요청 수 추이`}
+              />
+            </ChartCard>
+          </ChartRow>
+          <ChartRow label="포화 · 목표">
+            <PoolChart pool={pool} waiting={waiting} />
+            <ChartCard
+              title="가용성 · 오류 예산"
+              unit={`목표 ${SLO_TARGET}%`}
+              series={budgetSeries}
+              waiting={waiting}
+              empty={!!loaded && !hasData}
+              note={
+                availability === null || budget === null ? undefined : (
+                  <span className="tabular-nums">
+                    가용성{" "}
+                    <b
+                      className={availability >= SLO_TARGET ? "text-slate-900" : "text-red-600"}
+                    >
+                      {availability.toFixed(3)}%
+                    </b>
+                    <span className="text-slate-300"> · </span>
+                    예산 사용{" "}
+                    <b className={budget <= 100 ? "text-slate-900" : "text-red-600"}>
+                      {formatPercent(budget)}
+                    </b>
+                    <span className="text-slate-400">
+                      {" "}
+                      (5xx {formatNumber(cumulativeServerErrors)}건 / 허용{" "}
+                      {formatNumber(Math.floor(cumulativeRequests * (1 - SLO_TARGET / 100)))}건)
+                    </span>
+                  </span>
+                )
+              }
+            >
+              <LineChart
+                labels={labels}
+                tooltipTitles={titles}
+                series={budgetSeries}
+                formatValue={formatPercent}
+                labelEvery={1}
+                ariaLabel={`${config.name} 오류 예산 사용 누적 추이`}
+              />
+            </ChartCard>
+          </ChartRow>
+        </>
       )}
     </div>
   );
 }
 
 // 그래프 카드. 그래프 자리는 높이 고정(200px)이라 받는 중·기록 없음일 때도 카드 크기가 그대로.
+// 그래프 한 줄(2칸)과 그 줄이 보는 운영 신호 이름
+function ChartRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <section className="mt-6">
+      <p className="mb-2 text-[11px] font-medium tracking-[0.12em] text-slate-400 uppercase">{label}</p>
+      <div className="grid gap-6 xl:grid-cols-2">{children}</div>
+    </section>
+  );
+}
+
+// DB 연결 풀(이 서버 · 최근 60분, 기간 탭과 무관). 사용 중 연결이 한도에 붙거나 대기가 생기면 DB 쪽 병목.
+function PoolChart({ pool, waiting }: { pool: ApiDashboardPool | null; waiting: CardWaiting }) {
+  const recent = pool?.recent ?? [];
+  const labels = recent.map((minute) => {
+    const date = new Date(minute.startAt);
+    return date.getMinutes() % 10 === 0 ? clock(minute.startAt) : "";
+  });
+  const titles = recent.map((minute) => clock(minute.startAt));
+  const series: LineSeries[] = [
+    {
+      key: "max",
+      label: "최대 사용",
+      color: REQUEST_COLOR,
+      values: recent.map((minute) => minute.maxActive),
+    },
+    {
+      key: "avg",
+      label: "평균 사용",
+      color: CLIENT_ERROR_COLOR,
+      dashed: true,
+      values: recent.map((minute) => minute.avgActive),
+    },
+    {
+      key: "waiting",
+      label: "대기",
+      color: ERROR_COLOR,
+      values: recent.map((minute) => minute.maxWaiting),
+    },
+    {
+      key: "limit",
+      label: `한도 ${pool?.maxSize ?? 0}`,
+      color: LIMIT_COLOR,
+      dashed: true,
+      values: recent.map(() => pool?.maxSize ?? 0),
+    },
+  ];
+  return (
+    <ChartCard
+      title="DB 연결 풀"
+      unit="개"
+      series={series}
+      waiting={waiting}
+      empty={!pool?.available || recent.length === 0}
+      emptyText={
+        pool && !pool.available
+          ? "이 환경에서는 연결 풀 정보를 읽을 수 없습니다."
+          : "아직 기록이 없습니다. 10초마다 모읍니다."
+      }
+      note={
+        pool?.available ? (
+          <span className="tabular-nums">
+            이 서버 · 최근 60분 · 지금 사용{" "}
+            <b className="text-slate-900">
+              {pool.active}/{pool.maxSize}
+            </b>
+            <span className="text-slate-300"> · </span>
+            대기{" "}
+            <b className={pool.waiting > 0 ? "text-red-600" : "text-slate-900"}>{pool.waiting}</b>
+          </span>
+        ) : undefined
+      }
+    >
+      <LineChart
+        labels={labels}
+        tooltipTitles={titles}
+        series={series}
+        formatValue={(value) => `${Math.round(value * 10) / 10}`}
+        labelEvery={1}
+        ariaLabel="최근 60분 DB 연결 풀 사용량"
+      />
+    </ChartCard>
+  );
+}
+
 function ChartCard({
   title,
   unit,
@@ -710,6 +922,8 @@ function ChartCard({
   className = "",
   waiting,
   empty,
+  emptyText = "이 기간에 기록된 요청이 없습니다.",
+  note,
   children,
 }: {
   title: string;
@@ -719,6 +933,9 @@ function ChartCard({
   waiting: CardWaiting;
   // 이 기간에 기록된 요청이 없음
   empty: boolean;
+  emptyText?: string;
+  // 제목 아래 한 줄(현재 값·안내)
+  note?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
@@ -738,11 +955,12 @@ function ChartCard({
           ))}
         </div>
       </div>
+      {note && <p className="-mt-1 mb-2 text-xs text-slate-500">{note}</p>}
       {waiting ? (
         <CardWaitingState waiting={waiting} className="h-[200px]" />
       ) : empty ? (
         <p className="flex h-[200px] items-center justify-center rounded-lg bg-slate-50 text-sm text-slate-500">
-          이 기간에 기록된 요청이 없습니다.
+          {emptyText}
         </p>
       ) : (
         children

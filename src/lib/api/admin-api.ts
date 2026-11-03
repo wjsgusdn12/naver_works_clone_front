@@ -28,6 +28,18 @@ export type ApiDashboardTrendPoint = {
   latency: number[];
   // 세밀한 기록이 없는 구간(기능 추가 전)이라 큰 단위 합계를 칸마다 고르게 나눈 추정값
   estimated: boolean;
+  // errors를 4xx(요청 쪽 문제)·5xx(서버 잘못)로 나눈 것
+  clientErrors: number;
+  serverErrors: number;
+};
+// DB 연결 풀(이 응답을 만든 서버, 최근 60분 1분 칸). available=false면 풀 정보를 읽을 수 없는 환경.
+export type ApiDashboardPool = {
+  available: boolean;
+  maxSize: number;
+  active: number;
+  idle: number;
+  waiting: number;
+  recent: { startAt: string; maxActive: number; avgActive: number; maxWaiting: number }[];
 };
 export type ApiDashboardEndpoint = {
   endpoint: string;
@@ -67,6 +79,7 @@ export type ApiDashboard = {
   // HOUR 최근 60분 1분×60, DAY 최근 24시간 5분×288, WEEK 최근 7일 1시간×168, MONTH 최근 30일 1시간×720
   trend: ApiDashboardTrendPoint[];
   ranking: ApiDashboardRanking;
+  pool: ApiDashboardPool;
 };
 // 기간 탭: 최근 60분·24시간·7일·30일
 export type ApiDashboardRange = "HOUR" | "DAY" | "WEEK" | "MONTH";
