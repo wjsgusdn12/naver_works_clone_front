@@ -35,6 +35,15 @@ export function ImportantButton({
   );
 }
 
+// 목록 제목 글자색. 매일 자동 게시글(증시 브리핑)은 혼자 포인트 파랑, 나머지는 읽음 여부대로.
+// 안 읽은 글은 어느 쪽이든 굵게.
+export const postTitleTone = (post: { read: boolean; daily: boolean }, readClass: string) =>
+  post.daily
+    ? `text-blue-600 ${post.read ? "font-medium" : "font-bold"}`
+    : post.read
+      ? readClass
+      : "font-bold text-slate-950";
+
 // 필독 딱지 + 내가 중요 표시한 글이면 작은 노란 별(showImportant가 false면 별은 따로 그리는 곳)
 export function PostBadges({
   post,
@@ -134,7 +143,7 @@ export function PostRow({
             <PostBadges post={post} showImportant={!onToggleImportant} />
             {post.boardType === "INQUIRY" && <AnswerBadge answered={post.answered} />}
             <span
-              className={`truncate text-[15px] ${post.read ? "text-slate-700" : "font-bold text-slate-950"}`}
+              className={`truncate text-[15px] ${postTitleTone(post, "text-slate-700")}`}
             >
               {search ? <Highlight text={post.title} keyword={search.keyword} /> : post.title}
             </span>
@@ -282,7 +291,7 @@ export function HomeCard({
                 {/* 제목 바로 뒤에 첨부 표시(제목이 길면 제목만 잘림) */}
                 <span className="flex min-w-0 flex-1 items-center gap-1">
                   <span
-                    className={`truncate ${post.read ? "text-slate-600" : "font-bold text-slate-950"}`}
+                    className={`truncate ${postTitleTone(post, "text-slate-600")}`}
                   >
                     {post.title}
                   </span>

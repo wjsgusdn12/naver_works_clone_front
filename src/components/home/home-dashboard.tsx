@@ -1,6 +1,6 @@
 "use client";
 
-import { PostBadges, PostMeta } from "@/components/board/board-post-list";
+import { PostBadges, PostMeta, postTitleTone } from "@/components/board/board-post-list";
 import { AttachmentMark } from "@/components/common/attachment-icon";
 import { FavoriteButton } from "@/components/common/favorite-button";
 import { FitPagedList } from "@/components/common/fit-paged-list";
@@ -563,7 +563,7 @@ function BoardPostList({
           <span className="flex w-full min-w-0 items-center gap-1.5">
             <PostBadges post={post} />
             <span
-              className={`min-w-0 truncate text-sm ${post.read ? "text-slate-600" : "font-bold text-slate-950"}`}
+              className={`min-w-0 truncate text-sm ${postTitleTone(post, "text-slate-600")}`}
             >
               {post.title}
             </span>

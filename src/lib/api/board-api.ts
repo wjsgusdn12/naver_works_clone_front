@@ -64,6 +64,8 @@ export type BoardPostSummary = {
   reactionCount: number;
   // 파일·댓글 검색일 때 검색어와 맞은 파일 이름·댓글 내용(그 밖에는 null)
   matchText: string | null;
+  // 매일 자동 게시글(증시 브리핑) — 제목을 포인트 색으로
+  daily: boolean;
 };
 
 // 검색 결과 화면의 탭(찾을 곳). ALL: 제목·본문·글쓴이(게시판 안 검색·휴지통).
@@ -158,6 +160,8 @@ export type BoardPostDetail = {
   reactions: BoardReaction[];
   // 등록된 글(휴지통·임시저장·예약 아님)에만 리액션 가능
   canReact: boolean;
+  // 매일 자동 게시글(증시 브리핑) — 제목을 포인트 색으로
+  daily: boolean;
 };
 
 // companyName: 공통 게시판 필독은 여러 회사 사람이 섞이므로 함께 표시
