@@ -1,19 +1,12 @@
 "use client";
 
 import { dateLabel, Highlight } from "@/components/chat/message-search-panel";
+import { CommentIcon } from "@/components/common/comment-icon";
 import { CustomCheckbox } from "@/components/common/custom-checkbox";
 import { LoadingState } from "@/components/common/loading";
 import { Tooltip } from "@/components/common/tooltip";
 import type { BoardPostSummary, BoardSearchScope } from "@/lib/api/board-api";
-import {
-  ChevronRight,
-  Eye,
-  MessageSquare,
-  Paperclip,
-  RotateCw,
-  SmilePlus,
-  Star,
-} from "lucide-react";
+import { ChevronRight, Eye, Paperclip, RotateCw, SmilePlus, Star } from "lucide-react";
 
 // 중요 표시(개인) 켜기·끄기 버튼. 표시하면 노란 별, 아니면 옅은 회색 별. 올리면 공통 툴팁.
 export function ImportantButton({
@@ -163,7 +156,7 @@ export function PostRow({
               {search.scope === "FILE" ? (
                 <Paperclip size={12} className="shrink-0 text-slate-400" aria-label="파일" />
               ) : (
-                <MessageSquare size={12} className="shrink-0 text-slate-400" aria-label="댓글" />
+                <CommentIcon size={12} className="shrink-0 text-slate-400" aria-label="댓글" />
               )}
               <span className="truncate">
                 <Highlight text={post.matchText} keyword={search.keyword} />
@@ -241,7 +234,7 @@ export function PostMeta({
         className={`flex items-center gap-0.5 ${post.commentCount > 0 ? "text-blue-600" : ""}`}
         title="댓글 수"
       >
-        <MessageSquare size={12} aria-hidden="true" />
+        <CommentIcon size={12} aria-hidden="true" />
         {post.commentCount}
       </span>
     </span>
