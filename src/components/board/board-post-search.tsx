@@ -14,7 +14,7 @@ import { useEffect, useRef, useState } from "react";
 
 // 상단바(화면 제목 오른쪽)의 글 검색칸. 주소록 검색칸과 같은 모양·동작.
 // 누르면 최근 검색어(이 브라우저, 사용자별)가 펼쳐지고, 입력하면 그 글자가 든 최근 검색어만.
-// Enter로 검색, X로 검색 해제, 오른쪽 필터 버튼은 상세 검색 모달을 엶.
+// Enter로 검색, X로 검색 해제, 오른쪽 필터 버튼은 상세 검색을 검색칸 바로 밑에 펼침.
 // 주소의 검색어가 바뀌면 key로 새로 만들어 값을 맞춤.
 export function BoardPostSearch({
   keyword,
@@ -28,7 +28,8 @@ export function BoardPostSearch({
   // 켜 둔 검색 필터 수(필터 버튼 색·숫자)
   filterCount: number;
   onSearch: (keyword: string) => void;
-  onOpenFilter: () => void;
+  // 검색칸 위치를 넘겨 상세 검색을 그 밑에 펼치게 함
+  onOpenFilter: (anchor: DOMRect) => void;
 }) {
   const [value, setValue] = useState(keyword);
   const [open, setOpen] = useState(false);
@@ -109,7 +110,8 @@ export function BoardPostSearch({
           count={filterCount}
           onClick={() => {
             setOpen(false);
-            onOpenFilter();
+            const anchor = containerRef.current?.getBoundingClientRect();
+            if (anchor) onOpenFilter(anchor);
           }}
         />
       </form>

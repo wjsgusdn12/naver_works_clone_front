@@ -245,7 +245,8 @@ function BoardContent() {
     ? searchFilterOf(new URLSearchParams(searchParams.toString()))
     : EMPTY_SEARCH_FILTER;
   const filterKey = searchFilterKey(searchFilter);
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  // 상세 검색을 연 검색칸 위치(그 밑에 왼쪽 선을 맞춰 펼침). null이면 닫힘.
+  const [filterAnchor, setFilterAnchor] = useState<DOMRect | null>(null);
   const listKey =
     screen.kind === "menu" && screen.menu.kind !== "home"
       ? `${listHref(screen.menu, listPage, listKeyword, searchTab, searchFilter)}|${prefs.size}|${prefs.sort}|${prefs.unread}`
@@ -636,7 +637,7 @@ function BoardContent() {
             filterCount={activeFilterCount(searchFilter)}
             // 새 검색어로 찾아도 켜 둔 필터는 그대로
             onSearch={(keyword) => go(listHref({ kind: "latest" }, 0, keyword, "POST", searchFilter))}
-            onOpenFilter={() => setIsFilterOpen(true)}
+            onOpenFilter={setFilterAnchor}
           />
         }
         isAuthenticated
@@ -913,15 +914,16 @@ function BoardContent() {
           onSave={(name) => rename(renaming, name)}
         />
       )}
-      {isFilterOpen && (
+      {filterAnchor && (
         // 상세 검색: 검색어와 필터를 함께 정해 최신글(볼 수 있는 게시판 전체)에서 찾음
         <BoardSearchFilterDialog
           keyword={searching ? listKeyword : ""}
           filter={searchFilter}
           boards={boards ?? []}
-          onClose={() => setIsFilterOpen(false)}
+          anchor={filterAnchor}
+          onClose={() => setFilterAnchor(null)}
           onApply={(keyword, filter) => {
-            setIsFilterOpen(false);
+            setFilterAnchor(null);
             go(listHref({ kind: "latest" }, 0, keyword, searching ? searchTab : "POST", filter));
           }}
         />

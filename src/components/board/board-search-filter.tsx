@@ -2,7 +2,6 @@
 
 import { CustomCheckbox } from "@/components/common/custom-checkbox";
 import { CustomSelect, type SelectOption } from "@/components/common/custom-select";
-import { dialogOverlayClass } from "@/components/common/dialog-placement";
 import type { BoardItem } from "@/lib/api/board-api";
 import { SlidersHorizontal, X } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -149,17 +148,21 @@ export function SearchFilterButton({
   );
 }
 
-// 검색 필터 모달. 검색어도 함께 고칠 수 있고, "검색"을 누르면 필터와 검색어를 한꺼번에 적용.
+// 검색 필터 창. 검색칸(anchor) 바로 밑에 왼쪽 선을 맞춰 펼침(화면이 좁으면 오른쪽 끝에 걸리지 않게 밀어 넣음).
+// 검색어도 함께 고칠 수 있고, "검색"을 누르면 필터와 검색어를 한꺼번에 적용. 바깥을 누르거나 Esc면 닫힘.
 export function BoardSearchFilterDialog({
   keyword,
   filter,
   boards,
+  anchor,
   onApply,
   onClose,
 }: {
   keyword: string;
   filter: BoardSearchFilter;
   boards: BoardItem[];
+  // 검색칸 위치(화면 기준)
+  anchor: DOMRect;
   onApply: (keyword: string, filter: BoardSearchFilter) => void;
   onClose: () => void;
 }) {
@@ -182,7 +185,7 @@ export function BoardSearchFilterDialog({
       role="dialog"
       aria-modal="true"
       aria-labelledby="board-search-filter-title"
-      className={dialogOverlayClass("center")}
+      className="fixed inset-0 z-[100]"
       onClick={onClose}
     >
       <form
@@ -197,7 +200,11 @@ export function BoardSearchFilterDialog({
           onApply(trimmed, draft);
         }}
         onClick={(event) => event.stopPropagation()}
-        className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl"
+        style={{
+          top: anchor.bottom + 8,
+          left: `min(${anchor.left}px, calc(100vw - ${CARD_WIDTH}px - 16px))`,
+        }}
+        className="fixed max-h-[calc(100vh-96px)] w-[min(448px,calc(100vw-32px))] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl animate-in fade-in slide-in-from-top-1"
       >
         <div className="flex items-center justify-between gap-3">
           <h2 id="board-search-filter-title" className="text-lg font-bold text-slate-900">
@@ -292,6 +299,9 @@ export function BoardSearchFilterDialog({
     </div>
   );
 }
+
+// 펼친 창 폭(오른쪽 끝을 넘지 않게 왼쪽 위치를 계산할 때 씀)
+const CARD_WIDTH = 448;
 
 function FilterRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
