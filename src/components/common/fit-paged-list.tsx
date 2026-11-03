@@ -28,6 +28,8 @@ export function FitPagedList<T>({
   const listRef = useRef<HTMLUListElement>(null);
   const [pageSize, setPageSize] = useState(fallbackSize);
   const [page, setPage] = useState(0);
+  // 마지막 쪽 넘김 방향(애니메이션용). 처음 그릴 때는 없음.
+  const [slide, setSlide] = useState<{ direction: "next" | "prev"; id: number } | null>(null);
 
   // 칸 높이 ÷ 첫 줄 높이 = 한 페이지 개수. 칸 크기가 바뀌거나 넓은/좁은 화면이 바뀌면 다시 셈.
   useEffect(() => {
@@ -61,16 +63,30 @@ export function FitPagedList<T>({
   return (
     <div className="flex flex-col xl:absolute xl:inset-0">
       <div ref={areaRef} className="min-h-0 overflow-hidden xl:flex-1">
-        <ul ref={listRef} className={listClassName}>
-          {shown.map((item) => (
-            <li key={getKey(item)}>{renderItem(item)}</li>
+        {/* 쪽을 넘기면 key가 바뀌어 새 줄들이 넘긴 방향에서 줄마다 조금씩 늦게 들어옴(처음 그릴 때는 그대로) */}
+        <ul key={`${current}-${slide?.id ?? 0}`} ref={listRef} className={listClassName}>
+          {shown.map((item, index) => (
+            <li
+              key={getKey(item)}
+              className={slide ? `page-slide-${slide.direction}` : undefined}
+              style={slide ? { animationDelay: `${index * 25}ms` } : undefined}
+            >
+              {renderItem(item)}
+            </li>
           ))}
         </ul>
       </div>
       <CardPagination
         page={current}
         totalPages={totalPages}
-        onChange={setPage}
+        onChange={(next) => {
+          if (next === current) return;
+          setSlide((before) => ({
+            direction: next > current ? "next" : "prev",
+            id: (before?.id ?? 0) + 1,
+          }));
+          setPage(next);
+        }}
         label={label}
         className="shrink-0 pt-1"
       />

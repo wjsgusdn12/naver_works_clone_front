@@ -47,9 +47,10 @@ export function CardPagination({
       </button>
       {visiblePages(page, totalPages).map((target) => (
         <button
-          key={target}
+          // 지금 쪽 번호는 바뀔 때마다 새로 그려져 살짝 튐
+          key={target === page ? `current-${target}` : target}
           aria-current={target === page ? "page" : undefined}
-          className={`flex h-7 min-w-7 cursor-pointer items-center justify-center px-1 transition ${target === page ? "font-bold text-blue-600" : "text-slate-400 hover:text-slate-800"}`}
+          className={`flex h-7 min-w-7 cursor-pointer items-center justify-center px-1 transition ${target === page ? "page-number-pop font-bold text-blue-600" : "text-slate-400 hover:text-slate-800"}`}
           onClick={() => onChange(target)}
         >
           {target + 1}
