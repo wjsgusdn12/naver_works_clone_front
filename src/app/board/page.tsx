@@ -635,8 +635,11 @@ function BoardContent() {
             keyword={menu.kind === "latest" ? listKeyword : ""}
             membershipId={member.membershipId}
             filterCount={activeFilterCount(searchFilter)}
+            filterOpen={filterAnchor !== null}
             // 새 검색어로 찾아도 켜 둔 필터는 그대로
-            onSearch={(keyword) => go(listHref({ kind: "latest" }, 0, keyword, "POST", searchFilter))}
+            onSearch={(keyword) =>
+              go(listHref({ kind: "latest" }, 0, keyword, "POST", searchFilter))
+            }
             onOpenFilter={setFilterAnchor}
           />
         }

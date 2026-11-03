@@ -123,18 +123,29 @@ const boardOptions = (boards: BoardItem[]): SelectOption[] => {
   return options;
 };
 
-// 검색칸 오른쪽의 필터 버튼. 켜 둔 필터가 있으면 포인트 색 + 개수.
-export function SearchFilterButton({ count, onClick }: { count: number; onClick: () => void }) {
+// 검색칸 오른쪽의 필터 버튼. 켜 둔 필터가 있으면 포인트 색 + 개수, 상세 검색 창이 열려 있으면 포인트 색 바탕.
+export function SearchFilterButton({
+  count,
+  open,
+  onClick,
+}: {
+  count: number;
+  open: boolean;
+  onClick: () => void;
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
+      aria-expanded={open}
       aria-label={count ? `검색 필터 ${count}개 적용 중` : "검색 필터"}
-      className={`relative flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full transition hover:bg-slate-200 active:scale-90 ${count ? "text-blue-600" : "text-slate-500 hover:text-slate-800"}`}
+      className={`relative flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full transition active:scale-90 ${open ? "bg-blue-600 text-white" : count ? "text-blue-600 hover:bg-slate-200" : "text-slate-500 hover:bg-slate-200 hover:text-slate-800"}`}
     >
       <SlidersHorizontal size={16} aria-hidden="true" />
       {count > 0 && (
-        <span className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-blue-600 px-0.5 text-[9px] font-bold leading-none text-white">
+        <span
+          className={`absolute -right-0.5 -top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full px-0.5 text-[9px] font-bold leading-none ${open ? "bg-white text-blue-600 ring-1 ring-blue-600" : "bg-blue-600 text-white"}`}
+        >
           {count}
         </span>
       )}
@@ -199,7 +210,7 @@ export function BoardSearchFilterDialog({
           top: anchor.bottom + 8,
           left: `min(${anchor.left}px, calc(100vw - ${CARD_WIDTH}px - 16px))`,
         }}
-        className="fixed max-h-[calc(100vh-96px)] w-[min(600px,calc(100vw-32px))] overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-xl animate-in fade-in slide-in-from-top-1"
+        className="fixed w-[min(600px,calc(100vw-32px))] rounded-xl border border-slate-200 bg-white shadow-xl animate-pop-in"
       >
         {/* 검색어: 테두리 없는 한 줄 + 아래 구분선 */}
         <div

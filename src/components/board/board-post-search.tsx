@@ -20,6 +20,7 @@ export function BoardPostSearch({
   keyword,
   membershipId,
   filterCount,
+  filterOpen,
   onSearch,
   onOpenFilter,
 }: {
@@ -27,6 +28,8 @@ export function BoardPostSearch({
   membershipId: number;
   // 켜 둔 검색 필터 수(필터 버튼 색·숫자)
   filterCount: number;
+  // 상세 검색 창이 열려 있음(필터 버튼·검색칸 테두리를 포인트 색으로)
+  filterOpen: boolean;
   onSearch: (keyword: string) => void;
   // 검색칸 위치를 넘겨 상세 검색을 그 밑에 펼치게 함
   onOpenFilter: (anchor: DOMRect) => void;
@@ -34,7 +37,9 @@ export function BoardPostSearch({
   const [value, setValue] = useState(keyword);
   const [open, setOpen] = useState(false);
   const [history, setHistory] = useState<BoardSearchHistory>(() =>
-    typeof window === "undefined" ? { enabled: true, keywords: [] } : loadSearchHistory(membershipId),
+    typeof window === "undefined"
+      ? { enabled: true, keywords: [] }
+      : loadSearchHistory(membershipId),
   );
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -76,7 +81,7 @@ export function BoardPostSearch({
           event.preventDefault();
           search(value);
         }}
-        className={`flex h-10 w-full items-center gap-2 rounded-full bg-slate-100 pl-4 pr-1.5 text-slate-500 transition-shadow duration-200 ${open ? "ring-2 ring-blue-500" : "focus-within:ring-2 focus-within:ring-blue-500"}`}
+        className={`flex h-10 w-full items-center gap-2 rounded-full bg-slate-100 pl-4 pr-1.5 text-slate-500 transition-shadow duration-200 ${open || filterOpen ? "ring-2 ring-blue-500" : "focus-within:ring-2 focus-within:ring-blue-500"}`}
       >
         <Search size={16} className="shrink-0" aria-hidden="true" />
         <input
@@ -108,6 +113,7 @@ export function BoardPostSearch({
         <span className="h-4 w-px shrink-0 bg-slate-300" aria-hidden="true" />
         <SearchFilterButton
           count={filterCount}
+          open={filterOpen}
           onClick={() => {
             setOpen(false);
             const anchor = containerRef.current?.getBoundingClientRect();
