@@ -787,7 +787,13 @@ function TrendSection({
             </ChartCard>
           </ChartRow>
           <ChartRow label="포화 · 목표">
-            <PoolChart pool={pool} waiting={waiting} />
+            <PoolChart
+              pool={pool}
+              waiting={waiting}
+              labels={labels}
+              titles={titles}
+              rangeName={config.name}
+            />
             <ChartCard
               title="가용성 · 오류 예산"
               unit={`목표 ${SLO_TARGET}%`}
@@ -844,40 +850,52 @@ function ChartRow({ label, children }: { label: string; children: React.ReactNod
   );
 }
 
-// DB 연결 풀(이 서버 · 최근 60분, 기간 탭과 무관). 사용 중 연결이 한도에 붙거나 대기가 생기면 DB 쪽 병목.
-function PoolChart({ pool, waiting }: { pool: ApiDashboardPool | null; waiting: CardWaiting }) {
-  const recent = pool?.recent ?? [];
-  const labels = recent.map((minute) => {
-    const date = new Date(minute.startAt);
-    return date.getMinutes() % 10 === 0 ? clock(minute.startAt) : "";
-  });
-  const titles = recent.map((minute) => clock(minute.startAt));
+// DB 연결 풀(기간 탭과 같은 칸). 사용 중 연결이 한도에 붙거나 대기가 생기면 DB 쪽 병목.
+// 서버가 여러 대면 칸마다 가장 높은 서버의 값. 기록 없는 칸은 건너뛰고 앞뒤 점을 이음.
+function PoolChart({
+  pool,
+  waiting,
+  labels,
+  titles,
+  rangeName,
+}: {
+  pool: ApiDashboardPool | null;
+  waiting: CardWaiting;
+  labels: string[];
+  titles: string[];
+  rangeName: string;
+}) {
+  const trend = pool?.trend ?? [];
+  const hasData = trend.some((point) => point.maxActive !== null);
   const series: LineSeries[] = [
     {
       key: "max",
       label: "최대 사용",
       color: REQUEST_COLOR,
-      values: recent.map((minute) => minute.maxActive),
+      connectGaps: true,
+      values: trend.map((point) => point.maxActive),
     },
     {
       key: "avg",
       label: "평균 사용",
       color: CLIENT_ERROR_COLOR,
       dashed: true,
-      values: recent.map((minute) => minute.avgActive),
+      connectGaps: true,
+      values: trend.map((point) => point.avgActive),
     },
     {
       key: "waiting",
       label: "대기",
       color: ERROR_COLOR,
-      values: recent.map((minute) => minute.maxWaiting),
+      connectGaps: true,
+      values: trend.map((point) => point.maxWaiting),
     },
     {
       key: "limit",
       label: `한도 ${pool?.maxSize ?? 0}`,
       color: LIMIT_COLOR,
       dashed: true,
-      values: recent.map(() => pool?.maxSize ?? 0),
+      values: trend.map(() => pool?.maxSize ?? 0),
     },
   ];
   return (
@@ -886,16 +904,16 @@ function PoolChart({ pool, waiting }: { pool: ApiDashboardPool | null; waiting: 
       unit="개"
       series={series}
       waiting={waiting}
-      empty={!pool?.available || recent.length === 0}
+      empty={!pool?.available || !hasData}
       emptyText={
         pool && !pool.available
           ? "이 환경에서는 연결 풀 정보를 읽을 수 없습니다."
-          : "아직 기록이 없습니다. 10초마다 모읍니다."
+          : `${rangeName} 기록이 없습니다. 10초마다 모읍니다.`
       }
       note={
         pool?.available ? (
           <span className="tabular-nums">
-            이 서버 · 최근 60분 · 지금 사용{" "}
+            {rangeName} · 지금(이 서버) 사용{" "}
             <b className="text-slate-900">
               {pool.active}/{pool.maxSize}
             </b>
@@ -912,7 +930,7 @@ function PoolChart({ pool, waiting }: { pool: ApiDashboardPool | null; waiting: 
         series={series}
         formatValue={(value) => `${Math.round(value * 10) / 10}`}
         labelEvery={1}
-        ariaLabel="최근 60분 DB 연결 풀 사용량"
+        ariaLabel={`${rangeName} DB 연결 풀 사용량`}
       />
     </ChartCard>
   );

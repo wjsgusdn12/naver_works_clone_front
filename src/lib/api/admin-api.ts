@@ -39,7 +39,13 @@ export type ApiDashboardPool = {
   active: number;
   idle: number;
   waiting: number;
-  recent: { startAt: string; maxActive: number; avgActive: number; maxWaiting: number }[];
+  // trend와 같은 칸(기간 탭)별 기록. 서버가 여러 대면 가장 높은 값. 기록이 없는 칸은 null.
+  trend: {
+    startAt: string;
+    maxActive: number | null;
+    avgActive: number | null;
+    maxWaiting: number | null;
+  }[];
 };
 export type ApiDashboardEndpoint = {
   endpoint: string;
