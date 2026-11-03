@@ -14,6 +14,19 @@
   --color-foreground: var(--foreground);
   --font-sans: "Pretendard Variable", Pretendard, var(--font-geist-sans), sans-serif;
   --font-mono: var(--font-geist-mono);
+  /* 드롭다운·작은 창이 펼쳐질 때(살짝 커지며 나타남). animate-pop-in */
+  --animate-pop-in: pop-in 120ms ease-out;
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 /* 모든 화면에 공통으로 적용할 배경색과 기본 글꼴. */

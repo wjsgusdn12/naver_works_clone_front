@@ -3,6 +3,7 @@
 import { ChevronDown } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useChatNotification } from "@/components/chat/chat-notification-provider";
+import { isInSelectList, isSelectListOpen } from "@/components/common/custom-select";
 import { LoadingInline } from "@/components/common/loading";
 import { StatusSetting } from "@/components/common/status-setting";
 import { addressBookApi, type MemberStatus } from "@/lib/api/address-book-api";
@@ -63,17 +64,24 @@ export function MyStatusPicker({
     if (!anchor) return;
     const onPointerDown = (event: PointerEvent) => {
       const target = event.target as Node;
-      if (dropdownRef.current?.contains(target) || buttonRef.current?.contains(target)) return;
+      if (
+        dropdownRef.current?.contains(target) ||
+        buttonRef.current?.contains(target) ||
+        isInSelectList(target)
+      )
+        return;
       setAnchor(null);
     };
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
+      // 안쪽 드롭다운이 열려 있으면 Esc는 그 목록만 닫음
+      if (event.key !== "Escape" || isSelectListOpen()) return;
       event.stopImmediatePropagation();
       setAnchor(null);
     };
     // 창 밖이 스크롤되면 떠 있는 위치가 어긋나므로 닫음(창 안 스크롤은 유지).
     const onScroll = (event: Event) => {
-      if (!dropdownRef.current?.contains(event.target as Node)) setAnchor(null);
+      if (!dropdownRef.current?.contains(event.target as Node) && !isInSelectList(event.target))
+        setAnchor(null);
     };
     document.addEventListener("pointerdown", onPointerDown);
     // 상단바의 Esc 처리보다 먼저 받도록 캡처 단계에서 등록.

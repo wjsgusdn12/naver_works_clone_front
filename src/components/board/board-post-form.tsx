@@ -5,7 +5,12 @@ import { RichContent } from "@/components/board/rich-content";
 import { MessageDialogShell } from "@/components/chat/message-change-dialog";
 import { CustomCheckbox } from "@/components/common/custom-checkbox";
 import { COMMON_BOARDS } from "@/components/board/board-sidebar";
-import { CustomSelect, type SelectOption } from "@/components/common/custom-select";
+import {
+  CustomSelect,
+  isInSelectList,
+  isSelectListOpen,
+  type SelectOption,
+} from "@/components/common/custom-select";
 import { DateTimePicker } from "@/components/common/date-time-picker";
 import { useLeaveGuard } from "@/components/common/leave-guard";
 import { Spinner } from "@/components/common/loading";
@@ -168,10 +173,11 @@ export function BoardPostForm({
   useEffect(() => {
     if (!scheduleAt) return;
     const onPointerDown = (event: PointerEvent) => {
-      if (!scheduleRef.current?.contains(event.target as Node)) setScheduleAt(null);
+      if (!scheduleRef.current?.contains(event.target as Node) && !isInSelectList(event.target))
+        setScheduleAt(null);
     };
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setScheduleAt(null);
+      if (event.key === "Escape" && !isSelectListOpen()) setScheduleAt(null);
     };
     document.addEventListener("pointerdown", onPointerDown);
     document.addEventListener("keydown", onKeyDown);
