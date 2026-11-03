@@ -1,6 +1,6 @@
 "use client";
 
-import { Pagination } from "@/components/common/pagination";
+import { CardPagination } from "@/components/common/card-pagination";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 // 넓은 화면(xl) 기준. 이때는 부모 칸 높이가 고정이라 그 높이에 들어가는 만큼만 한 페이지로 보여 줌.
@@ -67,7 +67,7 @@ export function FitPagedList<T>({
           ))}
         </ul>
       </div>
-      <Pagination
+      <CardPagination
         page={current}
         totalPages={totalPages}
         onChange={setPage}
