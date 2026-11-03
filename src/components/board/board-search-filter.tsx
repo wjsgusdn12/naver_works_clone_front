@@ -3,7 +3,7 @@
 import { CustomCheckbox } from "@/components/common/custom-checkbox";
 import { CustomSelect, type SelectOption } from "@/components/common/custom-select";
 import type { BoardItem } from "@/lib/api/board-api";
-import { SlidersHorizontal, X } from "lucide-react";
+import { Search, SlidersHorizontal, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 // 게시글 검색 필터. 주소(URL)에 짧은 이름으로 남겨 새로고침·뒤로 가기에도 유지.
@@ -124,13 +124,7 @@ const boardOptions = (boards: BoardItem[]): SelectOption[] => {
 };
 
 // 검색칸 오른쪽의 필터 버튼. 켜 둔 필터가 있으면 포인트 색 + 개수.
-export function SearchFilterButton({
-  count,
-  onClick,
-}: {
-  count: number;
-  onClick: () => void;
-}) {
+export function SearchFilterButton({ count, onClick }: { count: number; onClick: () => void }) {
   return (
     <button
       type="button"
@@ -178,13 +172,14 @@ export function BoardSearchFilterDialog({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onClose]);
 
-  const change = (next: Partial<BoardSearchFilter>) => setDraft((current) => ({ ...current, ...next }));
+  const change = (next: Partial<BoardSearchFilter>) =>
+    setDraft((current) => ({ ...current, ...next }));
 
   return (
     <div
       role="dialog"
       aria-modal="true"
-      aria-labelledby="board-search-filter-title"
+      aria-label="상세 검색"
       className="fixed inset-0 z-[100]"
       onClick={onClose}
     >
@@ -204,96 +199,90 @@ export function BoardSearchFilterDialog({
           top: anchor.bottom + 8,
           left: `min(${anchor.left}px, calc(100vw - ${CARD_WIDTH}px - 16px))`,
         }}
-        className="fixed max-h-[calc(100vh-96px)] w-[min(448px,calc(100vw-32px))] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl animate-in fade-in slide-in-from-top-1"
+        className="fixed max-h-[calc(100vh-96px)] w-[min(600px,calc(100vw-32px))] overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-xl animate-in fade-in slide-in-from-top-1"
       >
-        <div className="flex items-center justify-between gap-3">
-          <h2 id="board-search-filter-title" className="text-lg font-bold text-slate-900">
-            상세 검색
-          </h2>
+        {/* 검색어: 테두리 없는 한 줄 + 아래 구분선 */}
+        <div
+          className={`flex h-12 items-center gap-2.5 border-b px-4 ${error ? "border-red-300" : "border-slate-100"}`}
+        >
+          <Search size={16} className="shrink-0 text-slate-400" aria-hidden="true" />
+          <input
+            value={draftKeyword}
+            autoFocus
+            maxLength={100}
+            onChange={(event) => {
+              setDraftKeyword(event.target.value);
+              setError(false);
+            }}
+            placeholder={error ? "검색어를 입력해 주세요" : "검색어"}
+            aria-label="검색어"
+            aria-invalid={error}
+            className={`min-w-0 flex-1 bg-transparent text-sm text-slate-900 outline-none ${error ? "placeholder:text-red-400" : "placeholder:text-slate-400"}`}
+          />
           <button
             type="button"
             aria-label="닫기"
             onClick={onClose}
-            className="cursor-pointer rounded-md p-1 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
+            className="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-md text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
           >
-            <X size={18} />
+            <X size={15} aria-hidden="true" />
           </button>
         </div>
 
-        <div className="mt-5 space-y-4">
-          <FilterRow label="검색어">
-            <input
-              value={draftKeyword}
-              autoFocus
-              maxLength={100}
-              onChange={(event) => {
-                setDraftKeyword(event.target.value);
-                setError(false);
-              }}
-              placeholder="찾을 낱말"
-              aria-label="검색어"
-              aria-invalid={error}
-              className={`h-10 w-full rounded-lg border bg-white px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 ${error ? "border-red-400" : "border-slate-200"}`}
-            />
-            {error && <p className="mt-1 text-xs text-red-500">검색어를 입력해 주세요.</p>}
-          </FilterRow>
-          <FilterRow label="검색 위치">
-            <CustomSelect
+        {/* 조건: 왼쪽 짧은 이름 + 오른쪽 가로 선택지 */}
+        <div className="space-y-1 px-4 py-3">
+          <FilterRow label="위치">
+            <OptionGroup
               label="검색 위치"
+              options={FIELD_CHIPS}
               value={draft.field}
               onChange={(value) => change({ field: value as SearchField })}
-              options={FIELD_OPTIONS}
             />
-            <p className="mt-1 text-xs text-slate-400">게시글 탭에만 적용됩니다.</p>
+            <span className="ml-auto shrink-0 text-[11px] text-slate-400">게시글 탭에만 적용</span>
           </FilterRow>
           <FilterRow label="기간">
-            <CustomSelect
+            <OptionGroup
               label="기간"
+              options={PERIOD_CHIPS}
               value={draft.period}
               onChange={(value) => change({ period: value as SearchPeriod })}
-              options={PERIOD_OPTIONS}
             />
           </FilterRow>
           <FilterRow label="게시판">
             <CustomSelect
               label="게시판"
+              compact
+              className="w-56"
               value={draft.boardId ? String(draft.boardId) : ""}
               onChange={(value) => change({ boardId: value ? Number(value) : null })}
               options={boardOptions(boards)}
             />
+            <div className="ml-auto shrink-0 text-sm">
+              <CustomCheckbox
+                label="첨부파일 있는 글만"
+                text="첨부 있는 글만"
+                checked={draft.fileOnly}
+                onChange={() => change({ fileOnly: !draft.fileOnly })}
+              />
+            </div>
           </FilterRow>
-          <CustomCheckbox
-            label="첨부파일 있는 글만"
-            text="첨부파일 있는 글만"
-            checked={draft.fileOnly}
-            onChange={() => change({ fileOnly: !draft.fileOnly })}
-          />
         </div>
 
-        <div className="mt-6 flex items-center justify-between">
+        <div className="flex items-center justify-between border-t border-slate-100 px-4 py-2.5">
           <button
             type="button"
             onClick={() => setDraft(EMPTY_SEARCH_FILTER)}
             disabled={activeFilterCount(draft) === 0}
-            className="cursor-pointer text-sm text-slate-500 transition hover:text-blue-600 disabled:cursor-default disabled:text-slate-300"
+            className="cursor-pointer text-xs text-slate-500 transition hover:text-blue-600 disabled:cursor-default disabled:text-slate-300"
           >
-            필터 초기화
+            초기화
           </button>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="h-9 cursor-pointer rounded-lg border border-slate-200 px-4 text-sm text-slate-700 transition hover:bg-slate-50"
-            >
-              취소
-            </button>
-            <button
-              type="submit"
-              className="h-9 cursor-pointer rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700 active:scale-95"
-            >
-              검색
-            </button>
-          </div>
+          <button
+            type="submit"
+            className="h-8 cursor-pointer rounded-md bg-blue-600 px-4 text-sm font-medium text-white transition hover:bg-blue-700 active:scale-95"
+          >
+            검색
+          </button>
         </div>
       </form>
     </div>
@@ -301,13 +290,61 @@ export function BoardSearchFilterDialog({
 }
 
 // 펼친 창 폭(오른쪽 끝을 넘지 않게 왼쪽 위치를 계산할 때 씀)
-const CARD_WIDTH = 448;
+const CARD_WIDTH = 600;
+
+// 가로로 늘어놓는 짧은 선택지 이름
+const FIELD_CHIPS: SelectOption[] = [
+  { value: "ALL", label: "제목+내용" },
+  { value: "TITLE", label: "제목" },
+  { value: "CONTENT", label: "내용" },
+];
+const PERIOD_CHIPS: SelectOption[] = [
+  { value: "ALL", label: "전체" },
+  { value: "1D", label: "1일" },
+  { value: "1W", label: "1주" },
+  { value: "1M", label: "1개월" },
+  { value: "6M", label: "6개월" },
+  { value: "1Y", label: "1년" },
+];
 
 function FilterRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div>
-      <span className="mb-1.5 block text-sm font-medium text-slate-700">{label}</span>
+    <div className="flex min-h-10 items-center gap-3">
+      <span className="w-12 shrink-0 text-xs text-slate-400">{label}</span>
       {children}
+    </div>
+  );
+}
+
+// 하나만 고르는 가로 선택지(글자만, 고른 것은 포인트 색 + 옅은 바탕)
+function OptionGroup({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  options: SelectOption[];
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div role="radiogroup" aria-label={label} className="flex flex-wrap items-center gap-1">
+      {options.map((option) => {
+        const selected = option.value === value;
+        return (
+          <button
+            key={option.value}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            onClick={() => onChange(option.value)}
+            className={`h-7 cursor-pointer rounded-md px-2.5 text-sm transition ${selected ? "bg-blue-50 font-medium text-blue-600" : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"}`}
+          >
+            {option.label}
+          </button>
+        );
+      })}
     </div>
   );
 }
