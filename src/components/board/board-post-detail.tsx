@@ -8,6 +8,7 @@ import { MessageDialogShell } from "@/components/chat/message-change-dialog";
 import { MessageMemberAvatar } from "@/components/chat/message-member-avatar";
 import { ReactionEmoji } from "@/components/chat/reaction-emoji";
 import { ReactionPicker } from "@/components/chat/reaction-picker";
+import { AttachmentIcon, AttachmentMark } from "@/components/common/attachment-icon";
 import { Spinner } from "@/components/common/loading";
 import { MeBadge } from "@/components/common/me-badge";
 import { MoreMenu } from "@/components/common/more-menu";
@@ -27,7 +28,6 @@ import {
   CornerDownRight,
   Download,
   Eye,
-  Paperclip,
   Pencil,
   Reply,
   RotateCcw,
@@ -260,6 +260,12 @@ export function BoardPostDetailView({
         )}
         <h2 className="break-all text-2xl font-semibold leading-snug text-slate-950">
           {post.title}
+          {/* 제목 끝에 붙여 줄바꿈돼도 마지막 글자 옆에 남음 */}
+          <AttachmentMark
+            has={files.length > 0}
+            size={18}
+            className="ml-1.5 inline-block align-[-0.1em]"
+          />
         </h2>
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-4">
           <div className="flex min-w-0 items-center gap-2 text-sm text-slate-500">
@@ -359,7 +365,7 @@ export function BoardPostDetailView({
         // 첨부: 작은 제목 + 줄 목록(박스 없음), 줄을 누르면 내려받기
         <section className="mb-8">
           <p className="mb-1 flex items-center gap-1 text-xs text-slate-400">
-            <Paperclip size={12} aria-hidden="true" />
+            <AttachmentIcon size={12} aria-hidden="true" />
             첨부 {files.length}
           </p>
           <ul className="divide-y divide-slate-100 border-y border-slate-100">

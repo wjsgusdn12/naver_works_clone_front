@@ -17,7 +17,8 @@ import {
   type BoardSaveMode,
 } from "@/lib/api/board-api";
 import { fileIconOf, formatFileSize, MAX_ATTACHMENT_SIZE } from "@/lib/attachment-files";
-import { Paperclip, X } from "lucide-react";
+import { AttachmentIcon } from "@/components/common/attachment-icon";
+import { X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 // 아래 첨부 목록의 한 줄. 올리는 중이면 id가 없고 progress(%)만 있음.
@@ -310,7 +311,7 @@ export function BoardPostForm({
           onClick={() => fileInputRef.current?.click()}
           className="flex cursor-pointer items-center gap-1.5 text-sm text-slate-500 transition hover:text-slate-900"
         >
-          <Paperclip size={14} aria-hidden="true" />
+          <AttachmentIcon size={14} aria-hidden="true" />
           파일 첨부
           <span className="text-xs text-slate-400">
             {files.length > 0 ? `${files.length}개 · ` : ""}파일당 20MB, 최대 {MAX_FILES}개

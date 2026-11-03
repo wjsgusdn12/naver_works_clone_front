@@ -6,7 +6,8 @@ import { CustomCheckbox } from "@/components/common/custom-checkbox";
 import { LoadingState } from "@/components/common/loading";
 import { Tooltip } from "@/components/common/tooltip";
 import type { BoardPostSummary, BoardSearchScope } from "@/lib/api/board-api";
-import { ChevronRight, Eye, Paperclip, RotateCw, SmilePlus, Star } from "lucide-react";
+import { AttachmentIcon, AttachmentMark } from "@/components/common/attachment-icon";
+import { ChevronRight, Eye, RotateCw, SmilePlus, Star } from "lucide-react";
 
 // 중요 표시(개인) 켜기·끄기 버튼. 표시하면 노란 별, 아니면 옅은 회색 별. 올리면 공통 툴팁.
 export function ImportantButton({
@@ -137,13 +138,7 @@ export function PostRow({
             >
               {search ? <Highlight text={post.title} keyword={search.keyword} /> : post.title}
             </span>
-            {post.hasFile && (
-              <Paperclip
-                size={14}
-                className="shrink-0 text-slate-400"
-                aria-label="첨부 파일 있음"
-              />
-            )}
+            <AttachmentMark has={post.hasFile} />
           </span>
           {post.preview && (
             <span className="mt-1 block truncate text-xs text-slate-500">
@@ -154,7 +149,7 @@ export function PostRow({
             // 파일·댓글 탭: 검색어가 들어 있는 파일 이름·댓글
             <span className="mt-1 flex min-w-0 items-center gap-1 text-xs text-slate-600">
               {search.scope === "FILE" ? (
-                <Paperclip size={12} className="shrink-0 text-slate-400" aria-label="파일" />
+                <AttachmentIcon size={12} role="img" className="shrink-0 text-slate-400" aria-label="파일" />
               ) : (
                 <CommentIcon size={12} className="shrink-0 text-slate-400" aria-label="댓글" />
               )}
@@ -284,10 +279,14 @@ export function HomeCard({
               >
                 {answerBadge && <AnswerBadge answered={post.answered} />}
                 <PostBadges post={post} />
-                <span
-                  className={`min-w-0 flex-1 truncate ${post.read ? "text-slate-600" : "font-bold text-slate-950"}`}
-                >
-                  {post.title}
+                {/* 제목 바로 뒤에 첨부 표시(제목이 길면 제목만 잘림) */}
+                <span className="flex min-w-0 flex-1 items-center gap-1">
+                  <span
+                    className={`truncate ${post.read ? "text-slate-600" : "font-bold text-slate-950"}`}
+                  >
+                    {post.title}
+                  </span>
+                  <AttachmentMark has={post.hasFile} />
                 </span>
                 <PostMeta post={post} />
               </button>

@@ -1,6 +1,7 @@
 "use client";
 
 import { PostBadges, PostMeta } from "@/components/board/board-post-list";
+import { AttachmentMark } from "@/components/common/attachment-icon";
 import { FavoriteButton } from "@/components/common/favorite-button";
 import { FitPagedList } from "@/components/common/fit-paged-list";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -562,10 +563,11 @@ function BoardPostList({
           <span className="flex w-full min-w-0 items-center gap-1.5">
             <PostBadges post={post} />
             <span
-              className={`min-w-0 flex-1 truncate text-sm ${post.read ? "text-slate-600" : "font-bold text-slate-950"}`}
+              className={`min-w-0 truncate text-sm ${post.read ? "text-slate-600" : "font-bold text-slate-950"}`}
             >
               {post.title}
             </span>
+            <AttachmentMark has={post.hasFile} size={13} />
           </span>
           <PostMeta
             post={post}
