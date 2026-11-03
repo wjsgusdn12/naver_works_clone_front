@@ -7,6 +7,7 @@ import {
   MarketBreadth,
   MarketHeatmap,
   MarketHero,
+  MarketNews,
   MarketRanks,
   MarketStats,
 } from "@/components/board/market-blocks";
@@ -147,6 +148,8 @@ function renderNode(node: DocNode, key: number): ReactNode {
       return <MarketHeatmap key={key} attrs={node.attrs ?? {}} />;
     case "marketRanks":
       return <MarketRanks key={key} attrs={node.attrs ?? {}} />;
+    case "marketNews":
+      return <MarketNews key={key} attrs={node.attrs ?? {}} />;
     case "callout":
       return (
         <Callout key={key} attrs={node.attrs}>

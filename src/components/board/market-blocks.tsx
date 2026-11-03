@@ -328,6 +328,74 @@ export function MarketHeatmap({ attrs }: { attrs: Attrs }) {
   );
 }
 
+// ───────────── 주요 뉴스 ─────────────
+
+// 분류 딱지: 주요(Google 메인)·경제(Google 경제)·시장(연합뉴스 경제 중 시장 기사)
+const NEWS_CHIP: Record<string, string> = {
+  주요: "bg-amber-50 text-amber-700 ring-amber-100",
+  경제: "bg-blue-50 text-blue-700 ring-blue-100",
+  시장: "bg-rose-50 text-rose-700 ring-rose-100",
+  종합: "bg-slate-100 text-slate-600 ring-slate-200",
+};
+
+// 원문 링크는 http·https만(서버도 같은 검사를 함)
+const safeLink = (value: unknown) =>
+  typeof value === "string" && /^https?:\/\//i.test(value) ? value : null;
+
+export function MarketNews({ attrs }: { attrs: Attrs }) {
+  const items = list(attrs.items);
+  if (items.length === 0) return null;
+  return (
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex items-center justify-between gap-2 border-b border-slate-100 bg-slate-50 px-4 py-3">
+        <p className="flex items-center gap-2 text-base font-extrabold text-slate-900">
+          <span aria-hidden="true">📰</span>
+          {str(attrs.title) || "주요 뉴스"}
+        </p>
+        <span className="text-[11px] text-slate-400">제목을 누르면 원문이 새 창으로 열립니다</span>
+      </div>
+      <ol className="divide-y divide-slate-100">
+        {items.map((item, index) => {
+          const href = safeLink(item.href);
+          const title = str(item.title);
+          return (
+            <li key={index} className="flex gap-3 px-4 py-3 transition hover:bg-slate-50">
+              <span className="w-5 shrink-0 pt-0.5 text-right text-sm font-black text-slate-300 tabular-nums">
+                {index + 1}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-400">
+                  {str(item.category) && (
+                    <span
+                      className={`rounded px-1.5 py-0.5 font-semibold ring-1 ${NEWS_CHIP[str(item.category)] ?? NEWS_CHIP.종합}`}
+                    >
+                      {str(item.category)}
+                    </span>
+                  )}
+                  {str(item.source) && <span className="font-medium text-slate-500">{str(item.source)}</span>}
+                  {str(item.time) && <span className="tabular-nums">{str(item.time)}</span>}
+                </div>
+                {href ? (
+                  <a
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer nofollow"
+                    className="mt-1 block text-[15px] leading-snug font-semibold text-slate-900 hover:text-blue-600 hover:underline"
+                  >
+                    {title}
+                  </a>
+                ) : (
+                  <p className="mt-1 text-[15px] leading-snug font-semibold text-slate-900">{title}</p>
+                )}
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+}
+
 // ───────────── 순위 카드 ─────────────
 
 const RANK_TOP: Record<string, string> = {
