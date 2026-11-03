@@ -88,7 +88,7 @@ export function FitPagedList<T>({
           setPage(next);
         }}
         label={label}
-        className="shrink-0 pt-1"
+        className="shrink-0 border-t border-slate-100 pt-1"
       />
     </div>
   );
