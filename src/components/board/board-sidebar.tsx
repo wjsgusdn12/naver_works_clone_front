@@ -1,5 +1,6 @@
 "use client";
 
+import { SidebarIcon } from "@/components/address-book/sidebar-icon";
 import { FavoriteButton } from "@/components/common/favorite-button";
 import { LoadingInline } from "@/components/common/loading";
 import { Tooltip } from "@/components/common/tooltip";
@@ -70,7 +71,10 @@ export function BoardSidebar({
   onWrite,
   onToggleFavorite,
   onRename,
+  collapsed = false,
 }: {
+  // 헤더 햄버거 버튼으로 접었는지(접으면 아이콘만)
+  collapsed?: boolean;
   boards: BoardItem[];
   loading: boolean;
   menu: BoardMenu;
@@ -116,6 +120,48 @@ export function BoardSidebar({
       onRename={() => onRename(board)}
     />
   );
+
+  // 접힌 상태(헤더 햄버거 버튼): 주소록처럼 아이콘 + 작은 이름만 세로로
+  if (collapsed) {
+    const icons: { menu: BoardMenu; label: string; icon: LucideIcon }[] = [
+      { menu: { kind: "home" }, label: "홈", icon: House },
+      ...QUICK_MENUS.map(({ kind, label, icon }) => ({ menu: { kind }, label, icon })),
+      ...commons.map((item) => ({
+        menu: { kind: "type" as const, type: item.type },
+        label: item.label.replace("게시판", ""),
+        icon: TYPE_ICON[item.type],
+      })),
+      { menu: { kind: "drafts" }, label: "임시저장", icon: FileClock },
+      { menu: { kind: "scheduled" }, label: "예약", icon: CalendarClock },
+      { menu: { kind: "trash" }, label: "휴지통", icon: Trash2 },
+    ];
+    const active = (target: BoardMenu) =>
+      target.kind === menu.kind &&
+      (target.kind !== "type" || (menu.kind === "type" && menu.type === target.type));
+    return (
+      <aside className="flex w-20 shrink-0 flex-col items-center gap-1 overflow-y-auto border-r border-slate-200 bg-slate-50 p-2 pt-4">
+        <Tooltip label="글쓰기">
+          <button
+            type="button"
+            aria-label="글쓰기"
+            onClick={onWrite}
+            className="mb-2 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full bg-slate-950 text-white transition hover:scale-105 active:scale-95"
+          >
+            <SquarePen size={18} aria-hidden="true" />
+          </button>
+        </Tooltip>
+        {icons.map(({ menu: target, label, icon: Icon }) => (
+          <SidebarIcon
+            key={`${target.kind}-${target.kind === "type" ? target.type : ""}`}
+            label={label}
+            icon={<Icon size={20} aria-hidden="true" />}
+            active={active(target)}
+            onClick={() => onSelect(target)}
+          />
+        ))}
+      </aside>
+    );
+  }
 
   // 위(글쓰기·메뉴·검색)와 아래(휴지통)는 고정하고 게시판 목록만 스크롤
   return (

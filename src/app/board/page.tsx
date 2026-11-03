@@ -188,6 +188,8 @@ function BoardContent() {
   const { accessToken, member, status, logout } = useAuth();
   const { toast, showToast, dismissToast } = useToast();
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  // 왼쪽 사이드바 접기(헤더 햄버거 버튼, 주소록과 같음)
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [boards, setBoards] = useState<BoardItem[] | null>(null);
   // 관리자면 여러 회사 글이 한 목록에 섞이므로 글 줄에 회사 이름도 보여 줌
@@ -608,9 +610,12 @@ function BoardContent() {
         onProfileAction={() => setIsProfileMenuOpen((open) => !open)}
         onCloseProfileMenu={() => setIsProfileMenuOpen(false)}
         onLogout={() => leave.confirmLeave(() => void handleLogout())}
+        onSidebarToggle={() => setIsSidebarCollapsed((collapsed) => !collapsed)}
+        isSidebarCollapsed={isSidebarCollapsed}
       />
       <main className="flex min-h-0 flex-1">
         <BoardSidebar
+          collapsed={isSidebarCollapsed}
           boards={boards ?? []}
           loading={boards === null}
           menu={menu}
