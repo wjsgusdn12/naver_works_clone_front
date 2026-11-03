@@ -365,7 +365,7 @@ export function BoardPostDetailView({
         // 첨부: 작은 제목 + 줄 목록(박스 없음), 줄을 누르면 내려받기
         <section className="mb-8">
           <p className="mb-1 flex items-center gap-1 text-xs text-slate-400">
-            <AttachmentIcon size={12} aria-hidden="true" />
+            <AttachmentIcon size={14} aria-hidden="true" />
             첨부 {files.length}
           </p>
           <ul className="divide-y divide-slate-100 border-y border-slate-100">

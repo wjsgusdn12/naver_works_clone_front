@@ -567,7 +567,7 @@ function BoardPostList({
             >
               {post.title}
             </span>
-            <AttachmentMark has={post.hasFile} size={13} />
+            <AttachmentMark has={post.hasFile} size={14} />
           </span>
           <PostMeta
             post={post}

@@ -149,7 +149,7 @@ export function PostRow({
             // 파일·댓글 탭: 검색어가 들어 있는 파일 이름·댓글
             <span className="mt-1 flex min-w-0 items-center gap-1 text-xs text-slate-600">
               {search.scope === "FILE" ? (
-                <AttachmentIcon size={12} role="img" className="shrink-0 text-slate-400" aria-label="파일" />
+                <AttachmentIcon size={14} role="img" className="shrink-0" aria-label="파일" />
               ) : (
                 <CommentIcon size={12} className="shrink-0 text-slate-400" aria-label="댓글" />
               )}
