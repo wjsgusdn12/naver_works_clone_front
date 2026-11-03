@@ -2,6 +2,7 @@
 
 import { PostBadges, PostMeta } from "@/components/board/board-post-list";
 import { FavoriteButton } from "@/components/common/favorite-button";
+import { FitPagedList } from "@/components/common/fit-paged-list";
 import { useAuth } from "@/components/auth/auth-provider";
 import { ApiDashboardSection } from "@/components/home/api-dashboard";
 import { GroupAvatar } from "@/components/chat/group-avatar";
@@ -35,13 +36,10 @@ type HomeDashboardProps = {
   showToast: (message: string) => void;
 };
 
-// 최근 대화에 담을 최대 개수(카드 높이를 넘으면 스크롤).
+// 최근 대화에 담을 최대 개수(카드 안에서 쪽 번호로 넘김).
 const RECENT_ROOM_LIMIT = 30;
 // 주소록 카드는 전체 구성원을 보여 주되, 서버 한 페이지 최대치(100명)까지만 받음.
 const MEMBER_LIMIT = 100;
-// 카드 목록 영역: 넓은 화면에서는 카드 남는 높이를 꽉 채우고 그 안에서 스크롤(카드 높이는 격자 행 높이로 고정).
-// 좁은 화면(한 줄씩 쌓임)에서는 최대 높이만 둠.
-const LIST_FILL = "max-h-[360px] overflow-y-auto xl:absolute xl:inset-0 xl:max-h-none";
 
 // 상대 시각. 오늘이면 시각, 올해면 월·일, 그 외는 연·월·일.
 const formatRelative = (value: string | null) => {
@@ -276,34 +274,35 @@ export function HomeDashboard({
               ) : notifications.length === 0 ? (
                 <Empty message="새 알림이 없습니다." />
               ) : (
-                <ul className="max-h-[320px] divide-y divide-slate-100 overflow-y-auto xl:absolute xl:inset-0 xl:max-h-none">
-                  {notifications.map((item) => (
-                    <li key={item.id}>
-                      <button
-                        type="button"
-                        className="flex w-full cursor-pointer items-start gap-3 rounded-lg px-2 py-2 text-left transition hover:bg-slate-50"
-                        onClick={() => openNotification(item)}
-                      >
+                <FitPagedList
+                  items={notifications}
+                  getKey={(item) => item.id}
+                  label="알림 페이지"
+                  renderItem={(item) => (
+                    <button
+                      type="button"
+                      className="flex w-full cursor-pointer items-start gap-3 rounded-lg px-2 py-2 text-left transition hover:bg-slate-50"
+                      onClick={() => openNotification(item)}
+                    >
+                      <span
+                        className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${item.read ? "bg-slate-200" : "bg-blue-500"}`}
+                      />
+                      <span className="min-w-0 flex-1">
                         <span
-                          className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${item.read ? "bg-slate-200" : "bg-blue-500"}`}
-                        />
-                        <span className="min-w-0 flex-1">
-                          <span
-                            className={`block truncate text-sm ${item.read ? "text-slate-600" : "font-semibold text-slate-900"}`}
-                          >
-                            {item.title}
-                          </span>
-                          <span className="mt-0.5 block truncate text-xs text-slate-500">
-                            {item.body}
-                          </span>
+                          className={`block truncate text-sm ${item.read ? "text-slate-600" : "font-semibold text-slate-900"}`}
+                        >
+                          {item.title}
                         </span>
-                        <span className="shrink-0 text-xs text-slate-400">
-                          {formatRelative(item.createdAt)}
+                        <span className="mt-0.5 block truncate text-xs text-slate-500">
+                          {item.body}
                         </span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
+                      </span>
+                      <span className="shrink-0 text-xs text-slate-400">
+                        {formatRelative(item.createdAt)}
+                      </span>
+                    </button>
+                  )}
+                />
               )}
             </div>
 
@@ -345,15 +344,18 @@ export function HomeDashboard({
             ) : visibleMembers.length === 0 ? (
               <Empty message="구성원이 없습니다." />
             ) : (
-              <ul className={`${LIST_FILL} divide-y divide-slate-100`}>
-                {visibleMembers.map((item) => {
+              <FitPagedList
+                items={visibleMembers}
+                getKey={(item) => item.membershipId}
+                label="주소록 페이지"
+                renderItem={(item) => {
                   const target = withLiveStatus(
                     item,
                     presenceByMembershipId,
                     memberStatusByMembershipId,
                   );
                   return (
-                    <li key={target.membershipId} className="flex items-center gap-3 px-2 py-2">
+                    <div className="flex items-center gap-3 px-2 py-2">
                       <UserAvatar
                         size="md"
                         name={target.displayName}
@@ -390,10 +392,10 @@ export function HomeDashboard({
                       >
                         <MessageCircleMore size={17} />
                       </button>
-                    </li>
+                    </div>
                   );
-                })}
-              </ul>
+                }}
+              />
             )}
           </Card>
 
@@ -426,73 +428,70 @@ export function HomeDashboard({
                 onAction={() => router.push("/addressBook")}
               />
             ) : (
-              <ul className={`${LIST_FILL} divide-y divide-slate-100`}>
-                {recentRooms.map((room) => (
-                  <li key={room.id}>
-                    <button
-                      type="button"
-                      className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-2 py-2 text-left transition hover:bg-slate-50"
-                      onClick={() => router.push(`/message?roomId=${room.id}`)}
-                    >
-                      {room.type === "GROUP" ? (
-                        <GroupAvatar name={room.name ?? "그룹"} />
-                      ) : (
-                        <UserAvatar
-                          size="md"
-                          name={
-                            room.type === "SELF"
-                              ? displayName
-                              : (room.directDisplayName ?? "사용자")
-                          }
-                          membershipId={
-                            room.type === "SELF" ? membershipId : room.directMembershipId
-                          }
-                          presenceStatus={
-                            room.type === "SELF"
-                              ? "ONLINE"
-                              : room.directMembershipId !== null
-                                ? (presenceByMembershipId[room.directMembershipId] ?? "OFFLINE")
-                                : "OFFLINE"
-                          }
-                          statusType={
-                            room.type === "SELF"
-                              ? myStatusType
-                              : room.directMembershipId !== null
-                                ? memberStatusByMembershipId[room.directMembershipId]?.statusType
-                                : null
-                          }
-                        />
-                      )}
-                      <span className="min-w-0 flex-1">
-                        <span className="flex items-center gap-2">
-                          {room.type === "SELF" && <MeBadge />}
-                          <b className="truncate text-sm text-slate-900">{roomName(room)}</b>
-                          {room.type === "GROUP" && (
-                            <span className="shrink-0 text-xs font-bold text-blue-600">
-                              {room.memberCount}
-                            </span>
-                          )}
-                        </span>
-                        {/* 내가 보낸 메시지면 앞에 보낸 화살표(메시지 방 목록과 같은 표시) */}
-                        <span className="mt-0.5 flex min-w-0 items-center gap-1 text-xs text-slate-500">
-                          {room.lastSenderMembershipId === membershipId && <SentMark size={12} />}
-                          <span className="truncate">{room.lastMessage ?? ""}</span>
-                        </span>
-                      </span>
-                      <span className="flex shrink-0 flex-col items-end gap-1">
-                        <span className="text-xs text-slate-400">
-                          {formatRelative(room.lastMessageAt)}
-                        </span>
-                        {room.unreadCount > 0 && (
-                          <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[11px] font-bold leading-none text-white">
-                            {room.unreadCount > 999 ? "999+" : room.unreadCount}
+              <FitPagedList
+                items={recentRooms}
+                getKey={(room) => room.id}
+                label="최근 대화 페이지"
+                renderItem={(room) => (
+                  <button
+                    type="button"
+                    className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-2 py-2 text-left transition hover:bg-slate-50"
+                    onClick={() => router.push(`/message?roomId=${room.id}`)}
+                  >
+                    {room.type === "GROUP" ? (
+                      <GroupAvatar name={room.name ?? "그룹"} />
+                    ) : (
+                      <UserAvatar
+                        size="md"
+                        name={
+                          room.type === "SELF" ? displayName : (room.directDisplayName ?? "사용자")
+                        }
+                        membershipId={room.type === "SELF" ? membershipId : room.directMembershipId}
+                        presenceStatus={
+                          room.type === "SELF"
+                            ? "ONLINE"
+                            : room.directMembershipId !== null
+                              ? (presenceByMembershipId[room.directMembershipId] ?? "OFFLINE")
+                              : "OFFLINE"
+                        }
+                        statusType={
+                          room.type === "SELF"
+                            ? myStatusType
+                            : room.directMembershipId !== null
+                              ? memberStatusByMembershipId[room.directMembershipId]?.statusType
+                              : null
+                        }
+                      />
+                    )}
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-center gap-2">
+                        {room.type === "SELF" && <MeBadge />}
+                        <b className="truncate text-sm text-slate-900">{roomName(room)}</b>
+                        {room.type === "GROUP" && (
+                          <span className="shrink-0 text-xs font-bold text-blue-600">
+                            {room.memberCount}
                           </span>
                         )}
                       </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
+                      {/* 내가 보낸 메시지면 앞에 보낸 화살표(메시지 방 목록과 같은 표시) */}
+                      <span className="mt-0.5 flex min-w-0 items-center gap-1 text-xs text-slate-500">
+                        {room.lastSenderMembershipId === membershipId && <SentMark size={12} />}
+                        <span className="truncate">{room.lastMessage ?? ""}</span>
+                      </span>
+                    </span>
+                    <span className="flex shrink-0 flex-col items-end gap-1">
+                      <span className="text-xs text-slate-400">
+                        {formatRelative(room.lastMessageAt)}
+                      </span>
+                      {room.unreadCount > 0 && (
+                        <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[11px] font-bold leading-none text-white">
+                          {room.unreadCount > 999 ? "999+" : room.unreadCount}
+                        </span>
+                      )}
+                    </span>
+                  </button>
+                )}
+              />
             )}
           </Card>
 
@@ -550,31 +549,32 @@ function BoardPostList({
   if (posts.length === 0) return <Empty message={emptyText} />;
   return (
     // 한 글을 두 줄로: 위는 딱지·제목, 아래는 (게시판 ·) 작성자 · 날짜 · 조회수 · 댓글 수
-    <ul className={`${LIST_FILL} divide-y divide-slate-100`}>
-      {posts.map((post) => (
-        <li key={post.id}>
-          <button
-            type="button"
-            className="flex w-full cursor-pointer flex-col gap-1 rounded-lg px-2 py-2 text-left transition hover:bg-slate-50"
-            onClick={() => onOpen(post)}
-          >
-            <span className="flex w-full min-w-0 items-center gap-1.5">
-              <PostBadges post={post} />
-              <span
-                className={`min-w-0 flex-1 truncate text-sm ${post.read ? "text-slate-600" : "font-bold text-slate-950"}`}
-              >
-                {post.title}
-              </span>
+    <FitPagedList
+      items={posts}
+      getKey={(post) => post.id}
+      label="최신 게시글 페이지"
+      renderItem={(post) => (
+        <button
+          type="button"
+          className="flex w-full cursor-pointer flex-col gap-1 rounded-lg px-2 py-2 text-left transition hover:bg-slate-50"
+          onClick={() => onOpen(post)}
+        >
+          <span className="flex w-full min-w-0 items-center gap-1.5">
+            <PostBadges post={post} />
+            <span
+              className={`min-w-0 flex-1 truncate text-sm ${post.read ? "text-slate-600" : "font-bold text-slate-950"}`}
+            >
+              {post.title}
             </span>
-            <PostMeta
-              post={post}
-              prefix={showBoard ? post.boardName : undefined}
-              dateText={formatRelative(post.createdAt)}
-            />
-          </button>
-        </li>
-      ))}
-    </ul>
+          </span>
+          <PostMeta
+            post={post}
+            prefix={showBoard ? post.boardName : undefined}
+            dateText={formatRelative(post.createdAt)}
+          />
+        </button>
+      )}
+    />
   );
 }
 
