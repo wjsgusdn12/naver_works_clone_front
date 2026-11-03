@@ -23,7 +23,19 @@ function renderText(node: DocNode, key: number) {
     else if (mark.type === "italic") element = <em>{element}</em>;
     else if (mark.type === "underline") element = <u>{element}</u>;
     else if (mark.type === "strike") element = <s>{element}</s>;
-    else if (mark.type === "code")
+    // 글자 색은 정해 둔 이름만(오름 빨강·내림 파랑 — 한국 증시 표기, 흐림 회색). 임의 색 값은 받지 않음.
+    else if (mark.type === "tone") {
+      const tone = mark.attrs?.tone;
+      const className =
+        tone === "up"
+          ? "font-medium text-red-600"
+          : tone === "down"
+            ? "font-medium text-blue-600"
+            : tone === "muted"
+              ? "text-slate-400"
+              : null;
+      if (className) element = <span className={className}>{element}</span>;
+    } else if (mark.type === "code")
       element = <code className="rounded bg-slate-100 px-1 py-0.5 text-[0.9em]">{element}</code>;
     else if (mark.type === "link") {
       const href = safeHref(mark.attrs?.href);
@@ -113,6 +125,40 @@ function renderNode(node: DocNode, key: number): ReactNode {
       return <br key={key} />;
     case "horizontalRule":
       return <hr key={key} className="border-slate-200" />;
+    case "table":
+      // 좁은 화면에서는 표만 가로로 밀어 봄
+      return (
+        <div key={key} className="overflow-x-auto">
+          <table className="w-full min-w-max border-collapse text-sm">
+            <tbody>{children}</tbody>
+          </table>
+        </div>
+      );
+    case "tableRow":
+      return (
+        <tr key={key} className="border-b border-slate-100">
+          {children}
+        </tr>
+      );
+    case "tableHeader":
+    case "tableCell": {
+      const align = node.attrs?.align;
+      const alignClass =
+        align === "right" ? "text-right" : align === "center" ? "text-center" : "text-left";
+      const className = `px-3 py-1.5 tabular-nums [&>p]:min-h-0 ${alignClass}`;
+      return node.type === "tableHeader" ? (
+        <th
+          key={key}
+          className={`${className} border-b border-slate-200 bg-slate-50 text-xs font-semibold text-slate-500`}
+        >
+          {children}
+        </th>
+      ) : (
+        <td key={key} className={className}>
+          {children}
+        </td>
+      );
+    }
     case "image": {
       const id = Number(node.attrs?.attachmentId);
       return Number.isFinite(id) && id > 0 ? <BoardImage key={key} attachmentId={id} /> : null;
