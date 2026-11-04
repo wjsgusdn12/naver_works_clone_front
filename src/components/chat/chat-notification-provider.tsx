@@ -2,6 +2,7 @@
 
 import { MessageNotificationToast } from "@/components/common/message-notification-toast";
 import { useAuth } from "@/components/auth/auth-provider";
+import { useProfileImages } from "@/components/common/profile-image-provider";
 import { chatApi, type ChatRoom } from "@/lib/api/chat-api";
 import { connectChatNotification, type PresenceRealtimeEvent } from "@/lib/realtime/chat-realtime";
 import { addressBookApi, type MemberStatus, type PresenceStatus } from "@/lib/api/address-book-api";
@@ -48,6 +49,10 @@ export function ChatNotificationProvider({ children }: Readonly<{ children: Reac
   // 화면 이동은 나가기 확인(작성 중인 글)을 거침
   const router = useLeaveNavigation();
   const { accessToken, member, status } = useAuth();
+  // 프로필 사진 변경도 같은 실시간 연결로 받음(applyChange·reloadProfileImages는 바뀌지 않는 함수)
+  const profileImages = useProfileImages();
+  const applyProfileImageChange = profileImages?.applyChange;
+  const reloadProfileImages = profileImages?.reload;
   // 알림 목록은 서버(notification 테이블)가 원본. 실시간 이벤트는 그 위에 새 항목만 얹음.
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [notificationsLoaded, setNotificationsLoaded] = useState(false);
@@ -303,6 +308,9 @@ export function ChatNotificationProvider({ children }: Readonly<{ children: Reac
           [event.membershipId]: { statusType: event.statusType, statusUntil: event.statusUntil },
         }));
       },
+      onProfileImageChanged: (event) =>
+        applyProfileImageChange?.(event.membershipId, event.version),
+      onConnected: () => reloadProfileImages?.(),
       // 재연결로 같은 알림이 두 번 와도 목록에는 한 번만 남김.
       onNotificationCreated: (event) => {
         setNotifications((current) => [
@@ -317,6 +325,8 @@ export function ChatNotificationProvider({ children }: Readonly<{ children: Reac
     return () => connection.disconnect();
   }, [
     accessToken,
+    applyProfileImageChange,
+    reloadProfileImages,
     member,
     notificationEnabled,
     notificationMode,

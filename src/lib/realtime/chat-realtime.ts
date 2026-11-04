@@ -89,6 +89,13 @@ type ConnectChatRoomOptions = {
   onError: (message: string) => void;
 };
 
+// 누군가 프로필 사진을 바꾸거나 지움. version이 null이면 기본 이미지(이름 글자)로 돌아감.
+export type ProfileImageRealtimeEvent = {
+  type: "PROFILE_IMAGE_CHANGED";
+  membershipId: number;
+  version: string | null;
+};
+
 type ConnectChatNotificationOptions = {
   accessToken: string;
   subscribedChatRoomIds: number[];
@@ -96,6 +103,9 @@ type ConnectChatNotificationOptions = {
   onMessageChanged: (event: ChatMessageChangeEvent) => void;
   onPresenceChanged?: (event: PresenceRealtimeEvent) => void;
   onNotificationCreated?: (event: NotificationRealtimeEvent) => void;
+  onProfileImageChanged?: (event: ProfileImageRealtimeEvent) => void;
+  // 연결(재연결 포함)될 때마다. 끊긴 동안 놓친 소식을 다시 받아 맞추는 데 씀.
+  onConnected?: () => void;
   onError: (message: string) => void;
 };
 
@@ -189,6 +199,8 @@ export const connectChatNotification = ({
   onPresenceChanged,
   onMessageChanged,
   onNotificationCreated,
+  onProfileImageChanged,
+  onConnected,
   onError,
 }: ConnectChatNotificationOptions) => {
   const client = new Client({
@@ -206,6 +218,15 @@ export const connectChatNotification = ({
           if (event.type === "PRESENCE_CHANGED") onPresenceChanged?.(event);
         } catch {
           onError("실시간 상태 데이터를 해석하지 못했습니다.");
+        }
+      });
+      // 프로필 사진 변경: 바뀐 사람 것만 화면에서 고침(주기적으로 목록을 다시 받지 않음).
+      client.subscribe("/topic/profileImage", (frame) => {
+        try {
+          const event = JSON.parse(frame.body) as ProfileImageRealtimeEvent;
+          if (event.type === "PROFILE_IMAGE_CHANGED") onProfileImageChanged?.(event);
+        } catch {
+          onError("실시간 프로필 사진 데이터를 해석하지 못했습니다.");
         }
       });
       // 서비스 알림은 방과 무관하게 로그인한 사용자 전용 큐로 받음.
@@ -229,6 +250,7 @@ export const connectChatNotification = ({
           }
         });
       });
+      onConnected?.();
     },
     onStompError: (frame) =>
       onError(frame.headers.message ?? "실시간 메시지 알림 연결이 거부되었습니다."),
