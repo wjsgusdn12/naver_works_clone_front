@@ -36,15 +36,9 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { boardDateTime } from "@/lib/board-date";
 
-const dateTime = (value: string) =>
-  new Date(value).toLocaleString("ko-KR", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+const dateTime = boardDateTime;
 
 // 글 보기(미니멀): 머리(딱지·제목·글쓴이 한 줄), 본문, 첨부, 댓글. 수정·삭제·읽음 현황은 글자 버튼.
 export function BoardPostDetailView({

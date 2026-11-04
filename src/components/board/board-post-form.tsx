@@ -24,6 +24,7 @@ import {
 import { fileIconOf, formatFileSize, MAX_ATTACHMENT_SIZE } from "@/lib/attachment-files";
 import { AttachmentIcon } from "@/components/common/attachment-icon";
 import { X } from "lucide-react";
+import { boardDateTime } from "@/lib/board-date";
 import { useEffect, useRef, useState } from "react";
 
 // 아래 첨부 목록의 한 줄. 올리는 중이면 id가 없고 progress(%)만 있음.
@@ -86,14 +87,8 @@ const nextHour = () => {
   return date;
 };
 
-// 예약 시각 표시: "11월 3일 오전 9:00"
-export const formatPublishAt = (value: string | Date) =>
-  new Date(value).toLocaleString("ko-KR", {
-    month: "long",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
+// 예약 시각 표시: "2026. 11. 04. 09:00"(게시판 날짜 형식)
+export const formatPublishAt = boardDateTime;
 
 // 글쓰기·수정. 수정이면 게시판은 바꿀 수 없음. 문의하기에는 중요·필독을 걸 수 없고 댓글은 항상 받음.
 // 아직 등록하지 않은 글(새 글·임시저장·예약)은 임시저장·등록예약도 고를 수 있음.

@@ -1,6 +1,7 @@
 "use client";
 
-import { dateLabel, Highlight } from "@/components/chat/message-search-panel";
+import { Highlight } from "@/components/chat/message-search-panel";
+import { boardDate, boardDateTime } from "@/lib/board-date";
 import { CommentIcon } from "@/components/common/comment-icon";
 import { CustomCheckbox } from "@/components/common/custom-checkbox";
 import { LoadingState } from "@/components/common/loading";
@@ -137,7 +138,7 @@ export function PostRow({
               <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-slate-600">
                 {post.status === "DRAFT"
                   ? "임시저장"
-                  : `예약 ${new Date(post.publishAt ?? "").toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}`}
+                  : `예약 ${boardDateTime(post.publishAt ?? "")}`}
               </span>
             )}
             <PostBadges post={post} showImportant={!onToggleImportant} />
@@ -176,7 +177,7 @@ export function PostRow({
               .filter(Boolean)
               .join(" · ") || undefined
           }
-          dateText={dateLabel(post.deletedAt ?? post.createdAt)}
+          dateText={boardDate(post.deletedAt ?? post.createdAt)}
         />
       </button>
     </li>
@@ -194,7 +195,7 @@ function MetaDot() {
 
 // 글 줄 오른쪽 정보: (prefix ·) 작성자 · 날짜 · 조회수 · 리액션 수 · 댓글 수. 게시판 목록·게시판 홈·메인 홈 카드 공통.
 // prefix는 게시판·회사 이름처럼 앞에 붙일 글자.
-// dateText가 없으면 날짜 형식(dateLabel)으로.
+// dateText가 없으면 게시판 날짜 형식(boardDate)으로.
 export function PostMeta({
   post,
   dateText,
@@ -219,7 +220,7 @@ export function PostMeta({
         {highlight ? <Highlight text={post.authorName} keyword={highlight} /> : post.authorName}
       </span>
       <MetaDot />
-      <span className="whitespace-nowrap">{dateText ?? dateLabel(post.createdAt)}</span>
+      <span className="whitespace-nowrap">{dateText ?? boardDate(post.createdAt)}</span>
       <MetaDot />
       <span className="flex items-center gap-0.5" title="조회수">
         <Eye size={12} aria-hidden="true" />
