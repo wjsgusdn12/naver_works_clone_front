@@ -82,6 +82,8 @@ export function HomeDashboard({
   const [rooms, setRooms] = useState<ChatRoom[] | null>(null);
   // 주소록 카드(전체 구성원). 즐겨찾기는 별 버튼으로 켜고 끔.
   const [members, setMembers] = useState<AddressBookMember[] | null>(null);
+  // 전체 구성원 수(카드에는 최대 MEMBER_LIMIT명만 받아도 칩에는 전체 수)
+  const [memberTotal, setMemberTotal] = useState<number | null>(null);
   // 게시판 홈 요약(공지사항·최신글). 실패하면 빈 값으로 두고 안내만 띄움.
   const [board, setBoard] = useState<BoardHome | null>(null);
 
@@ -111,11 +113,14 @@ export function HomeDashboard({
         }),
       )
       .then((result) => {
-        if (!cancelled) setMembers(result.content);
+        if (cancelled) return;
+        setMembers(result.content);
+        setMemberTotal(result.totalElements);
       })
       .catch((error: unknown) => {
         if (cancelled) return;
         setMembers([]);
+        setMemberTotal(0);
         showToast(error instanceof Error ? error.message : "주소록을 불러오지 못했습니다.");
       });
     boardApi
@@ -329,7 +334,16 @@ export function HomeDashboard({
             fill
             className="xl:col-start-2 xl:row-start-1"
             title="주소록"
-            badge={<CountChip label="온라인" value={onlineCount} suffix="명" />}
+            badge={
+              // 주소록은 "몇 명 중 몇 명"이어야 뜻이 통해 전체 수도 함께, 0명이어도 표시
+              <CountChip
+                label="온라인"
+                value={members === null ? null : onlineCount}
+                total={memberTotal}
+                suffix="명"
+                showZero
+              />
+            }
             description="전체 구성원입니다. 별을 눌러 즐겨찾기를 켜고 끕니다."
             onTitleClick={() => router.push("/addressBook")}
             footer={
@@ -563,9 +577,7 @@ function BoardPostList({
         >
           <span className="flex w-full min-w-0 items-center gap-1.5">
             <PostBadges post={post} notice={post.boardType === "NOTICE"} />
-            <span
-              className={`min-w-0 truncate text-sm ${postTitleTone(post, "text-slate-600")}`}
-            >
+            <span className={`min-w-0 truncate text-sm ${postTitleTone(post, "text-slate-600")}`}>
               {post.title}
             </span>
             <AttachmentMark has={post.hasFile} size={14} />
@@ -607,20 +619,35 @@ function QuickButton({
   );
 }
 
-// 카드 제목 옆 숫자 칩(예: "온라인 3명"). value가 null이면 불러오는 중.
+// 카드 제목 옆 숫자 칩(예: "읽지 않음 3건", "온라인 1 / 3명"). value가 null이면 불러오는 중.
+// 할 일이 없는 0은 숨김(showZero면 표시). total이 있으면 "값 / 전체".
 function CountChip({
   label,
   value,
+  total,
   suffix,
+  showZero = false,
 }: {
   label: string;
   value: number | null;
+  total?: number | null;
   suffix: string;
+  showZero?: boolean;
 }) {
+  if (value === 0 && !showZero) return null;
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
+    <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 tabular-nums">
       {label}
-      {value === null ? <Spinner size={10} /> : <b className="font-bold">{value}</b>}
+      {value === null ? (
+        <Spinner size={10} />
+      ) : (
+        <span>
+          <b className="font-bold">{value}</b>
+          {total !== undefined && total !== null && (
+            <span className="text-blue-500"> / {total}</span>
+          )}
+        </span>
+      )}
       {suffix}
     </span>
   );
