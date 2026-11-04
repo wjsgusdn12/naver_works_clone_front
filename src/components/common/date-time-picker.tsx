@@ -13,6 +13,8 @@ type DateTimePickerProps = {
   max: Date;
   // 분 단위 간격. 기본 10분.
   minuteStep?: number;
+  // true면 달력만(시·분 줄 없음). 고른 날의 시각은 그대로 둠.
+  dateOnly?: boolean;
 };
 
 const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
@@ -26,6 +28,7 @@ export function DateTimePicker({
   min,
   max,
   minuteStep = 10,
+  dateOnly = false,
 }: DateTimePickerProps) {
   // 달력에 보이는 달. 처음엔 고른 값이 있는 달.
   const [viewMonth, setViewMonth] = useState(
@@ -135,22 +138,24 @@ export function DateTimePicker({
         })}
       </div>
 
-      <div className="mt-3 flex items-center gap-2 border-t border-slate-100 pt-3">
-        <CustomSelect
-          label="시"
-          value={String(value.getHours())}
-          onChange={(hour) => pickTime(Number(hour), value.getMinutes())}
-          options={hourOptions}
-          className="flex-1 [&>button]:h-9 [&>button]:px-3"
-        />
-        <CustomSelect
-          label="분"
-          value={minuteValue}
-          onChange={(minute) => pickTime(value.getHours(), Number(minute))}
-          options={minuteOptions}
-          className="w-24 [&>button]:h-9 [&>button]:px-3"
-        />
-      </div>
+      {!dateOnly && (
+        <div className="mt-3 flex items-center gap-2 border-t border-slate-100 pt-3">
+          <CustomSelect
+            label="시"
+            value={String(value.getHours())}
+            onChange={(hour) => pickTime(Number(hour), value.getMinutes())}
+            options={hourOptions}
+            className="flex-1 [&>button]:h-9 [&>button]:px-3"
+          />
+          <CustomSelect
+            label="분"
+            value={minuteValue}
+            onChange={(minute) => pickTime(value.getHours(), Number(minute))}
+            options={minuteOptions}
+            className="w-24 [&>button]:h-9 [&>button]:px-3"
+          />
+        </div>
+      )}
     </div>
   );
 }
