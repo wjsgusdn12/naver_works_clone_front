@@ -49,7 +49,8 @@ export type BoardPostSummary = {
   companyName: string;
   title: string;
   preview: string;
-  authorMembershipId: number;
+  // 시스템 글(system)이면 null, 이름은 "시스템"
+  authorMembershipId: number | null;
   authorName: string;
   createdAt: string;
   // 내가 중요 표시(깃발)한 글(나에게만 보이는 개인 표시)
@@ -66,6 +67,8 @@ export type BoardPostSummary = {
   matchText: string | null;
   // 매일 자동 게시글(증시 브리핑) — 제목을 포인트 색으로
   daily: boolean;
+  // 서버가 자동으로 올린 시스템 글(사람 글쓴이 없음)
+  system: boolean;
 };
 
 // 검색 결과 화면의 탭(찾을 곳). ALL: 제목·본문·글쓴이(게시판 안 검색·휴지통).
@@ -138,7 +141,8 @@ export type BoardPostDetail = {
   board: BoardItem;
   title: string;
   content: string;
-  authorMembershipId: number;
+  // 시스템 글(system)이면 null, 이름은 "시스템"
+  authorMembershipId: number | null;
   authorName: string;
   authorDepartmentName: string | null;
   createdAt: string;
@@ -162,6 +166,8 @@ export type BoardPostDetail = {
   canReact: boolean;
   // 매일 자동 게시글(증시 브리핑) — 제목을 포인트 색으로
   daily: boolean;
+  // 서버가 자동으로 올린 시스템 글(사람 글쓴이 없음)
+  system: boolean;
 };
 
 // companyName: 공통 게시판 필독은 여러 회사 사람이 섞이므로 함께 표시

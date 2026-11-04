@@ -36,6 +36,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { SystemAvatar } from "@/components/common/system-avatar";
 import { boardDateTime } from "@/lib/board-date";
 
 const dateTime = boardDateTime;
@@ -266,7 +267,11 @@ export function BoardPostDetailView({
         </h2>
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-4">
           <div className="flex min-w-0 items-center gap-2 text-sm text-slate-500">
-            <PersonAvatar membershipId={post.authorMembershipId} name={post.authorName} />
+            {post.system || post.authorMembershipId === null ? (
+              <SystemAvatar />
+            ) : (
+              <PersonAvatar membershipId={post.authorMembershipId} name={post.authorName} />
+            )}
             {post.authorMembershipId === myMembershipId && <MeBadge />}
             <span className="font-medium text-slate-800">{post.authorName}</span>
             {post.authorDepartmentName && <span>{post.authorDepartmentName}</span>}
