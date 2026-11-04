@@ -598,7 +598,7 @@ function TrendSection({
   // 요청이 없던 구간의 응답 시간은 0이 아니라 "기록 없음". 응답 시간 선은 그 칸을 건너뛰고 앞뒤 점을 바로 이음.
   const responseValue = (point: ApiDashboardTrendPoint, value: number) =>
     isFuture(point) || isMerged(point) || point.requests === 0 ? null : value < 0 ? 5000 : value;
-  // 요청 수를 영역별(메시지·주소록·게시판…)로 아래부터 쌓음. 맨 위 테두리가 전체 요청 수.
+  // 요청 수를 영역별(메시지·주소록·게시판…) 실선으로. 전체 요청 수는 툴팁 합계 줄.
   // (오류는 오른쪽 오류율 그래프로)
   const requestSeries: LineSeries[] = domains.map((domain, index) => ({
     key: `domain-${index}`,
@@ -736,7 +736,6 @@ function TrendSection({
               title="요청 수"
               unit="건"
               series={requestSeries}
-              area
               waiting={waiting}
               empty={!!loaded && !hasData}
             >
@@ -744,11 +743,10 @@ function TrendSection({
                 labels={labels}
                 tooltipTitles={titles}
                 series={requestSeries}
-                stacked
                 totalLabel="전체 요청"
                 formatValue={(value) => `${formatNumber(Math.round(value))}`}
                 labelEvery={1}
-                ariaLabel={`${config.name} 영역별 요청 수 누적 추이`}
+                ariaLabel={`${config.name} 영역별 요청 수 추이`}
               />
             </ChartCard>
             <ChartCard
@@ -958,7 +956,6 @@ function ChartCard({
   title,
   unit,
   series,
-  area = false,
   className = "",
   waiting,
   empty,
@@ -969,8 +966,6 @@ function ChartCard({
   title: string;
   unit: string;
   series: LineSeries[];
-  // 누적 영역 그래프라 범례를 채운 네모로
-  area?: boolean;
   className?: string;
   waiting: CardWaiting;
   // 이 기간에 기록된 요청이 없음
@@ -991,7 +986,7 @@ function ChartCard({
         <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 text-xs text-slate-500">
           {series.map((item) => (
             <span key={item.key} className="flex items-center gap-1.5">
-              <LegendSwatch color={item.color} dashed={item.dashed} area={area} />
+              <LegendSwatch color={item.color} dashed={item.dashed} />
               {item.label}
             </span>
           ))}
