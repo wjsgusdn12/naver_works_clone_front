@@ -226,6 +226,14 @@ export function BoardSearchFilterDialog({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onClose]);
 
+  // 날짜 칸에 보여 줄 기간: 직접 설정이면 그 날짜, 최근 n일 등이면 그 시작일 ~ 오늘, 전체 기간이면 비움
+  const today = new Date();
+  const preset = draft.period === "CUSTOM" ? null : periodRange(draft, today).from;
+  const shownFrom =
+    draft.period === "CUSTOM" ? draft.customFrom : preset ? toDateKey(new Date(preset)) : null;
+  const shownTo =
+    draft.period === "CUSTOM" ? draft.customTo : draft.period === "ALL" ? null : toDateKey(today);
+
   const change = (next: Partial<BoardSearchFilter>) =>
     setDraft((current) => ({ ...current, ...next }));
 
@@ -300,44 +308,49 @@ export function BoardSearchFilterDialog({
             <CustomSelect
               label="기간"
               compact
-              className="w-40"
+              className="w-36"
               value={draft.period}
               onChange={(value) => {
                 const period = value as SearchPeriod;
-                // 직접 설정을 처음 고르면 최근 1주(오늘 포함)로 채워 둠
-                if (period === "CUSTOM" && !draft.customFrom && !draft.customTo) {
-                  const from = new Date();
-                  from.setDate(from.getDate() - 6);
-                  change({ period, customFrom: toDateKey(from), customTo: toDateKey(new Date()) });
+                // 직접 설정을 고르면 지금 보이는 날짜(없으면 최근 1주)로 채움
+                if (period === "CUSTOM") {
+                  const fallback = new Date();
+                  fallback.setDate(fallback.getDate() - 6);
+                  change({
+                    period,
+                    customFrom: shownFrom ?? toDateKey(fallback),
+                    customTo: shownTo ?? toDateKey(today),
+                  });
                 } else change({ period });
               }}
               options={PERIOD_OPTIONS}
             />
-            {draft.period === "CUSTOM" && (
-              <div className="flex items-center gap-1.5">
-                <DateField
-                  label="시작일"
-                  className="w-36"
-                  value={draft.customFrom}
-                  min={MIN_DATE}
-                  max={
-                    draft.customTo ? endOfDay(fromDateKey(draft.customTo)) : endOfDay(new Date())
-                  }
-                  placeholder="시작일"
-                  onChange={(value) => change({ customFrom: value })}
-                />
-                <span className="text-xs text-slate-400">~</span>
-                <DateField
-                  label="종료일"
-                  className="w-36"
-                  value={draft.customTo}
-                  min={draft.customFrom ? fromDateKey(draft.customFrom) : MIN_DATE}
-                  max={endOfDay(new Date())}
-                  placeholder="종료일"
-                  onChange={(value) => change({ customTo: value })}
-                />
-              </div>
-            )}
+            {/* 날짜 칸은 항상 보임. 고른 기간의 날짜를 보여 주고, 날짜를 고치면 자동으로 직접 설정 */}
+            <div className="flex items-center gap-1.5">
+              <DateField
+                label="시작일"
+                className="w-36"
+                value={shownFrom}
+                min={MIN_DATE}
+                max={shownTo ? endOfDay(fromDateKey(shownTo)) : endOfDay(today)}
+                placeholder="시작일"
+                onChange={(value) =>
+                  change({ period: "CUSTOM", customFrom: value, customTo: shownTo })
+                }
+              />
+              <span className="text-xs text-slate-400">~</span>
+              <DateField
+                label="종료일"
+                className="w-36"
+                value={shownTo}
+                min={shownFrom ? fromDateKey(shownFrom) : MIN_DATE}
+                max={endOfDay(today)}
+                placeholder="종료일"
+                onChange={(value) =>
+                  change({ period: "CUSTOM", customFrom: shownFrom, customTo: value })
+                }
+              />
+            </div>
           </FilterRow>
           <FilterRow label="게시판">
             <CustomSelect
