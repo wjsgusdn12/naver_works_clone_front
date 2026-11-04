@@ -28,7 +28,7 @@ import { NotificationModeMenu } from "@/components/common/notification-mode-menu
 import { ProfileMenu } from "@/components/common/profile-menu";
 import { ProjectGuideModal } from "@/components/common/project-guide-modal";
 import { UserAvatar } from "@/components/common/user-avatar";
-import { ChoiceGroup, type ChoiceOption } from "@/components/common/choice-group";
+import { Tabs, type TabItem } from "@/components/common/tabs";
 import { useLeaveNavigation } from "@/components/common/leave-guard";
 
 // 상단 헤더에서 반복 렌더링할 서비스 아이콘 정보.
@@ -55,12 +55,12 @@ const headerActions: HeaderAction[] = [
   { label: "프로젝트 소개", icon: BookOpen },
 ];
 
-// 알림 패널 칩 목록. 아직 기능이 없는 서비스(캘린더 등)는 칩을 만들지 않음.
-const notificationChips: ChoiceOption<"ALL" | NotificationCategory>[] = [
-  { value: "ALL", label: "전체" },
-  { value: "MESSAGE", label: "메시지" },
-  { value: "ADDRESS_BOOK", label: "주소록" },
-  { value: "SYSTEM", label: "시스템" },
+// 알림 패널 분류 탭. 아직 기능이 없는 서비스(캘린더 등)는 탭을 만들지 않음.
+const notificationTabs: TabItem<"ALL" | NotificationCategory>[] = [
+  { key: "ALL", label: "전체" },
+  { key: "MESSAGE", label: "메시지" },
+  { key: "ADDRESS_BOOK", label: "주소록" },
+  { key: "SYSTEM", label: "시스템" },
 ];
 
 // 분류별 카드 상단에 붙는 아이콘·이름.
@@ -519,15 +519,14 @@ export function GlobalHeader({
                       <NotificationModeMenu />
                     </div>
                   </div>
-                  {/* 분류: 공통 가로 선택지(ChoiceGroup) */}
-                  <div className="flex flex-wrap gap-2 px-5 pb-3 pt-1">
-                    <ChoiceGroup
-                      label="알림 분류"
-                      options={notificationChips}
-                      value={notificationFilter}
-                      onChange={setNotificationFilter}
-                    />
-                  </div>
+                  {/* 분류: 공통 탭(밑줄형) */}
+                  <Tabs
+                    items={notificationTabs}
+                    value={notificationFilter}
+                    onChange={setNotificationFilter}
+                    ariaLabel="알림 분류"
+                    className="px-5"
+                  />
                   <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50 px-4 py-3">
                     {!notificationsLoaded ? (
                       <LoadingState message="알림을 불러오는 중입니다..." className="h-full" />
