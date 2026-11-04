@@ -135,7 +135,8 @@ export function MyStatusPicker({
         aria-expanded={anchor !== null}
         disabled={myStatus === null || myStatus === undefined}
         onClick={toggle}
-        className={`flex h-9 min-w-0 cursor-pointer items-center gap-2 rounded-lg border bg-white px-3 text-left text-sm transition disabled:cursor-default disabled:bg-slate-50 ${anchor ? "border-blue-600 ring-4 ring-blue-100" : "border-slate-300 hover:border-blue-400"} ${className}`}
+        // 공통 드롭다운(CustomSelect)과 같은 버튼 모양
+        className={`flex h-9 min-w-0 cursor-pointer items-center gap-2 rounded-lg border bg-white px-3 text-left text-sm outline-none transition-colors disabled:cursor-default disabled:bg-slate-50 ${anchor ? "border-slate-400" : "border-slate-200 hover:border-slate-300 focus-visible:border-slate-400"} ${className}`}
       >
         {currentOption && CurrentIcon ? (
           <span
@@ -146,7 +147,7 @@ export function MyStatusPicker({
         ) : (
           <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500" />
         )}
-        <span className="min-w-0 flex-1 truncate text-slate-500">
+        <span className="min-w-0 flex-1 truncate text-slate-900">
           {myStatus === null || myStatus === undefined ? (
             <LoadingInline message="상태를 불러오는 중" size={12} />
           ) : (
@@ -154,9 +155,10 @@ export function MyStatusPicker({
           )}
         </span>
         <ChevronDown
-          size={16}
+          size={14}
+          strokeWidth={2.25}
           aria-hidden="true"
-          className={`shrink-0 text-slate-500 transition ${anchor ? "rotate-180" : ""}`}
+          className={`shrink-0 transition-transform duration-150 ${anchor ? "rotate-180 text-slate-700" : "text-slate-400"}`}
         />
       </button>
       {anchor && (
@@ -170,7 +172,8 @@ export function MyStatusPicker({
             width: anchor.width,
             maxHeight: `calc(100vh - ${anchor.top + 16}px)`,
           }}
-          className="fixed z-[70] animate-in fade-in zoom-in-95 overflow-y-auto rounded-xl border border-slate-200 bg-white p-2 shadow-xl"
+          // 공통 드롭다운 목록과 같은 카드(둥근 모서리·옅은 테두리·부드러운 그림자)
+          className="fixed z-[70] animate-pop-in overflow-y-auto rounded-xl border border-slate-200/80 bg-white p-1.5 shadow-[0_10px_30px_-10px_rgba(15,23,42,0.25)]"
         >
           <StatusSetting
             // 저장 후 바뀐 값으로 목록을 새로 그림.
