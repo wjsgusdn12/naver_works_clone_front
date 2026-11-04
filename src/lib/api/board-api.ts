@@ -229,6 +229,8 @@ const uploadAttachment = (token: string, file: File, onProgress: (percent: numbe
 export type BoardSearchFilterQuery = {
   field?: "ALL" | "TITLE" | "CONTENT";
   from?: string;
+  // 이 시각 전까지(직접 설정 기간의 종료일 다음 날 0시)
+  to?: string;
   boardId?: number | null;
   fileOnly?: boolean;
 };
@@ -236,6 +238,7 @@ export type BoardSearchFilterQuery = {
 const appendFilter = (query: URLSearchParams, filter: BoardSearchFilterQuery) => {
   if (filter.field && filter.field !== "ALL") query.set("field", filter.field);
   if (filter.from) query.set("from", filter.from);
+  if (filter.to) query.set("to", filter.to);
   if (filter.boardId) query.set("searchBoardId", String(filter.boardId));
   if (filter.fileOnly) query.set("fileOnly", "true");
 };

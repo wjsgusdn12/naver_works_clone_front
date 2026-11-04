@@ -9,7 +9,7 @@ import {
   activeFilterCount,
   BoardSearchFilterDialog,
   EMPTY_SEARCH_FILTER,
-  periodFrom,
+  periodRange,
   searchFilterFromKey,
   searchFilterKey,
   searchFilterOf,
@@ -332,7 +332,7 @@ function BoardContent() {
             keyword,
             scope,
             ...listPrefs,
-            filter: { ...filter, from: periodFrom(filter.period) },
+            filter: { ...filter, ...periodRange(filter) },
           },
         );
         if (version !== listVersionRef.current) return;
@@ -377,7 +377,7 @@ function BoardContent() {
     let cancelled = false;
     const filter = searchFilterFromKey(filterKey);
     boardApi
-      .searchCounts(accessToken, listKeyword, { ...filter, from: periodFrom(filter.period) })
+      .searchCounts(accessToken, listKeyword, { ...filter, ...periodRange(filter) })
       .then((counts) => {
         if (!cancelled) setSearchCounts({ key: countsKey, counts });
       })

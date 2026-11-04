@@ -2,18 +2,22 @@
 
 import { CustomCheckbox } from "@/components/common/custom-checkbox";
 import { CustomSelect, type SelectOption } from "@/components/common/custom-select";
-import { Tabs, type TabItem } from "@/components/common/tabs";
+import { DateField, fromDateKey, toDateKey } from "@/components/common/date-field";
 import type { BoardItem } from "@/lib/api/board-api";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 // 게시글 검색 필터. 주소(URL)에 짧은 이름으로 남겨 새로고침·뒤로 가기에도 유지.
-// field: 제목·내용 중 찾을 칸, period: 등록 기간(지금부터 거꾸로), boardId: 이 게시판에서만, fileOnly: 첨부 있는 글만.
+// field: 제목·내용 중 찾을 칸, period: 등록 기간(지금부터 거꾸로, 또는 CUSTOM이면 customFrom~customTo 날짜),
+// boardId: 이 게시판에서만, fileOnly: 첨부 있는 글만.
 export type SearchField = "ALL" | "TITLE" | "CONTENT";
-export type SearchPeriod = "ALL" | "1D" | "1W" | "1M" | "6M" | "1Y";
+export type SearchPeriod = "ALL" | "1D" | "1W" | "1M" | "6M" | "1Y" | "CUSTOM";
 export type BoardSearchFilter = {
   field: SearchField;
   period: SearchPeriod;
+  // 직접 설정 기간("YYYY-MM-DD", 양 끝 날짜 포함). period가 CUSTOM일 때만 씀.
+  customFrom: string | null;
+  customTo: string | null;
   boardId: number | null;
   fileOnly: boolean;
 };
@@ -21,6 +25,8 @@ export type BoardSearchFilter = {
 export const EMPTY_SEARCH_FILTER: BoardSearchFilter = {
   field: "ALL",
   period: "ALL",
+  customFrom: null,
+  customTo: null,
   boardId: null,
   fileOnly: false,
 };
@@ -37,63 +43,99 @@ const PERIOD_OPTIONS: SelectOption[] = [
   { value: "1M", label: "최근 1개월" },
   { value: "6M", label: "최근 6개월" },
   { value: "1Y", label: "최근 1년" },
+  { value: "CUSTOM", label: "직접 설정" },
 ];
 
 const isField = (value: string | null): value is SearchField =>
   FIELD_OPTIONS.some((option) => option.value === value);
 const isPeriod = (value: string | null): value is SearchPeriod =>
   PERIOD_OPTIONS.some((option) => option.value === value);
+const isDateKey = (value: string | null | undefined): value is string =>
+  !!value && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(fromDateKey(value).getTime());
 
-// 주소 이름: sf(검색 위치)·sp(기간)·sb(게시판)·sfile(첨부)
+// 직접 설정인데 날짜가 하나도 없으면 전체 기간과 같음
+const normalize = (filter: BoardSearchFilter): BoardSearchFilter =>
+  filter.period === "CUSTOM" && !filter.customFrom && !filter.customTo
+    ? { ...filter, period: "ALL" }
+    : filter.period === "CUSTOM"
+      ? filter
+      : { ...filter, customFrom: null, customTo: null };
+
+// 주소 이름: sf(검색 위치)·sp(기간)·sfrom·sto(직접 설정 기간)·sb(게시판)·sfile(첨부)
 export const searchFilterOf = (params: URLSearchParams): BoardSearchFilter => {
   const board = Number(params.get("sb"));
-  return {
+  return normalize({
     field: isField(params.get("sf")) ? (params.get("sf") as SearchField) : "ALL",
     period: isPeriod(params.get("sp")) ? (params.get("sp") as SearchPeriod) : "ALL",
+    customFrom: isDateKey(params.get("sfrom")) ? params.get("sfrom") : null,
+    customTo: isDateKey(params.get("sto")) ? params.get("sto") : null,
     boardId: Number.isInteger(board) && board > 0 ? board : null,
     fileOnly: params.get("sfile") === "1",
-  };
+  });
 };
 
 // 기본값과 다른 것만 주소에 붙임
-export const writeSearchFilter = (query: URLSearchParams, filter: BoardSearchFilter) => {
+export const writeSearchFilter = (query: URLSearchParams, value: BoardSearchFilter) => {
+  const filter = normalize(value);
   if (filter.field !== "ALL") query.set("sf", filter.field);
   if (filter.period !== "ALL") query.set("sp", filter.period);
+  if (filter.customFrom) query.set("sfrom", filter.customFrom);
+  if (filter.customTo) query.set("sto", filter.customTo);
   if (filter.boardId) query.set("sb", String(filter.boardId));
   if (filter.fileOnly) query.set("sfile", "1");
 };
 
 // 비교·effect 의존값용 한 줄 글자. searchFilterFromKey로 되돌림.
-export const searchFilterKey = (filter: BoardSearchFilter) =>
-  `${filter.field}|${filter.period}|${filter.boardId ?? ""}|${filter.fileOnly}`;
+export const searchFilterKey = (value: BoardSearchFilter) => {
+  const filter = normalize(value);
+  return `${filter.field}|${filter.period}|${filter.customFrom ?? ""}|${filter.customTo ?? ""}|${filter.boardId ?? ""}|${filter.fileOnly}`;
+};
 
 export const searchFilterFromKey = (key: string): BoardSearchFilter => {
-  const [field, period, board, fileOnly] = key.split("|");
-  return {
+  const [field, period, customFrom, customTo, board, fileOnly] = key.split("|");
+  return normalize({
     field: isField(field) ? field : "ALL",
     period: isPeriod(period) ? period : "ALL",
+    customFrom: isDateKey(customFrom) ? customFrom : null,
+    customTo: isDateKey(customTo) ? customTo : null,
     boardId: board ? Number(board) : null,
     fileOnly: fileOnly === "true",
-  };
+  });
 };
 
 // 켜 둔 필터 수(아이콘 옆 숫자)
-export const activeFilterCount = (filter: BoardSearchFilter) =>
-  (filter.field !== "ALL" ? 1 : 0) +
-  (filter.period !== "ALL" ? 1 : 0) +
-  (filter.boardId ? 1 : 0) +
-  (filter.fileOnly ? 1 : 0);
+export const activeFilterCount = (value: BoardSearchFilter) => {
+  const filter = normalize(value);
+  return (
+    (filter.field !== "ALL" ? 1 : 0) +
+    (filter.period !== "ALL" ? 1 : 0) +
+    (filter.boardId ? 1 : 0) +
+    (filter.fileOnly ? 1 : 0)
+  );
+};
 
-// 기간 → 서버에 보낼 시작 시각(지금 기준). 전체 기간이면 없음.
-export const periodFrom = (period: SearchPeriod, now = new Date()): string | undefined => {
-  if (period === "ALL") return undefined;
+// 기간 → 서버에 보낼 [from, to) 시각. 직접 설정은 시작일 0시 ~ 종료일 다음 날 0시(종료일 포함).
+export const periodRange = (
+  value: BoardSearchFilter,
+  now = new Date(),
+): { from?: string; to?: string } => {
+  const filter = normalize(value);
+  if (filter.period === "ALL") return {};
+  if (filter.period === "CUSTOM") {
+    const to = filter.customTo ? fromDateKey(filter.customTo) : null;
+    to?.setDate(to.getDate() + 1);
+    return {
+      from: filter.customFrom ? fromDateKey(filter.customFrom).toISOString() : undefined,
+      to: to?.toISOString(),
+    };
+  }
   const from = new Date(now);
-  if (period === "1D") from.setDate(from.getDate() - 1);
-  else if (period === "1W") from.setDate(from.getDate() - 7);
-  else if (period === "1M") from.setMonth(from.getMonth() - 1);
-  else if (period === "6M") from.setMonth(from.getMonth() - 6);
+  if (filter.period === "1D") from.setDate(from.getDate() - 1);
+  else if (filter.period === "1W") from.setDate(from.getDate() - 7);
+  else if (filter.period === "1M") from.setMonth(from.getMonth() - 1);
+  else if (filter.period === "6M") from.setMonth(from.getMonth() - 6);
   else from.setFullYear(from.getFullYear() - 1);
-  return from.toISOString();
+  return { from: from.toISOString() };
 };
 
 const COMMON_BOARD_LABEL: Partial<Record<BoardItem["type"], string>> = {
@@ -241,26 +283,61 @@ export function BoardSearchFilterDialog({
           </button>
         </div>
 
-        {/* 조건: 왼쪽 짧은 이름 + 오른쪽 가로 선택지 */}
+        {/* 조건: 왼쪽 짧은 이름 + 오른쪽 선택 칸 */}
         <div className="space-y-1 px-4 py-3">
           <FilterRow label="위치">
-            <Tabs
-              ariaLabel="검색 위치"
-              items={FIELD_TABS}
+            <CustomSelect
+              label="검색 위치"
+              compact
+              className="w-40"
               value={draft.field}
-              onChange={(value) => change({ field: value })}
-              className="pt-2.5"
+              onChange={(value) => change({ field: value as SearchField })}
+              options={FIELD_OPTIONS}
             />
             <span className="ml-auto shrink-0 text-[11px] text-slate-400">게시글 탭에만 적용</span>
           </FilterRow>
           <FilterRow label="기간">
-            <Tabs
-              ariaLabel="기간"
-              items={PERIOD_TABS}
+            <CustomSelect
+              label="기간"
+              compact
+              className="w-40"
               value={draft.period}
-              onChange={(value) => change({ period: value })}
-              className="pt-2.5"
+              onChange={(value) => {
+                const period = value as SearchPeriod;
+                // 직접 설정을 처음 고르면 최근 1주(오늘 포함)로 채워 둠
+                if (period === "CUSTOM" && !draft.customFrom && !draft.customTo) {
+                  const from = new Date();
+                  from.setDate(from.getDate() - 6);
+                  change({ period, customFrom: toDateKey(from), customTo: toDateKey(new Date()) });
+                } else change({ period });
+              }}
+              options={PERIOD_OPTIONS}
             />
+            {draft.period === "CUSTOM" && (
+              <div className="flex items-center gap-1.5">
+                <DateField
+                  label="시작일"
+                  className="w-36"
+                  value={draft.customFrom}
+                  min={MIN_DATE}
+                  max={
+                    draft.customTo ? endOfDay(fromDateKey(draft.customTo)) : endOfDay(new Date())
+                  }
+                  placeholder="시작일"
+                  onChange={(value) => change({ customFrom: value })}
+                />
+                <span className="text-xs text-slate-400">~</span>
+                <DateField
+                  label="종료일"
+                  className="w-36"
+                  value={draft.customTo}
+                  min={draft.customFrom ? fromDateKey(draft.customFrom) : MIN_DATE}
+                  max={endOfDay(new Date())}
+                  placeholder="종료일"
+                  onChange={(value) => change({ customTo: value })}
+                />
+              </div>
+            )}
           </FilterRow>
           <FilterRow label="게시판">
             <CustomSelect
@@ -306,20 +383,10 @@ export function BoardSearchFilterDialog({
 // 펼친 창 폭(오른쪽 끝을 넘지 않게 왼쪽 위치를 계산할 때 씀)
 const CARD_WIDTH = 600;
 
-// 위치·기간 탭(공통 밑줄형 탭)의 짧은 이름
-const FIELD_TABS: TabItem<SearchField>[] = [
-  { key: "ALL", label: "제목+내용" },
-  { key: "TITLE", label: "제목" },
-  { key: "CONTENT", label: "내용" },
-];
-const PERIOD_TABS: TabItem<SearchPeriod>[] = [
-  { key: "ALL", label: "전체" },
-  { key: "1D", label: "1일" },
-  { key: "1W", label: "1주" },
-  { key: "1M", label: "1개월" },
-  { key: "6M", label: "6개월" },
-  { key: "1Y", label: "1년" },
-];
+// 직접 설정 기간에 고를 수 있는 가장 이른 날, 하루의 끝
+const MIN_DATE = new Date(2000, 0, 1);
+const endOfDay = (date: Date) =>
+  new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59);
 
 function FilterRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
