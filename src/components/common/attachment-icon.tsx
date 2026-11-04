@@ -1,11 +1,11 @@
 import type { SVGProps } from "react";
 
 // 첨부 파일 아이콘(우리 프로젝트 전용으로 직접 그린 SVG):
-// 비스듬히 누운 클립 하나.
+// 비스듬히 누운 클립 하나. 작게 그려도 뭉치지 않도록 세로 선 3개를 넉넉히 띄움(간격 5).
 // 기본 색은 포인트 파랑(text-blue-600). 다른 색이 필요하면 tone으로 바꿈(className에 글자색을 넣지 말 것).
 export function AttachmentIcon({
   size = 16,
-  strokeWidth = 1.8,
+  strokeWidth = 2,
   tone = "text-blue-600",
   className = "",
   ...props
@@ -24,11 +24,8 @@ export function AttachmentIcon({
       className={`${tone} ${className}`}
       {...props}
     >
-      {/* 클립: 바깥 고리 → 안쪽 고리 순서로 한 줄로 그리고 40도 기울임 */}
-      <path
-        transform="rotate(40 12 12)"
-        d="M15.25 8.5v8.75a3.25 3.25 0 0 1-6.5 0V5.75a2.25 2.25 0 0 1 4.5 0v10.5a1.25 1.25 0 0 1-2.5 0V8.5"
-      />
+      {/* 클립: 바깥 고리(폭 10) → 안쪽 고리(폭 5)를 한 줄로 그리고 45도 기울임 */}
+      <path transform="rotate(45 12 12)" d="M17 9v8a5 5 0 0 1-10 0V6.5a2.5 2.5 0 0 1 5 0V16" />
     </svg>
   );
 }
