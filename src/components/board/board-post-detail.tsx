@@ -248,7 +248,7 @@ export function BoardPostDetailView({
       <header>
         {(post.mustRead || post.board.type === "INQUIRY") && (
           <div className="mb-2 flex items-center gap-1.5">
-            <PostBadges post={post} showImportant={false} />
+            <PostBadges post={post} notice={post.board.type === "NOTICE"} showImportant={false} />
             {post.board.type === "INQUIRY" && <AnswerBadge answered={!!post.answeredAt} />}
           </div>
         )}

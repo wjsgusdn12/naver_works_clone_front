@@ -9,6 +9,7 @@ import { Tooltip } from "@/components/common/tooltip";
 import type { BoardPostSummary, BoardSearchScope } from "@/lib/api/board-api";
 import { AttachmentIcon, AttachmentMark } from "@/components/common/attachment-icon";
 import { ChevronRight, Eye, RotateCw, SmilePlus, Star } from "lucide-react";
+import type { ReactNode } from "react";
 
 // 중요 표시(개인) 켜기·끄기 버튼. 표시하면 노란 별, 아니면 옅은 회색 별. 올리면 공통 툴팁.
 export function ImportantButton({
@@ -45,12 +46,32 @@ export const postTitleTone = (post: { read: boolean; daily: boolean }, readClass
       ? readClass
       : "font-bold text-slate-950";
 
-// 필독 딱지 + 내가 중요 표시한 글이면 작은 노란 별(showImportant가 false면 별은 따로 그리는 곳)
+// 글 딱지 한 개. 공지사항·일일·필독·답변 대기/완료 모두 같은 모양(색만 다름).
+const TAG_TONE = {
+  blue: "bg-blue-50 text-blue-600",
+  violet: "bg-violet-50 text-violet-600",
+  red: "bg-red-50 text-red-600",
+  emerald: "bg-emerald-50 text-emerald-700",
+  slate: "bg-slate-100 text-slate-500",
+} as const;
+
+export function PostTag({ tone, children }: { tone: keyof typeof TAG_TONE; children: ReactNode }) {
+  return (
+    <span className={`shrink-0 rounded px-1.5 py-0.5 text-[11px] font-semibold ${TAG_TONE[tone]}`}>
+      {children}
+    </span>
+  );
+}
+
+// 제목 앞 딱지: 중요(작은 노란 별, showImportant가 false면 별은 따로 그리는 곳) ·
+// 공지사항(공지사항 게시판 글) · 일일(매일 자동 브리핑) · 필독
 export function PostBadges({
   post,
+  notice = false,
   showImportant = true,
 }: {
-  post: Pick<BoardPostSummary, "mustRead" | "important">;
+  post: Pick<BoardPostSummary, "mustRead" | "important" | "daily">;
+  notice?: boolean;
   showImportant?: boolean;
 }) {
   return (
@@ -63,22 +84,16 @@ export function PostBadges({
           aria-label="중요 표시한 글"
         />
       )}
-      {post.mustRead && (
-        <span className="shrink-0 rounded bg-red-50 px-1.5 py-0.5 text-[11px] font-semibold text-red-600">
-          필독
-        </span>
-      )}
+      {notice && <PostTag tone="blue">공지사항</PostTag>}
+      {post.daily && <PostTag tone="violet">일일</PostTag>}
+      {post.mustRead && <PostTag tone="red">필독</PostTag>}
     </>
   );
 }
 
 export function AnswerBadge({ answered }: { answered: boolean }) {
   return (
-    <span
-      className={`shrink-0 rounded px-1.5 py-0.5 text-[11px] font-semibold ${answered ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}
-    >
-      {answered ? "답변 완료" : "답변 대기"}
-    </span>
+    <PostTag tone={answered ? "emerald" : "slate"}>{answered ? "답변 완료" : "답변 대기"}</PostTag>
   );
 }
 
@@ -141,11 +156,13 @@ export function PostRow({
                   : `예약 ${boardDateTime(post.publishAt ?? "")}`}
               </span>
             )}
-            <PostBadges post={post} showImportant={!onToggleImportant} />
+            <PostBadges
+              post={post}
+              notice={post.boardType === "NOTICE"}
+              showImportant={!onToggleImportant}
+            />
             {post.boardType === "INQUIRY" && <AnswerBadge answered={post.answered} />}
-            <span
-              className={`truncate text-[15px] ${postTitleTone(post, "text-slate-700")}`}
-            >
+            <span className={`truncate text-[15px] ${postTitleTone(post, "text-slate-700")}`}>
               {search ? <Highlight text={post.title} keyword={search.keyword} /> : post.title}
             </span>
             <AttachmentMark has={post.hasFile} />
@@ -288,12 +305,10 @@ export function HomeCard({
                 className="flex w-full cursor-pointer items-center gap-2 py-2.5 text-left text-sm transition hover:text-blue-600"
               >
                 {answerBadge && <AnswerBadge answered={post.answered} />}
-                <PostBadges post={post} />
+                <PostBadges post={post} notice={post.boardType === "NOTICE"} />
                 {/* 제목 바로 뒤에 첨부 표시(제목이 길면 제목만 잘림) */}
                 <span className="flex min-w-0 flex-1 items-center gap-1">
-                  <span
-                    className={`truncate ${postTitleTone(post, "text-slate-600")}`}
-                  >
+                  <span className={`truncate ${postTitleTone(post, "text-slate-600")}`}>
                     {post.title}
                   </span>
                   <AttachmentMark has={post.hasFile} />
