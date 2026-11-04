@@ -66,16 +66,19 @@ export function PostTag({ tone, children }: { tone: keyof typeof TAG_TONE; child
   );
 }
 
-// 게시판 종류 딱지 글자(문의하기는 답변 대기/완료 딱지가 대신함)
-const BOARD_TAG: Record<Exclude<BoardType, "INQUIRY">, { label: string; tone: keyof typeof TAG_TONE }> = {
+// 게시판 종류 딱지 글자(문의하기는 답변 대기/완료 딱지가 대신함, 자유게시판은 딱지 없음)
+const BOARD_TAG: Record<
+  Exclude<BoardType, "INQUIRY">,
+  { label: string; tone: keyof typeof TAG_TONE } | null
+> = {
   NOTICE: { label: "공지사항", tone: "blue" },
-  FREE: { label: "자유", tone: "slate" },
+  FREE: null,
   COMPANY: { label: "회사", tone: "slate" },
   DEPARTMENT: { label: "부서", tone: "slate" },
 };
 
 // 제목 앞 딱지: 중요(작은 노란 별, showImportant가 false면 별은 따로 그리는 곳) ·
-// 종류(일일 > 게시판 종류, 문의하기는 답변 대기/완료) · 필독. 모든 글이 종류 딱지를 하나씩 가짐.
+// 종류(일일 > 게시판 종류, 문의하기는 답변 대기/완료, 자유게시판은 없음) · 필독.
 export function PostBadges({
   post,
   boardType,
@@ -87,7 +90,7 @@ export function PostBadges({
   answered?: boolean;
   showImportant?: boolean;
 }) {
-  const board = boardType === "INQUIRY" ? null : BOARD_TAG[boardType];
+  const board = boardType === "INQUIRY" ? undefined : BOARD_TAG[boardType];
   return (
     <>
       {showImportant && post.important && (
@@ -102,9 +105,9 @@ export function PostBadges({
         <PostTag tone="violet">일일</PostTag>
       ) : board ? (
         <PostTag tone={board.tone}>{board.label}</PostTag>
-      ) : (
+      ) : board === undefined ? (
         <AnswerBadge answered={answered} />
-      )}
+      ) : null}
       {post.mustRead && <PostTag tone="red">필독</PostTag>}
     </>
   );

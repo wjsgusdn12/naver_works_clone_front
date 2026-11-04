@@ -249,7 +249,7 @@ export function BoardPostDetailView({
       <header>
         {/* 딱지는 제목 왼쪽, 제목 첫 줄 높이(33px)에 세로 가운데 맞춤. 제목이 여러 줄이어도 딱지는 첫 줄 옆 */}
         <div className="flex items-start gap-2">
-          <span className="flex h-[33px] shrink-0 items-center gap-1.5">
+          <span className="flex h-[33px] shrink-0 items-center gap-1.5 empty:hidden">
             <PostBadges
               post={post}
               boardType={post.board.type}
