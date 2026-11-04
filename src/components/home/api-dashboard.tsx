@@ -257,7 +257,7 @@ export function ApiDashboardSection({ accessToken }: { accessToken: string }) {
           ariaLabel="기간"
         />
         <span className="pb-2.5 text-xs font-medium text-slate-500">
-          {data ? periodOf(data.trend, range) : ""}
+          {data ? periodOf(data.trend, range) : " "}
         </span>
       </div>
       <ApiDashboardBody data={data} range={range} error={error} />
@@ -294,7 +294,7 @@ function ApiDashboardBody({
       />
       <TrendSection
         points={data?.trend ?? null}
-        domains={data?.domains ?? []}
+        domains={data?.domains ?? DEFAULT_DOMAINS}
         pool={data?.pool ?? null}
         range={range}
         generatedAt={data?.generatedAt ?? ""}
@@ -529,18 +529,19 @@ function KpiRow({
               <Info size={12} className="text-slate-300" aria-label={tile.help} />
             </Tooltip>
           </p>
+          {/* 받기 전·후 같은 높이(큰 숫자 줄 + 설명 줄)라 숫자가 들어와도 아래가 밀리지 않음 */}
           {loaded ? (
-            <>
-              <p className="mt-1.5 flex flex-wrap items-baseline gap-x-2">
+            <div className="mt-1.5 min-h-[53px]">
+              <p className="flex flex-wrap items-baseline gap-x-2">
                 <span className="text-[26px] leading-tight font-semibold tracking-tight text-slate-950 tabular-nums">
                   {tile.value}
                 </span>
                 <DeltaBadge delta={tile.delta} previousName={previousName} />
               </p>
-              <p className="mt-1 text-[11px] text-slate-400">{tile.sub}</p>
-            </>
+              <p className="mt-1 text-[11px] leading-4 text-slate-400">{tile.sub}</p>
+            </div>
           ) : (
-            <div className="mt-1 flex h-12 items-center">
+            <div className="mt-1.5 flex h-[53px] items-center">
               {waiting === "loading" ? (
                 <Spinner size={18} className="text-blue-500" />
               ) : (
@@ -557,6 +558,8 @@ function KpiRow({
 // 추이 영역: 운영 신호별 그래프 6개(트래픽·오류 / 지연 / 포화·목표) + 표로 보기.
 // 아직 오지 않은 시간은 0이 아니라 빈칸이라 선이 "지금"에서 끊김.
 // 단위가 다른 숫자(건·%·ms)는 한 그래프에 섞지 않고 나눠 그림.
+// 받기 전에도 범례 자리가 같도록 쓰는 영역 이름(서버 ApiDomain.LABELS와 같은 순서)
+const DEFAULT_DOMAINS = ["메시지", "주소록", "게시판", "알림", "기타"];
 // 영역 색: 앞에서부터 공통 구분 색, 마지막 "기타"는 회색
 const domainColor = (index: number, count: number) =>
   index === count - 1
@@ -939,6 +942,9 @@ function PoolChart({
             대기{" "}
             <b className={pool.waiting > 0 ? "text-red-600" : "text-slate-900"}>{pool.waiting}</b>
           </span>
+        ) : waiting ? (
+          // 받기 전에도 안내 줄 자리를 잡아 둠(들어오면서 그래프가 밀리지 않게)
+          <span aria-hidden="true">&nbsp;</span>
         ) : undefined
       }
     >
@@ -1194,7 +1200,18 @@ function ServerList({
             {waiting ? (
               <tr>
                 <td colSpan={4}>
-                  <CardWaitingState waiting={waiting} className="h-14" />
+                  {/* 서버 한 줄과 같은 높이(37px)라 목록이 들어와도 크기가 그대로 */}
+                  {waiting === "loading" ? (
+                    <div
+                      role="status"
+                      aria-label="불러오는 중"
+                      className="flex h-[37px] items-center justify-center"
+                    >
+                      <Spinner size={16} className="text-blue-500" />
+                    </div>
+                  ) : (
+                    <CardWaitingState waiting={waiting} className="h-[37px]" />
+                  )}
                 </td>
               </tr>
             ) : servers.length === 0 ? (
