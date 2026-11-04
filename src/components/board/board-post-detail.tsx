@@ -276,7 +276,7 @@ export function BoardPostDetailView({
             <span className="flex items-center gap-1 font-medium text-slate-800">
               {post.authorName}
               {/* 시스템 글: 이름 오른쪽에 로봇 그림(자동으로 올라간 글 표시) */}
-              {post.system && <SystemMark size={15} />}
+              {post.system && <SystemMark size={17} />}
             </span>
             {post.authorDepartmentName && <span>{post.authorDepartmentName}</span>}
             <span className="text-slate-300">·</span>

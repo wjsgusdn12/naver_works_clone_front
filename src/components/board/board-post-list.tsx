@@ -240,7 +240,7 @@ export function PostMeta({
         <span className="max-w-20 truncate">
           {highlight ? <Highlight text={post.authorName} keyword={highlight} /> : post.authorName}
         </span>
-        {post.system && <SystemMark size={12} />}
+        {post.system && <SystemMark size={14} />}
       </span>
       <MetaDot />
       <span className="whitespace-nowrap">{dateText ?? boardDate(post.createdAt)}</span>
