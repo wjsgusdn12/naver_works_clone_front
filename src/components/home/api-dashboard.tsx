@@ -292,6 +292,7 @@ function ApiDashboardBody({
       />
       <TrendSection
         points={data?.trend ?? null}
+        domains={data?.domains ?? []}
         pool={data?.pool ?? null}
         range={range}
         generatedAt={data?.generatedAt ?? ""}
@@ -554,14 +555,22 @@ function KpiRow({
 // 추이 영역: 운영 신호별 그래프 6개(트래픽·오류 / 지연 / 포화·목표) + 표로 보기.
 // 아직 오지 않은 시간은 0이 아니라 빈칸이라 선이 "지금"에서 끊김.
 // 단위가 다른 숫자(건·%·ms)는 한 그래프에 섞지 않고 나눠 그림.
+// 영역 색: 앞에서부터 공통 구분 색, 마지막 "기타"는 회색
+const domainColor = (index: number, count: number) =>
+  index === count - 1
+    ? CHART_COLORS.other
+    : CHART_COLORS.categorical[index % CHART_COLORS.categorical.length];
+
 function TrendSection({
   points: loaded,
+  domains,
   pool,
   range,
   generatedAt,
   waiting,
 }: {
   points: ApiDashboardTrendPoint[] | null;
+  domains: string[];
   pool: ApiDashboardPool | null;
   range: Range;
   // 이 시각보다 뒤에 시작하는 점은 아직 오지 않은 시간
@@ -589,16 +598,15 @@ function TrendSection({
   // 요청이 없던 구간의 응답 시간은 0이 아니라 "기록 없음". 응답 시간 선은 그 칸을 건너뛰고 앞뒤 점을 바로 이음.
   const responseValue = (point: ApiDashboardTrendPoint, value: number) =>
     isFuture(point) || isMerged(point) || point.requests === 0 ? null : value < 0 ? 5000 : value;
-  // 요청 수 전용(오류는 오른쪽 오류율 그래프로)
-  const requestSeries: LineSeries[] = [
-    {
-      key: "requests",
-      label: "요청",
-      color: REQUEST_COLOR,
-      connectGaps: true,
-      values: points.map((point) => countValue(point, point.requests)),
-    },
-  ];
+  // 요청 수를 영역별(메시지·주소록·게시판…)로 아래부터 쌓음. 맨 위 테두리가 전체 요청 수.
+  // (오류는 오른쪽 오류율 그래프로)
+  const requestSeries: LineSeries[] = domains.map((domain, index) => ({
+    key: `domain-${index}`,
+    label: domain,
+    color: domainColor(index, domains.length),
+    connectGaps: true,
+    values: points.map((point) => countValue(point, point.domainRequests?.[index] ?? 0)),
+  }));
   // 오류율(%): 5xx(서버 잘못)와 4xx(요청 쪽 문제)를 나눔. 요청이 적은 칸은 비율이 크게 출렁여 비움.
   // 비운 칸은 건너뛰고 앞뒤 점을 바로 이어 선으로 보이게 함(안 그러면 요청이 드문 때 점만 흩어짐).
   const rateValue = (point: ApiDashboardTrendPoint, errors: number) =>
@@ -645,7 +653,13 @@ function TrendSection({
   const cumulativeRequests = running.at(-1)?.requests ?? 0;
   const cumulativeServerErrors = running.at(-1)?.serverErrors ?? 0;
   const budgetSeries: LineSeries[] = [
-    { key: "used", label: "예산 사용", color: REQUEST_COLOR, connectGaps: true, values: budgetValues },
+    {
+      key: "used",
+      label: "예산 사용",
+      color: REQUEST_COLOR,
+      connectGaps: true,
+      values: budgetValues,
+    },
     {
       key: "limit",
       label: "한도 100%",
@@ -710,6 +724,7 @@ function TrendSection({
 
       {loaded && showTable ? (
         <TrendTable
+          domains={domains}
           points={tableIndexes.map((index) => points[index])}
           titles={tableIndexes.map((index) => titles[index])}
         />
@@ -721,6 +736,7 @@ function TrendSection({
               title="요청 수"
               unit="건"
               series={requestSeries}
+              area
               waiting={waiting}
               empty={!!loaded && !hasData}
             >
@@ -728,9 +744,11 @@ function TrendSection({
                 labels={labels}
                 tooltipTitles={titles}
                 series={requestSeries}
+                stacked
+                totalLabel="전체 요청"
                 formatValue={(value) => `${formatNumber(Math.round(value))}`}
                 labelEvery={1}
-                ariaLabel={`${config.name} 요청 수 추이`}
+                ariaLabel={`${config.name} 영역별 요청 수 누적 추이`}
               />
             </ChartCard>
             <ChartCard
@@ -804,9 +822,7 @@ function TrendSection({
                 availability === null || budget === null ? undefined : (
                   <span className="tabular-nums">
                     가용성{" "}
-                    <b
-                      className={availability >= SLO_TARGET ? "text-slate-900" : "text-red-600"}
-                    >
+                    <b className={availability >= SLO_TARGET ? "text-slate-900" : "text-red-600"}>
                       {availability.toFixed(3)}%
                     </b>
                     <span className="text-slate-300"> · </span>
@@ -844,7 +860,9 @@ function TrendSection({
 function ChartRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <section className="mt-6">
-      <p className="mb-2 text-[11px] font-medium tracking-[0.12em] text-slate-400 uppercase">{label}</p>
+      <p className="mb-2 text-[11px] font-medium tracking-[0.12em] text-slate-400 uppercase">
+        {label}
+      </p>
       <div className="grid gap-6 xl:grid-cols-2">{children}</div>
     </section>
   );
@@ -940,6 +958,7 @@ function ChartCard({
   title,
   unit,
   series,
+  area = false,
   className = "",
   waiting,
   empty,
@@ -950,6 +969,8 @@ function ChartCard({
   title: string;
   unit: string;
   series: LineSeries[];
+  // 누적 영역 그래프라 범례를 채운 네모로
+  area?: boolean;
   className?: string;
   waiting: CardWaiting;
   // 이 기간에 기록된 요청이 없음
@@ -962,15 +983,15 @@ function ChartCard({
   return (
     // 상자 없이 위 얇은 선 + 제목·범례
     <div className={`border-t border-slate-200 pt-3 ${className}`}>
-      <div className="mb-2 flex items-center justify-between">
-        <h3 className="text-sm font-medium text-slate-800">
+      <div className="mb-2 flex items-start justify-between gap-3">
+        <h3 className="shrink-0 text-sm font-medium text-slate-800">
           {title} <span className="text-xs font-normal text-slate-400">{unit}</span>
         </h3>
-        {/* 범례: 색과 함께 선 모양(실선·점선)과 이름으로 구분. */}
-        <div className="flex items-center gap-3 text-xs text-slate-500">
+        {/* 범례: 색과 함께 선 모양(실선·점선)과 이름으로 구분. 많으면 다음 줄로. */}
+        <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 text-xs text-slate-500">
           {series.map((item) => (
             <span key={item.key} className="flex items-center gap-1.5">
-              <LegendSwatch color={item.color} dashed={item.dashed} />
+              <LegendSwatch color={item.color} dashed={item.dashed} area={area} />
               {item.label}
             </span>
           ))}
@@ -991,7 +1012,15 @@ function ChartCard({
 }
 
 // 그래프와 같은 숫자를 표로(색을 구분하기 어렵거나 정확한 값을 볼 때).
-function TrendTable({ points, titles }: { points: ApiDashboardTrendPoint[]; titles: string[] }) {
+function TrendTable({
+  points,
+  titles,
+  domains,
+}: {
+  points: ApiDashboardTrendPoint[];
+  titles: string[];
+  domains: string[];
+}) {
   return (
     <div className="mt-4 max-h-80 overflow-auto rounded-xl border border-slate-200">
       <table className="w-full text-right text-xs tabular-nums">
@@ -999,6 +1028,11 @@ function TrendTable({ points, titles }: { points: ApiDashboardTrendPoint[]; titl
           <tr>
             <th className="px-3 py-2 text-left font-medium">시간</th>
             <th className="px-3 py-2 font-medium">요청</th>
+            {domains.map((domain) => (
+              <th key={domain} className="px-3 py-2 font-medium">
+                {domain}
+              </th>
+            ))}
             <th className="px-3 py-2 font-medium">오류</th>
             <th className="px-3 py-2 font-medium">평균 응답</th>
             <th className="px-3 py-2 font-medium">p95 응답</th>
@@ -1012,6 +1046,11 @@ function TrendTable({ points, titles }: { points: ApiDashboardTrendPoint[]; titl
               <tr key={point.startAt} className="border-t border-slate-100 text-slate-700">
                 <td className="px-3 py-1.5 text-left">{title}</td>
                 <td className="px-3 py-1.5">{formatNumber(point.requests)}</td>
+                {domains.map((domain, index) => (
+                  <td key={domain} className="px-3 py-1.5 text-slate-500">
+                    {formatNumber(point.domainRequests?.[index] ?? 0)}
+                  </td>
+                ))}
                 <td className="px-3 py-1.5">{formatNumber(point.errors)}</td>
                 <td className="px-3 py-1.5">
                   {point.requests === 0 ? "-" : formatMs(point.avgMs)}

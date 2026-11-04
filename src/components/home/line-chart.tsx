@@ -43,6 +43,7 @@ function useElementWidth() {
 }
 
 // 선으로 이은 추이 그래프. 가로 눈금선은 옅은 실선, 마우스를 올리면 세로줄·그 시점의 점·값들을 보여 줌.
+// stacked면 계열을 아래부터 쌓은 영역 그래프(맨 위 테두리 = 합계). 모든 계열이 null인 칸은 건너뛰고 앞뒤를 이음.
 export function LineChart({
   labels,
   tooltipTitles,
@@ -51,6 +52,8 @@ export function LineChart({
   labelEvery,
   ariaLabel,
   showMarkers = false,
+  stacked = false,
+  totalLabel = "합계",
 }: {
   // 아래쪽 시간 글자(점마다 하나)
   labels: string[];
@@ -63,13 +66,28 @@ export function LineChart({
   ariaLabel: string;
   // 기본(false): 점은 숨기고 마우스가 올라간 시점만 점을 보여 줌. true면 모든 시점에 점.
   showMarkers?: boolean;
+  // 누적 영역 그래프로 그림(툴팁에 위 계열부터 + 합계 줄)
+  stacked?: boolean;
+  totalLabel?: string;
 }) {
   const { ref, width } = useElementWidth();
   const [hovered, setHovered] = useState<number | null>(null);
   const count = labels.length;
-  const values = series.flatMap((item) =>
-    item.values.filter((value): value is number => value !== null),
-  );
+  // 누적: 칸마다 아래 계열부터 더한 값(tops[계열][칸]). 모든 계열이 null인 칸은 null.
+  const tops: (number | null)[][] = stacked
+    ? series.map((_, seriesIndex) =>
+        labels.map((__, index) =>
+          series.every((item) => item.values[index] == null)
+            ? null
+            : series
+                .slice(0, seriesIndex + 1)
+                .reduce((sum, item) => sum + (item.values[index] ?? 0), 0),
+        ),
+      )
+    : [];
+  const values = stacked
+    ? (tops.at(-1) ?? []).filter((value): value is number => value !== null)
+    : series.flatMap((item) => item.values.filter((value): value is number => value !== null));
   const max = niceCeil(Math.max(0, ...values));
   const plotWidth = Math.max(0, width - PADDING.left - PADDING.right);
   const plotHeight = HEIGHT - PADDING.top - PADDING.bottom;
@@ -99,6 +117,25 @@ export function LineChart({
     series.connectGaps
       ? series.values.filter((value) => value !== null).length === 1
       : (series.values[index - 1] ?? null) === null && (series.values[index + 1] ?? null) === null;
+
+  // 누적 영역 한 층: 위 테두리(이번 계열까지 합)를 따라가고 아래 테두리(앞 계열까지 합)로 돌아와 닫음.
+  const areaOf = (seriesIndex: number) => {
+    const upper = tops[seriesIndex];
+    const indexes = upper.map((_, index) => index).filter((index) => upper[index] !== null);
+    if (indexes.length === 0) return "";
+    const lower = (index: number) => (seriesIndex === 0 ? 0 : (tops[seriesIndex - 1][index] ?? 0));
+    const forward = indexes
+      .map(
+        (index, order) =>
+          `${order === 0 ? "M" : "L"}${x(index).toFixed(1)},${y(upper[index]!).toFixed(1)}`,
+      )
+      .join("");
+    const back = [...indexes]
+      .reverse()
+      .map((index) => `L${x(index).toFixed(1)},${y(lower(index)).toFixed(1)}`)
+      .join("");
+    return `${forward}${back}Z`;
+  };
 
   // 마우스 x 위치에서 가장 가까운 칸 번호. 점이 수백 개여도 칸마다 영역을 만들지 않고 계산으로 찾음.
   const indexAt = (mouseX: number) => {
@@ -164,34 +201,49 @@ export function LineChart({
               strokeOpacity={0.6}
             />
           )}
-          {series.map((item) => (
-            <g key={item.key}>
-              <path
-                d={pathOf(item.values, item.connectGaps)}
-                fill="none"
-                stroke={item.color}
-                strokeWidth={1.75}
-                strokeLinejoin="round"
-                strokeLinecap="round"
-                strokeDasharray={item.dashed ? "5 4" : undefined}
-              />
-              {/* 점은 마우스가 올라간 시점에만(앞뒤가 비어 선으로 안 보이는 혼자인 값은 작게 늘 표시) */}
-              {item.values.map((value, index) =>
-                value === null ||
-                (!showMarkers && hovered !== index && !isolated(item, index)) ? null : (
-                  <circle
-                    key={index}
-                    cx={x(index)}
-                    cy={y(value)}
-                    r={hovered === index ? 4 : 2.5}
-                    fill={item.color}
-                    stroke={CHART_COLORS.surface}
-                    strokeWidth={1.5}
-                  />
-                ),
-              )}
-            </g>
-          ))}
+          {/* 누적 영역: 층마다 색을 채우고 층 사이는 바탕색 가는 선으로 띄움 */}
+          {stacked &&
+            series.map((item, seriesIndex) => (
+              <g key={item.key}>
+                <path d={areaOf(seriesIndex)} fill={item.color} fillOpacity={0.85} />
+                <path
+                  d={pathOf(tops[seriesIndex], true)}
+                  fill="none"
+                  stroke={CHART_COLORS.surface}
+                  strokeWidth={1}
+                  strokeLinejoin="round"
+                />
+              </g>
+            ))}
+          {!stacked &&
+            series.map((item) => (
+              <g key={item.key}>
+                <path
+                  d={pathOf(item.values, item.connectGaps)}
+                  fill="none"
+                  stroke={item.color}
+                  strokeWidth={1.75}
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                  strokeDasharray={item.dashed ? "5 4" : undefined}
+                />
+                {/* 점은 마우스가 올라간 시점에만(앞뒤가 비어 선으로 안 보이는 혼자인 값은 작게 늘 표시) */}
+                {item.values.map((value, index) =>
+                  value === null ||
+                  (!showMarkers && hovered !== index && !isolated(item, index)) ? null : (
+                    <circle
+                      key={index}
+                      cx={x(index)}
+                      cy={y(value)}
+                      r={hovered === index ? 4 : 2.5}
+                      fill={item.color}
+                      stroke={CHART_COLORS.surface}
+                      strokeWidth={1.5}
+                    />
+                  ),
+                )}
+              </g>
+            ))}
           {/* 그래프 영역 전체를 마우스 영역으로 써서 가장 가까운 시점을 가리킴. */}
           <rect
             x={PADDING.left - 8}
@@ -220,15 +272,25 @@ export function LineChart({
           }}
         >
           <p className="mb-1 font-semibold text-slate-800">{tooltipTitles[hovered]}</p>
-          {series.map((item) => (
+          {/* 누적이면 그래프와 같은 위→아래 순서, 맨 아래 합계 */}
+          {(stacked ? [...series].reverse() : series).map((item) => (
             <p key={item.key} className="flex items-center gap-2 text-slate-600">
-              <LegendSwatch color={item.color} dashed={item.dashed} />
+              <LegendSwatch color={item.color} dashed={item.dashed} area={stacked} />
               <span className="flex-1">{item.label}</span>
               <span className="font-semibold tabular-nums text-slate-900">
                 {item.values[hovered] === null ? "기록 없음" : formatValue(item.values[hovered]!)}
               </span>
             </p>
           ))}
+          {stacked && (
+            <p className="mt-1 flex items-center gap-2 border-t border-slate-100 pt-1 text-slate-600">
+              <span className="w-4 shrink-0" aria-hidden="true" />
+              <span className="flex-1">{totalLabel}</span>
+              <span className="font-semibold tabular-nums text-slate-900">
+                {tops.at(-1)?.[hovered] == null ? "기록 없음" : formatValue(tops.at(-1)![hovered]!)}
+              </span>
+            </p>
+          )}
         </div>
       )}
     </div>
@@ -236,7 +298,23 @@ export function LineChart({
 }
 
 // 범례·툴팁에 쓰는 작은 선 견본(점선 계열은 점선으로). 점은 그리지 않음.
-export function LegendSwatch({ color, dashed }: { color: string; dashed?: boolean }) {
+export function LegendSwatch({
+  color,
+  dashed,
+  area = false,
+}: {
+  color: string;
+  dashed?: boolean;
+  // 누적 영역 그래프의 범례: 선 대신 채운 네모
+  area?: boolean;
+}) {
+  if (area) {
+    return (
+      <svg width="10" height="10" aria-hidden="true" className="shrink-0">
+        <rect x="0.5" y="0.5" width="9" height="9" rx="2" fill={color} fillOpacity={0.85} />
+      </svg>
+    );
+  }
   return (
     <svg width="16" height="8" aria-hidden="true" className="shrink-0">
       <line

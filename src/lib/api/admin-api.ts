@@ -31,6 +31,8 @@ export type ApiDashboardTrendPoint = {
   // errors를 4xx(요청 쪽 문제)·5xx(서버 잘못)로 나눈 것
   clientErrors: number;
   serverErrors: number;
+  // requests를 영역별로 나눈 수(ApiDashboard.domains 순서, 모두 더하면 requests)
+  domainRequests: number[];
 };
 // DB 연결 풀(이 응답을 만든 서버, 최근 60분 1분 칸). available=false면 풀 정보를 읽을 수 없는 환경.
 export type ApiDashboardPool = {
@@ -86,6 +88,8 @@ export type ApiDashboard = {
   trend: ApiDashboardTrendPoint[];
   ranking: ApiDashboardRanking;
   pool: ApiDashboardPool;
+  // 요청 수를 나눈 영역 이름(메시지·주소록·게시판·알림·계정·기타). 누적 그래프 아래부터 이 순서.
+  domains: string[];
 };
 // 기간 탭: 최근 60분·24시간·7일·30일
 export type ApiDashboardRange = "HOUR" | "DAY" | "WEEK" | "MONTH";
