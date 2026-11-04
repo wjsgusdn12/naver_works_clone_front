@@ -1,8 +1,8 @@
 "use client";
 
-import { ChoiceGroup, type ChoiceOption } from "@/components/common/choice-group";
 import { CustomCheckbox } from "@/components/common/custom-checkbox";
 import { CustomSelect, type SelectOption } from "@/components/common/custom-select";
+import { Tabs, type TabItem } from "@/components/common/tabs";
 import type { BoardItem } from "@/lib/api/board-api";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -244,20 +244,22 @@ export function BoardSearchFilterDialog({
         {/* 조건: 왼쪽 짧은 이름 + 오른쪽 가로 선택지 */}
         <div className="space-y-1 px-4 py-3">
           <FilterRow label="위치">
-            <ChoiceGroup
-              label="검색 위치"
-              options={FIELD_CHIPS}
+            <Tabs
+              ariaLabel="검색 위치"
+              items={FIELD_TABS}
               value={draft.field}
               onChange={(value) => change({ field: value })}
+              className="pt-2.5"
             />
             <span className="ml-auto shrink-0 text-[11px] text-slate-400">게시글 탭에만 적용</span>
           </FilterRow>
           <FilterRow label="기간">
-            <ChoiceGroup
-              label="기간"
-              options={PERIOD_CHIPS}
+            <Tabs
+              ariaLabel="기간"
+              items={PERIOD_TABS}
               value={draft.period}
               onChange={(value) => change({ period: value })}
+              className="pt-2.5"
             />
           </FilterRow>
           <FilterRow label="게시판">
@@ -304,19 +306,19 @@ export function BoardSearchFilterDialog({
 // 펼친 창 폭(오른쪽 끝을 넘지 않게 왼쪽 위치를 계산할 때 씀)
 const CARD_WIDTH = 600;
 
-// 가로로 늘어놓는 짧은 선택지 이름
-const FIELD_CHIPS: ChoiceOption<SearchField>[] = [
-  { value: "ALL", label: "제목+내용" },
-  { value: "TITLE", label: "제목" },
-  { value: "CONTENT", label: "내용" },
+// 위치·기간 탭(공통 밑줄형 탭)의 짧은 이름
+const FIELD_TABS: TabItem<SearchField>[] = [
+  { key: "ALL", label: "제목+내용" },
+  { key: "TITLE", label: "제목" },
+  { key: "CONTENT", label: "내용" },
 ];
-const PERIOD_CHIPS: ChoiceOption<SearchPeriod>[] = [
-  { value: "ALL", label: "전체" },
-  { value: "1D", label: "1일" },
-  { value: "1W", label: "1주" },
-  { value: "1M", label: "1개월" },
-  { value: "6M", label: "6개월" },
-  { value: "1Y", label: "1년" },
+const PERIOD_TABS: TabItem<SearchPeriod>[] = [
+  { key: "ALL", label: "전체" },
+  { key: "1D", label: "1일" },
+  { key: "1W", label: "1주" },
+  { key: "1M", label: "1개월" },
+  { key: "6M", label: "6개월" },
+  { key: "1Y", label: "1년" },
 ];
 
 function FilterRow({ label, children }: { label: string; children: React.ReactNode }) {
