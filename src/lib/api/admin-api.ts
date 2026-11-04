@@ -58,7 +58,7 @@ export type ApiDashboardEndpoint = {
   trendRequests: number[];
   trendAvgMs: number[];
 };
-// 기간별 API 순위. bins는 작은 추이선 칸의 시작 시각(최근 60분 1분×60, 24시간 5분×288, 7일 24시간×7, 30일 1시간×720).
+// 기간별 API 순위. bins는 작은 추이선 칸의 시작 시각(최근 60분 1분×60, 24시간 5분×288, 7일 24시간×7, 30일 3시간×240).
 export type ApiDashboardRanking = {
   bins: string[];
   top: ApiDashboardEndpoint[];
@@ -84,7 +84,7 @@ export type ApiDashboard = {
   summary: ApiDashboardSummary;
   // 직전 같은 길이 기간(최근 24시간이면 그 전 24시간)의 합계. 숫자 카드 증감 표시용(경계 칸은 비례 추정).
   previousSummary: ApiDashboardSummary;
-  // HOUR 최근 60분 1분×60, DAY 최근 24시간 5분×288, WEEK 최근 7일 1시간×168, MONTH 최근 30일 1시간×720
+  // HOUR 최근 60분 1분×60, DAY 최근 24시간 5분×288, WEEK 최근 7일 1시간×168, MONTH 최근 30일 3시간×240
   trend: ApiDashboardTrendPoint[];
   ranking: ApiDashboardRanking;
   pool: ApiDashboardPool;

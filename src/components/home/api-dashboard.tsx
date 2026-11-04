@@ -87,10 +87,10 @@ const RANGES: Record<
     stepMinutes: 60,
   },
   MONTH: {
-    tab: "최근 30일 · 1시간 단위",
+    tab: "최근 30일 · 3시간 단위",
     name: "최근 30일",
     previousName: "직전 30일",
-    stepMinutes: 60,
+    stepMinutes: 180,
   },
 };
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
@@ -132,7 +132,7 @@ const RANKING_STEP: Record<Range, string> = {
   HOUR: "1분",
   DAY: "5분",
   WEEK: "24시간",
-  MONTH: "1시간",
+  MONTH: "3시간",
 };
 
 // 전체 구간 글자: 14:00 ~ 14:59 / 10/29(목) 14:05 ~ 10/30(금) 14:04 / 10/24(금) 15시 ~ 10/31(금) 14시
@@ -143,18 +143,20 @@ const periodOf = (points: ApiDashboardTrendPoint[], range: Range) => {
   const end = clock(lastMinute(last, RANGES[range].stepMinutes));
   if (range === "HOUR") return `${clock(first)} ~ ${end}`;
   if (range === "DAY") return `${monthDay(first)} ${clock(first)} ~ ${monthDay(last)} ${end}`;
-  return `${monthDay(first)} ${hourOnly(first)} ~ ${monthDay(last)} ${hourOnly(last)}`;
+  // 끝은 마지막 칸이 끝나는 시(최근 30일은 3시간 칸이라 시작 시와 다름)
+  const lastEnd = lastMinute(last, RANGES[range].stepMinutes);
+  return `${monthDay(first)} ${hourOnly(first)} ~ ${monthDay(lastEnd)} ${hourOnly(lastEnd)}`;
 };
 // 아래쪽 글자(빈 글자는 표시 안 함): 최근 60분은 10분 단위 시각(17:10·17:20…), 최근 24시간은 3시간마다(정각),
-// 최근 7일은 날마다(그날 정오 위치), 최근 30일은 창 안의 자정을 5개마다(월말→1일로 넘어가도 간격이 같음)
+// 최근 7일은 날마다(그날 정오 위치), 최근 30일(3시간 점)은 창 안의 자정을 5개마다(월말→1일로 넘어가도 간격이 같음)
 const labelOf = (point: ApiDashboardTrendPoint, index: number, range: Range) => {
   const date = new Date(point.startAt);
   if (range === "HOUR") return date.getMinutes() % 10 === 0 ? clock(point.startAt) : "";
   if (range === "DAY")
     return date.getMinutes() === 0 && date.getHours() % 3 === 0 ? hourOnly(point.startAt) : "";
   if (range === "WEEK") return date.getHours() === 12 ? monthDay(point.startAt) : "";
-  // 1시간 점이라 n번째 자정은 index / 24의 몫이 n
-  return date.getHours() === 0 && Math.floor(index / 24) % 5 === 0 ? shortDay(point.startAt) : "";
+  // 3시간 점이라(하루 8칸) n번째 자정은 index / 8의 몫이 n
+  return date.getHours() === 0 && Math.floor(index / 8) % 5 === 0 ? shortDay(point.startAt) : "";
 };
 // 마우스를 올렸을 때 제목: 14:05(1분) / 14:05 ~ 14:09 / 10/27(화) 13:00 ~ 13:59
 // 세밀한 기록이 없어 큰 단위 합계를 나눠 채운 칸은 추정값임을 함께 표시.
