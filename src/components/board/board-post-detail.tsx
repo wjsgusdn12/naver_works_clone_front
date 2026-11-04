@@ -247,26 +247,29 @@ export function BoardPostDetailView({
 
       {/* 머리: 딱지 · 제목, 그 아래 한 줄(글쓴이 · 날짜 · 조회수 | 글자 버튼) */}
       <header>
-        <div className="mb-2 flex items-center gap-1.5">
-          <PostBadges
-            post={post}
-            boardType={post.board.type}
-            answered={!!post.answeredAt}
-            showImportant={false}
-          />
+        {/* 딱지는 제목 왼쪽, 제목 첫 줄 높이(33px)에 세로 가운데 맞춤. 제목이 여러 줄이어도 딱지는 첫 줄 옆 */}
+        <div className="flex items-start gap-2">
+          <span className="flex h-[33px] shrink-0 items-center gap-1.5">
+            <PostBadges
+              post={post}
+              boardType={post.board.type}
+              answered={!!post.answeredAt}
+              showImportant={false}
+            />
+          </span>
+          {/* 매일 자동 게시글(증시 브리핑)은 제목만 포인트 파랑 */}
+          <h2
+            className={`min-w-0 flex-1 break-all text-2xl font-semibold leading-snug ${post.daily ? "text-blue-950" : "text-slate-950"}`}
+          >
+            {post.title}
+            {/* 제목 끝에 붙여 줄바꿈돼도 마지막 글자 옆에 남음 */}
+            <AttachmentMark
+              has={files.length > 0}
+              size={18}
+              className="ml-1.5 inline-block align-[-0.1em]"
+            />
+          </h2>
         </div>
-        {/* 매일 자동 게시글(증시 브리핑)은 제목만 포인트 파랑 */}
-        <h2
-          className={`break-all text-2xl font-semibold leading-snug ${post.daily ? "text-blue-950" : "text-slate-950"}`}
-        >
-          {post.title}
-          {/* 제목 끝에 붙여 줄바꿈돼도 마지막 글자 옆에 남음 */}
-          <AttachmentMark
-            has={files.length > 0}
-            size={18}
-            className="ml-1.5 inline-block align-[-0.1em]"
-          />
-        </h2>
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-4">
           <div className="flex min-w-0 items-center gap-2 text-sm text-slate-500">
             {post.system || post.authorMembershipId === null ? (
