@@ -27,6 +27,7 @@ import {
   NotebookPen,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { boardDate } from "@/lib/board-date";
 import { useEffect, useState, type ReactNode } from "react";
 
 // 홈은 로그인한 사용자의 실제 데이터만 보여 줌. 목업 데이터 없음.
@@ -572,7 +573,8 @@ function BoardPostList({
           <PostMeta
             post={post}
             prefix={showBoard ? post.boardName : undefined}
-            dateText={formatRelative(post.createdAt)}
+            // 게시글 날짜는 게시판 형식(2026. 11. 04.)으로 통일
+            dateText={boardDate(post.createdAt)}
           />
         </button>
       )}
