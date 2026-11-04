@@ -576,7 +576,7 @@ function BoardPostList({
           onClick={() => onOpen(post)}
         >
           <span className="flex w-full min-w-0 items-center gap-1.5">
-            <PostBadges post={post} notice={post.boardType === "NOTICE"} />
+            <PostBadges post={post} boardType={post.boardType} answered={post.answered} />
             <span className={`min-w-0 truncate text-sm ${postTitleTone(post, "text-slate-600")}`}>
               {post.title}
             </span>

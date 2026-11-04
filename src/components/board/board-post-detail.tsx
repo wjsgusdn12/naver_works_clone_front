@@ -1,6 +1,6 @@
 "use client";
 
-import { AnswerBadge, ImportantButton, PostBadges } from "@/components/board/board-post-list";
+import { ImportantButton, PostBadges } from "@/components/board/board-post-list";
 import { RichContent } from "@/components/board/rich-content";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useChatNotification } from "@/components/chat/chat-notification-provider";
@@ -247,12 +247,14 @@ export function BoardPostDetailView({
 
       {/* 머리: 딱지 · 제목, 그 아래 한 줄(글쓴이 · 날짜 · 조회수 | 글자 버튼) */}
       <header>
-        {(post.mustRead || post.board.type === "INQUIRY") && (
-          <div className="mb-2 flex items-center gap-1.5">
-            <PostBadges post={post} notice={post.board.type === "NOTICE"} showImportant={false} />
-            {post.board.type === "INQUIRY" && <AnswerBadge answered={!!post.answeredAt} />}
-          </div>
-        )}
+        <div className="mb-2 flex items-center gap-1.5">
+          <PostBadges
+            post={post}
+            boardType={post.board.type}
+            answered={!!post.answeredAt}
+            showImportant={false}
+          />
+        </div>
         {/* 매일 자동 게시글(증시 브리핑)은 제목만 포인트 파랑 */}
         <h2
           className={`break-all text-2xl font-semibold leading-snug ${post.daily ? "text-blue-950" : "text-slate-950"}`}

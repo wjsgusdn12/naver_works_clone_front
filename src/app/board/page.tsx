@@ -998,7 +998,6 @@ function HomeScreen({
           emptyText="문의 내역이 없습니다."
           onMore={() => onGo("/board?type=INQUIRY")}
           onOpen={onOpen}
-          answerBadge
         />
       </div>
     </div>

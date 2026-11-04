@@ -6,7 +6,7 @@ import { CommentIcon } from "@/components/common/comment-icon";
 import { CustomCheckbox } from "@/components/common/custom-checkbox";
 import { LoadingState } from "@/components/common/loading";
 import { Tooltip } from "@/components/common/tooltip";
-import type { BoardPostSummary, BoardSearchScope } from "@/lib/api/board-api";
+import type { BoardPostSummary, BoardSearchScope, BoardType } from "@/lib/api/board-api";
 import { AttachmentIcon, AttachmentMark } from "@/components/common/attachment-icon";
 import { SystemMark } from "@/components/common/system-avatar";
 import { ChevronRight, Eye, RotateCw, SmilePlus, Star } from "lucide-react";
@@ -66,17 +66,28 @@ export function PostTag({ tone, children }: { tone: keyof typeof TAG_TONE; child
   );
 }
 
+// 게시판 종류 딱지 글자(문의하기는 답변 대기/완료 딱지가 대신함)
+const BOARD_TAG: Record<Exclude<BoardType, "INQUIRY">, { label: string; tone: keyof typeof TAG_TONE }> = {
+  NOTICE: { label: "공지사항", tone: "blue" },
+  FREE: { label: "자유", tone: "slate" },
+  COMPANY: { label: "회사", tone: "slate" },
+  DEPARTMENT: { label: "부서", tone: "slate" },
+};
+
 // 제목 앞 딱지: 중요(작은 노란 별, showImportant가 false면 별은 따로 그리는 곳) ·
-// 공지사항(공지사항 게시판 글) · 일일(매일 자동 브리핑) · 필독
+// 종류(일일 > 게시판 종류, 문의하기는 답변 대기/완료) · 필독. 모든 글이 종류 딱지를 하나씩 가짐.
 export function PostBadges({
   post,
-  notice = false,
+  boardType,
+  answered = false,
   showImportant = true,
 }: {
   post: Pick<BoardPostSummary, "mustRead" | "important" | "daily">;
-  notice?: boolean;
+  boardType: BoardType;
+  answered?: boolean;
   showImportant?: boolean;
 }) {
+  const board = boardType === "INQUIRY" ? null : BOARD_TAG[boardType];
   return (
     <>
       {showImportant && post.important && (
@@ -87,8 +98,13 @@ export function PostBadges({
           aria-label="중요 표시한 글"
         />
       )}
-      {notice && <PostTag tone="blue">공지사항</PostTag>}
-      {post.daily && <PostTag tone="violet">일일</PostTag>}
+      {post.daily ? (
+        <PostTag tone="violet">일일</PostTag>
+      ) : board ? (
+        <PostTag tone={board.tone}>{board.label}</PostTag>
+      ) : (
+        <AnswerBadge answered={answered} />
+      )}
       {post.mustRead && <PostTag tone="red">필독</PostTag>}
     </>
   );
@@ -161,10 +177,10 @@ export function PostRow({
             )}
             <PostBadges
               post={post}
-              notice={post.boardType === "NOTICE"}
+              boardType={post.boardType}
+              answered={post.answered}
               showImportant={!onToggleImportant}
             />
-            {post.boardType === "INQUIRY" && <AnswerBadge answered={post.answered} />}
             <span className={`truncate text-[15px] ${postTitleTone(post, "text-slate-700")}`}>
               {search ? <Highlight text={post.title} keyword={search.keyword} /> : post.title}
             </span>
@@ -276,14 +292,12 @@ export function HomeCard({
   emptyText,
   onMore,
   onOpen,
-  answerBadge = false,
 }: {
   title: string;
   posts: BoardPostSummary[];
   emptyText: string;
   onMore: () => void;
   onOpen: (post: BoardPostSummary) => void;
-  answerBadge?: boolean;
 }) {
   return (
     <section>
@@ -310,8 +324,7 @@ export function HomeCard({
                 onClick={() => onOpen(post)}
                 className="flex w-full cursor-pointer items-center gap-2 py-2.5 text-left text-sm transition hover:text-blue-600"
               >
-                {answerBadge && <AnswerBadge answered={post.answered} />}
-                <PostBadges post={post} notice={post.boardType === "NOTICE"} />
+                <PostBadges post={post} boardType={post.boardType} answered={post.answered} />
                 {/* 제목 바로 뒤에 첨부 표시(제목이 길면 제목만 잘림) */}
                 <span className="flex min-w-0 flex-1 items-center gap-1">
                   <span className={`truncate ${postTitleTone(post, "text-slate-600")}`}>
