@@ -255,7 +255,7 @@ export function BoardPostDetailView({
         )}
         {/* 매일 자동 게시글(증시 브리핑)은 제목만 포인트 파랑 */}
         <h2
-          className={`break-all text-2xl font-semibold leading-snug ${post.daily ? "text-blue-600" : "text-slate-950"}`}
+          className={`break-all text-2xl font-semibold leading-snug ${post.daily ? "text-blue-950" : "text-slate-950"}`}
         >
           {post.title}
           {/* 제목 끝에 붙여 줄바꿈돼도 마지막 글자 옆에 남음 */}

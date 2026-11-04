@@ -38,11 +38,13 @@ export function ImportantButton({
   );
 }
 
-// 목록 제목 글자색. 매일 자동 게시글(증시 브리핑)은 혼자 포인트 파랑, 나머지는 읽음 여부대로.
-// 안 읽은 글은 어느 쪽이든 굵게.
+// 목록 제목 글자색. 일반 글과 똑같이 읽음 여부로 나눔(안 읽음: 굵고 진하게, 읽음: 보통 굵기·옅게).
+// 매일 자동 게시글(브리핑)은 같은 규칙에 색만 진한 남색 계열.
 export const postTitleTone = (post: { read: boolean; daily: boolean }, readClass: string) =>
   post.daily
-    ? `text-blue-600 ${post.read ? "font-medium" : "font-bold"}`
+    ? post.read
+      ? "text-blue-900/70"
+      : "font-bold text-blue-950"
     : post.read
       ? readClass
       : "font-bold text-slate-950";
