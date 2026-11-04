@@ -73,6 +73,8 @@ function AddressBookSearchContent() {
       size: "100",
       sort: "name",
       direction: "asc",
+      // 검색은 모든 회사 구성원 대상
+      allCompany: "true",
     });
     setIsResultsLoading(true);
     try {

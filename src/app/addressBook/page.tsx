@@ -45,9 +45,9 @@ function AddressBookContent() {
   const { accessToken, member, status, applySession, logout } = useAuth();
   const { presenceByMembershipId, memberStatusByMembershipId } = useChatNotification();
   const { toast, showToast, dismissToast, resetToast } = useToast();
-  // ?view=all 로 들어오면(홈 주소록 카드 "전체보기") 모든 회사 구성원부터 보여 줌
+  // 처음에는 모든 회사 구성원(전체 구성원)부터 보여 줌. ?view=company 로 들어오면 내 회사부터.
   const [view, setView] = useState<AddressBookView>(() =>
-    searchParams.get("view") === "all" ? "all" : "company",
+    searchParams.get("view") === "company" ? "company" : "all",
   );
   const [departmentId, setDepartmentId] = useState<number | null>(null);
   const [organizations, setOrganizations] = useState<
