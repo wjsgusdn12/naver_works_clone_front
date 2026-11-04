@@ -56,6 +56,7 @@ const TAG_TONE = {
   red: "bg-red-50 text-red-600",
   emerald: "bg-emerald-50 text-emerald-700",
   slate: "bg-slate-100 text-slate-500",
+  amber: "bg-amber-50 text-amber-600",
 } as const;
 
 export function PostTag({ tone, children }: { tone: keyof typeof TAG_TONE; children: ReactNode }) {
@@ -115,7 +116,7 @@ export function PostBadges({
 
 export function AnswerBadge({ answered }: { answered: boolean }) {
   return (
-    <PostTag tone={answered ? "emerald" : "slate"}>{answered ? "답변 완료" : "답변 대기"}</PostTag>
+    <PostTag tone={answered ? "emerald" : "amber"}>{answered ? "답변 완료" : "답변 대기"}</PostTag>
   );
 }
 
