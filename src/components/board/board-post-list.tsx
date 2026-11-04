@@ -8,6 +8,7 @@ import { LoadingState } from "@/components/common/loading";
 import { Tooltip } from "@/components/common/tooltip";
 import type { BoardPostSummary, BoardSearchScope } from "@/lib/api/board-api";
 import { AttachmentIcon, AttachmentMark } from "@/components/common/attachment-icon";
+import { SystemMark } from "@/components/common/system-avatar";
 import { ChevronRight, Eye, RotateCw, SmilePlus, Star } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -233,8 +234,11 @@ export function PostMeta({
           <MetaDot />
         </>
       )}
-      <span className="max-w-20 truncate text-slate-500">
-        {highlight ? <Highlight text={post.authorName} keyword={highlight} /> : post.authorName}
+      <span className="flex min-w-0 items-center gap-0.5 text-slate-500">
+        <span className="max-w-20 truncate">
+          {highlight ? <Highlight text={post.authorName} keyword={highlight} /> : post.authorName}
+        </span>
+        {post.system && <SystemMark size={12} />}
       </span>
       <MetaDot />
       <span className="whitespace-nowrap">{dateText ?? boardDate(post.createdAt)}</span>

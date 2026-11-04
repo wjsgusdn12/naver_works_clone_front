@@ -25,7 +25,6 @@ import {
 import { fileIconOf, formatFileSize, saveBlob } from "@/lib/attachment-files";
 import { reactionLabel } from "@/lib/chat-reactions";
 import {
-  Bot,
   CornerDownRight,
   Download,
   Eye,
@@ -37,7 +36,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { SystemAvatar } from "@/components/common/system-avatar";
+import { SystemAvatar, SystemMark } from "@/components/common/system-avatar";
 import { boardDateTime } from "@/lib/board-date";
 
 const dateTime = boardDateTime;
@@ -277,9 +276,7 @@ export function BoardPostDetailView({
             <span className="flex items-center gap-1 font-medium text-slate-800">
               {post.authorName}
               {/* 시스템 글: 이름 오른쪽에 로봇 그림(자동으로 올라간 글 표시) */}
-              {post.system && (
-                <Bot size={15} className="text-violet-600" aria-label="자동으로 올라간 글" />
-              )}
+              {post.system && <SystemMark size={15} />}
             </span>
             {post.authorDepartmentName && <span>{post.authorDepartmentName}</span>}
             <span className="text-slate-300">·</span>
