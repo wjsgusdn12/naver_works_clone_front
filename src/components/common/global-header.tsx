@@ -28,6 +28,7 @@ import { NotificationModeMenu } from "@/components/common/notification-mode-menu
 import { ProfileMenu } from "@/components/common/profile-menu";
 import { ProjectGuideModal } from "@/components/common/project-guide-modal";
 import { UserAvatar } from "@/components/common/user-avatar";
+import { ChoiceGroup, type ChoiceOption } from "@/components/common/choice-group";
 import { useLeaveNavigation } from "@/components/common/leave-guard";
 
 // 상단 헤더에서 반복 렌더링할 서비스 아이콘 정보.
@@ -55,11 +56,11 @@ const headerActions: HeaderAction[] = [
 ];
 
 // 알림 패널 칩 목록. 아직 기능이 없는 서비스(캘린더 등)는 칩을 만들지 않음.
-const notificationChips: { key: "ALL" | NotificationCategory; label: string }[] = [
-  { key: "ALL", label: "전체" },
-  { key: "MESSAGE", label: "메시지" },
-  { key: "ADDRESS_BOOK", label: "주소록" },
-  { key: "SYSTEM", label: "시스템" },
+const notificationChips: ChoiceOption<"ALL" | NotificationCategory>[] = [
+  { value: "ALL", label: "전체" },
+  { value: "MESSAGE", label: "메시지" },
+  { value: "ADDRESS_BOOK", label: "주소록" },
+  { value: "SYSTEM", label: "시스템" },
 ];
 
 // 분류별 카드 상단에 붙는 아이콘·이름.
@@ -518,19 +519,14 @@ export function GlobalHeader({
                       <NotificationModeMenu />
                     </div>
                   </div>
-                  {/* 분류 칩. 고른 칩만 파란색으로 강조. */}
+                  {/* 분류: 공통 가로 선택지(ChoiceGroup) */}
                   <div className="flex flex-wrap gap-2 px-5 pb-3 pt-1">
-                    {notificationChips.map((chip) => (
-                      <button
-                        key={chip.key}
-                        type="button"
-                        aria-pressed={notificationFilter === chip.key}
-                        onClick={() => setNotificationFilter(chip.key)}
-                        className={`cursor-pointer rounded-full border px-3.5 py-1.5 text-sm font-medium transition ${notificationFilter === chip.key ? "border-blue-600 bg-blue-600 text-white" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`}
-                      >
-                        {chip.label}
-                      </button>
-                    ))}
+                    <ChoiceGroup
+                      label="알림 분류"
+                      options={notificationChips}
+                      value={notificationFilter}
+                      onChange={setNotificationFilter}
+                    />
                   </div>
                   <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50 px-4 py-3">
                     {!notificationsLoaded ? (

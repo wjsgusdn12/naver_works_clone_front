@@ -233,11 +233,16 @@ export function CustomSelect({
                     // 누르는 순간 버튼의 포커스가 빠지지 않게
                     onMouseDown={(event) => event.preventDefault()}
                     onClick={() => choose(option)}
-                    className={`flex h-8 cursor-pointer items-center justify-between gap-3 rounded-md pr-2 ${option.group ? "pl-4" : "pl-2.5"} ${index === highlight ? "bg-slate-100" : ""} ${isSelected ? "font-medium text-blue-600" : option.value === "" ? "text-slate-500" : "text-slate-700"}`}
+                    className={`flex h-8 cursor-pointer items-center justify-between gap-3 rounded-md pr-2 ${option.group ? "pl-4" : "pl-2.5"} ${index === highlight ? "bg-slate-100" : ""} ${isSelected ? "font-medium text-slate-900" : option.value === "" ? "text-slate-500" : "text-slate-600"}`}
                   >
                     <span className="truncate">{option.label}</span>
                     {isSelected && (
-                      <Check size={14} strokeWidth={2.5} aria-hidden="true" className="shrink-0" />
+                      <Check
+                        size={14}
+                        strokeWidth={2.5}
+                        aria-hidden="true"
+                        className="shrink-0 text-blue-600"
+                      />
                     )}
                   </li>
                 </Fragment>

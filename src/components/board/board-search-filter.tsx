@@ -1,5 +1,6 @@
 "use client";
 
+import { ChoiceGroup, type ChoiceOption } from "@/components/common/choice-group";
 import { CustomCheckbox } from "@/components/common/custom-checkbox";
 import { CustomSelect, type SelectOption } from "@/components/common/custom-select";
 import type { BoardItem } from "@/lib/api/board-api";
@@ -243,20 +244,20 @@ export function BoardSearchFilterDialog({
         {/* 조건: 왼쪽 짧은 이름 + 오른쪽 가로 선택지 */}
         <div className="space-y-1 px-4 py-3">
           <FilterRow label="위치">
-            <OptionGroup
+            <ChoiceGroup
               label="검색 위치"
               options={FIELD_CHIPS}
               value={draft.field}
-              onChange={(value) => change({ field: value as SearchField })}
+              onChange={(value) => change({ field: value })}
             />
             <span className="ml-auto shrink-0 text-[11px] text-slate-400">게시글 탭에만 적용</span>
           </FilterRow>
           <FilterRow label="기간">
-            <OptionGroup
+            <ChoiceGroup
               label="기간"
               options={PERIOD_CHIPS}
               value={draft.period}
-              onChange={(value) => change({ period: value as SearchPeriod })}
+              onChange={(value) => change({ period: value })}
             />
           </FilterRow>
           <FilterRow label="게시판">
@@ -304,12 +305,12 @@ export function BoardSearchFilterDialog({
 const CARD_WIDTH = 600;
 
 // 가로로 늘어놓는 짧은 선택지 이름
-const FIELD_CHIPS: SelectOption[] = [
+const FIELD_CHIPS: ChoiceOption<SearchField>[] = [
   { value: "ALL", label: "제목+내용" },
   { value: "TITLE", label: "제목" },
   { value: "CONTENT", label: "내용" },
 ];
-const PERIOD_CHIPS: SelectOption[] = [
+const PERIOD_CHIPS: ChoiceOption<SearchPeriod>[] = [
   { value: "ALL", label: "전체" },
   { value: "1D", label: "1일" },
   { value: "1W", label: "1주" },
@@ -323,39 +324,6 @@ function FilterRow({ label, children }: { label: string; children: React.ReactNo
     <div className="flex min-h-10 items-center gap-3">
       <span className="w-12 shrink-0 text-xs text-slate-400">{label}</span>
       {children}
-    </div>
-  );
-}
-
-// 하나만 고르는 가로 선택지(글자만, 고른 것은 포인트 색 + 옅은 바탕)
-function OptionGroup({
-  label,
-  options,
-  value,
-  onChange,
-}: {
-  label: string;
-  options: SelectOption[];
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <div role="radiogroup" aria-label={label} className="flex flex-wrap items-center gap-1">
-      {options.map((option) => {
-        const selected = option.value === value;
-        return (
-          <button
-            key={option.value}
-            type="button"
-            role="radio"
-            aria-checked={selected}
-            onClick={() => onChange(option.value)}
-            className={`h-7 cursor-pointer rounded-md px-2.5 text-sm transition ${selected ? "bg-blue-50 font-medium text-blue-600" : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"}`}
-          >
-            {option.label}
-          </button>
-        );
-      })}
     </div>
   );
 }

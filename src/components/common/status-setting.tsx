@@ -1,8 +1,8 @@
 "use client";
 
-import { Check } from "lucide-react";
 import { useState } from "react";
 import { RadioControl } from "@/components/common/custom-radio";
+import { ChoiceGroup, type ChoiceOption } from "@/components/common/choice-group";
 import { DateTimePicker } from "@/components/common/date-time-picker";
 import {
   formatStatusUntil,
@@ -44,7 +44,7 @@ const untilFor = (choice: UntilChoice): Date | null => {
   }
 };
 
-const untilChoices: { value: UntilChoice; label: string }[] = [
+const untilChoices: ChoiceOption<UntilChoice>[] = [
   { value: "NONE", label: "계속" },
   { value: "1H", label: "1시간" },
   { value: "4H", label: "4시간" },
@@ -85,9 +85,9 @@ export function StatusSetting({ statusType, statusUntil, saving, onSave }: Statu
 
   const now = new Date();
   const maxUntil = new Date(now.getTime() + MAX_DAYS * 24 * 60 * 60 * 1000);
-  // 고른 줄은 연한 파란 배경으로 강조. 라디오 표시는 공통 RadioControl.
+  // 고른 줄은 옅은 회색 바탕 + 진한 글자. 라디오 표시는 공통 RadioControl.
   const rowClassName = (selected: boolean) =>
-    `group flex w-full cursor-pointer items-center gap-3 rounded-lg px-2.5 py-2 text-left text-sm transition ${selected ? "bg-blue-50" : "hover:bg-slate-50"}`;
+    `group flex w-full cursor-pointer items-center gap-3 rounded-lg px-2.5 py-2 text-left text-sm transition-colors ${selected ? "bg-slate-100/80" : "hover:bg-slate-50"}`;
 
   return (
     <div className="space-y-3">
@@ -102,7 +102,7 @@ export function StatusSetting({ statusType, statusUntil, saving, onSave }: Statu
             className={rowClassName(draft === null)}
           >
             <RadioControl checked={draft === null} />
-            <span className={draft === null ? "font-semibold text-blue-600" : "text-slate-700"}>
+            <span className={draft === null ? "font-medium text-slate-900" : "text-slate-600"}>
               설정 안 함
             </span>
           </button>
@@ -125,7 +125,7 @@ export function StatusSetting({ statusType, statusUntil, saving, onSave }: Statu
                 >
                   <Icon size={12} strokeWidth={3} aria-hidden="true" />
                 </span>
-                <span className={selected ? "font-semibold text-blue-600" : "text-slate-700"}>
+                <span className={selected ? "font-medium text-slate-900" : "text-slate-600"}>
                   {label}
                 </span>
                 {statusType === type && (
@@ -142,23 +142,12 @@ export function StatusSetting({ statusType, statusUntil, saving, onSave }: Statu
       {draft !== null && (
         <div className="space-y-3 rounded-xl bg-slate-50 p-3">
           <p className="text-xs font-medium text-slate-500">자동 해제</p>
-          <div className="flex flex-wrap gap-1.5">
-            {untilChoices.map(({ value, label }) => {
-              const selected = untilChoice === value;
-              return (
-                <button
-                  key={value}
-                  type="button"
-                  aria-pressed={selected}
-                  onClick={() => setUntilChoice(value)}
-                  className={`flex h-8 cursor-pointer items-center gap-1 rounded-full border px-3 text-xs transition ${selected ? "border-blue-600 bg-blue-600 font-semibold text-white" : "border-slate-200 bg-white text-slate-600 hover:border-blue-300 hover:text-blue-600"}`}
-                >
-                  {selected && <Check size={12} strokeWidth={3} aria-hidden="true" />}
-                  {label}
-                </button>
-              );
-            })}
-          </div>
+          <ChoiceGroup
+            label="자동 해제"
+            options={untilChoices}
+            value={untilChoice}
+            onChange={setUntilChoice}
+          />
           {untilChoice === "CUSTOM" && (
             <DateTimePicker
               value={customUntil}
