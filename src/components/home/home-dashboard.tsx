@@ -573,7 +573,7 @@ function BoardPostList({
           <PostMeta
             post={post}
             prefix={showBoard ? post.boardName : undefined}
-            // 게시글 날짜는 게시판 형식(2026. 11. 04.)으로 통일
+            // 게시글 날짜는 게시판 형식(n분 전·n시간 전·어제·2026. 11. 04.)으로 통일
             dateText={boardDate(post.createdAt)}
           />
         </button>
