@@ -52,6 +52,7 @@ import {
   readStoredInputHeight,
 } from "@/lib/chat-input-height";
 import {
+  bundleOf,
   isMessageEditable,
   type ReactionModalState,
   type ReadModalState,
@@ -781,8 +782,12 @@ function MessageContent() {
         setRooms((current) =>
           current.map((room) => {
             if (room.id !== event.chatRoomId) return room;
+            // 묶어 보낸 사진은 묶음 하나를 1개로 셈(서버 안 읽은 수와 같은 기준)
+            const continuesBundle =
+              !!incoming.bundleKey && room.lastMessageBundleKey === incoming.bundleKey;
             const shouldIncreaseUnread =
               incoming.type === "TEXT" &&
+              !continuesBundle &&
               incoming.senderMembershipId !== member?.membershipId &&
               event.chatRoomId !== selectedRoomId;
             const isOpenRoom = event.chatRoomId === selectedRoomId;
@@ -793,6 +798,7 @@ function MessageContent() {
               lastMessageVersion: incoming.version,
               lastMessageAt: incoming.createdAt,
               lastSenderMembershipId: incoming.senderMembershipId,
+              lastMessageBundleKey: incoming.bundleKey,
               lastMessageMentioned: incoming.mentionedMembershipIds.includes(
                 member?.membershipId ?? -1,
               ),
@@ -1491,14 +1497,20 @@ function MessageContent() {
   const deleteSelectedMessage = async () => {
     if (!accessToken || !deletingMessage) throw new Error("로그인 상태를 확인해 주세요.");
     const { roomId, message } = deletingMessage;
-    const result = await chatApi.deleteMessage(
-      accessToken,
-      roomId,
-      message.id,
-      message.version ?? 0,
+    // 묶어 보낸 사진이면 묶음의 사진을 모두 지움(한 말풍선이므로)
+    const targets = bundleOf(messages, message).filter((item) => !item.deletedAt);
+    for (const target of targets.length > 0 ? targets : [message]) {
+      const result = await chatApi.deleteMessage(
+        accessToken,
+        roomId,
+        target.id,
+        target.version ?? 0,
+      );
+      applyChangedMessage(roomId, result);
+    }
+    showToast(
+      targets.length > 1 ? `사진 ${targets.length}장을 삭제했습니다.` : "메시지를 삭제했습니다.",
     );
-    applyChangedMessage(roomId, result);
-    showToast("메시지를 삭제했습니다.");
     await loadRooms().catch(() => showToast("삭제는 완료했으나 목록을 새로 불러오지 못했습니다."));
   };
 
@@ -1666,6 +1678,8 @@ function MessageContent() {
     inputRef.current?.focus({ preventScroll: true });
   };
   const selectedPendingAttachments = selectedRoomId ? (pendingByRoomId[selectedRoomId] ?? []) : [];
+  // 사진 2장 이상을 한 말풍선으로 묶어 보낼지(기본 켬, 첨부 칸의 체크로 끔)
+  const [bundleImages, setBundleImages] = useState(true);
 
   const submitMessage = async (event?: FormEvent) => {
     event?.preventDefault();
@@ -1723,6 +1737,11 @@ function MessageContent() {
       if (pending.length > 0) {
         setAttachmentSending(true);
         let failedCount = 0;
+        // 사진이 2장 이상이고 묶어 보내기가 켜져 있으면 사진마다 같은 묶음 번호를 붙임(파일은 따로).
+        const bundleKey =
+          bundleImages && pending.filter((item) => isPreviewableImage(item.file)).length >= 2
+            ? crypto.randomUUID()
+            : undefined;
         for (const item of pending) {
           updatePendingAttachment(roomId, item.key, { progress: 0, error: null });
           try {
@@ -1732,6 +1751,7 @@ function MessageContent() {
               item.file,
               replyId,
               (percent) => updatePendingAttachment(roomId, item.key, { progress: percent }),
+              isPreviewableImage(item.file) ? bundleKey : undefined,
             );
             replyId = undefined;
             applySentMessage(roomId, message);
@@ -2153,7 +2173,16 @@ function MessageContent() {
   const stableOpenReactionMembers = useStableCallback(
     (message: ChatMessage) => void openReactionMembers(message),
   );
-  const stableStartForward = useStableCallback((message: ChatMessage) => setForwardTarget(message));
+  // 묶어 보낸 사진은 묶음 전체를 전달(모아보기의 여러 항목 전달과 같은 방식)
+  const stableStartForward = useStableCallback((message: ChatMessage) => {
+    const bundle = bundleOf(messages, message).filter((item) => !item.deletedAt);
+    if (bundle.length > 1)
+      setGalleryForward({
+        messageIds: bundle.map((item) => item.id),
+        preview: `사진 ${bundle.length}장`,
+      });
+    else setForwardTarget(message);
+  });
   const stableToggleNotice = useStableCallback(
     (message: ChatMessage) => void toggleNotice(message),
   );
@@ -2498,6 +2527,8 @@ function MessageContent() {
                   if (selectedRoomId)
                     dropPendingAttachments(selectedRoomId, selectedPendingAttachments);
                 }}
+                bundleImages={bundleImages}
+                onToggleBundle={() => setBundleImages((current) => !current)}
               />
               {isDraggingFile && <FileDropOverlay />}
             </div>

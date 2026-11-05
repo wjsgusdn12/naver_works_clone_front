@@ -4,6 +4,7 @@ import { MessageBubble } from "@/components/chat/message-bubble";
 import type { AddressBookMember } from "@/lib/api/address-book-api";
 import type { ChatAttachment, ChatMessage, ChatRoom } from "@/lib/api/chat-api";
 import { dateKey, formatChatDate, minuteKey } from "@/lib/chat-format";
+import { sameBundle } from "@/lib/chat-page-helpers";
 import type { MemberStatusType } from "@/lib/status-options";
 import { Fragment, memo, useMemo } from "react";
 
@@ -66,12 +67,42 @@ export const MessageList = memo(function MessageList({
       ),
     [contactMemberById],
   );
+  // 묶어 보낸 사진: 묶음의 마지막 메시지 자리에 사진 전부를 한 말풍선으로(시간·읽음도 마지막 기준).
+  // 앞쪽 사진들은 자리표(빈 칸)만 남겨 원문 이동·날짜 표시가 그 메시지 번호를 찾을 수 있게 함.
+  const bundleByLastId = useMemo(() => {
+    const result = new Map<number, ChatMessage[]>();
+    let current: ChatMessage[] = [];
+    messages.forEach((message, index) => {
+      current = sameBundle(messages[index - 1], message) ? [...current, message] : [message];
+      if (!sameBundle(message, messages[index + 1]) && current.length > 1)
+        result.set(message.id, current);
+    });
+    return result;
+  }, [messages]);
   return (
     <>
       {messages.map((message, index) => {
         const label = formatChatDate(message.createdAt);
         const showDate =
           index === 0 || dateKey(messages[index - 1].createdAt) !== dateKey(message.createdAt);
+        if (sameBundle(message, messages[index + 1]))
+          return (
+            <Fragment key={message.id}>
+              {showDate && (
+                <p className="my-5 text-center">
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-500">
+                    {label}
+                  </span>
+                </p>
+              )}
+              <div
+                data-message-id={message.id}
+                data-message-date={dateKey(message.createdAt)}
+                data-message-label={label}
+              />
+            </Fragment>
+          );
+        const bundle = bundleByLastId.get(message.id);
         const sender = contactMemberById.get(message.senderMembershipId);
         const replySenderName = message.reply?.senderName;
         const isMyReply = replySenderName !== undefined && replySenderName === myDisplayName;
@@ -79,7 +110,8 @@ export const MessageList = memo(function MessageList({
           replySenderName === undefined || isMyReply
             ? undefined
             : contactByName.get(replySenderName);
-        const previousMessage = messages[index - 1];
+        // 묶음이면 그 첫 사진 앞의 메시지와 비교(앞쪽 사진들은 자리표라 이름·꼬리를 숨기면 안 됨)
+        const previousMessage = messages[index - (bundle?.length ?? 1)];
         const nextMessage = messages[index + 1];
         const isGroupedWithPrevious =
           message.type === "TEXT" &&
@@ -111,6 +143,7 @@ export const MessageList = memo(function MessageList({
               ) : (
                 <MessageBubble
                   message={message}
+                  bundle={bundle && !message.deletedAt ? bundle : undefined}
                   isOriginalHighlighted={highlightedMessageId === message.id}
                   isMine={message.senderMembershipId === myMembershipId}
                   isDirect={roomType === "DIRECT"}

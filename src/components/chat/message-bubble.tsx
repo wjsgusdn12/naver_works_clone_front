@@ -35,9 +35,14 @@ const imageBoxSize = (attachment: ChatAttachment) => {
   };
 };
 
+// 묶음 사진 격자: 2장·4장은 2열, 3장·5장 이상은 3열. 칸은 정사각형(사진은 가운데를 채워 자름).
+const bundleColumns = (count: number) => (count === 2 || count === 4 ? 2 : 3);
+const BUNDLE_WIDTH = 300;
+
 // 말풍선 하나는 자기 props가 바뀔 때만 다시 그림(목록 안에서 다른 말풍선이 바뀌어도 영향 없음).
 export const MessageBubble = memo(function MessageBubble({
   message,
+  bundle,
   isOriginalHighlighted,
   isMine,
   isDirect,
@@ -65,6 +70,8 @@ export const MessageBubble = memo(function MessageBubble({
   isNotice,
 }: {
   message: ChatMessage;
+  // 묶어 보낸 사진들(2장 이상, message는 그 마지막). 있으면 사진 격자로 그리고 저장은 전부 내려받음.
+  bundle?: ChatMessage[];
   isOriginalHighlighted: boolean;
   isMine: boolean;
   isDirect: boolean;
@@ -155,7 +162,17 @@ export const MessageBubble = memo(function MessageBubble({
       position={menuPosition}
       onPositionChange={setMenuPosition}
       onCopy={() => onCopy(message)}
-      onSave={attachment ? () => void onDownload(attachment) : undefined}
+      onSave={
+        bundle
+          ? () =>
+              void (async () => {
+                // 브라우저가 연속 내려받기를 막지 않게 하나씩 차례로
+                for (const item of bundle) if (item.attachment) await onDownload(item.attachment);
+              })()
+          : attachment
+            ? () => void onDownload(attachment)
+            : undefined
+      }
       onReply={() => onReply(message)}
       onForward={() => onForward(message)}
       onToggleNotice={() => onToggleNotice(message)}
@@ -218,7 +235,8 @@ export const MessageBubble = memo(function MessageBubble({
     </div>
   );
   // 꼬리는 프로필 쪽을 향하는 위쪽 대각선의 직각삼각형으로 표현.
-  const reply = message.deletedAt ? null : message.reply;
+  // 묶음이면 답장은 첫 사진에 붙어 있음
+  const reply = message.deletedAt ? null : (bundle?.[0].reply ?? message.reply);
   // 말풍선 아래 줄(리액션·수정됨)이 있으면 그 높이만큼 아래 여백을 늘려 다음 메시지와 겹치지 않게 처리.
   const rowSpacing =
     reactions.length > 0 ? "mb-9" : message.editedAt ? "mb-6" : showMeta ? "mb-2" : "mb-1";
@@ -226,7 +244,29 @@ export const MessageBubble = memo(function MessageBubble({
   const bareImage = attachment?.kind === "IMAGE" && !reply && !message.forwarded;
   const bubblePadding = reply ? "w-[380px]" : bareImage ? "" : attachment ? "p-2" : "px-4 py-3";
   const bubbleColor = bareImage ? "" : isMine ? "bg-blue-100" : "bg-slate-100";
-  const body = attachment ? (
+  const columns = bundle ? bundleColumns(bundle.length) : 0;
+  const body = bundle ? (
+    <div
+      role="group"
+      aria-label={`${message.senderName}님이 보낸 사진 ${bundle.length}장`}
+      className="grid max-w-full gap-0.5 overflow-hidden rounded-2xl"
+      style={{ width: BUNDLE_WIDTH, gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
+    >
+      {bundle.map((item, index) =>
+        item.attachment ? (
+          <button
+            key={item.id}
+            type="button"
+            aria-label={`사진 ${index + 1}/${bundle.length} 크게 보기`}
+            onClick={() => onOpenImage(item)}
+            className="aspect-square cursor-zoom-in overflow-hidden bg-slate-100 transition hover:opacity-90"
+          >
+            <AttachmentImage attachment={item.attachment} className="h-full w-full" />
+          </button>
+        ) : null,
+      )}
+    </div>
+  ) : attachment ? (
     attachment.kind === "IMAGE" ? (
       <button
         type="button"

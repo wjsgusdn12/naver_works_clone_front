@@ -243,6 +243,11 @@ export function ChatNotificationProvider({ children }: Readonly<{ children: Reac
       accessToken,
       subscribedChatRoomIds: roomRef.current.map((room) => room.id),
       onMessageCreated: (event) => {
+        // 묶어 보낸 사진의 두 번째 장부터는 알림 토스트를 다시 띄우지 않음(묶음당 한 번)
+        const continuesBundle =
+          !!event.message.bundleKey &&
+          roomRef.current.find((target) => target.id === event.chatRoomId)?.lastMessageBundleKey ===
+            event.message.bundleKey;
         // 메시지 화면 밖에서도 마지막 메시지 ID를 유지해야 이후 수정·삭제 대상을 구분할 수 있음.
         syncChatRooms(
           roomRef.current.map((target) =>
@@ -254,6 +259,7 @@ export function ChatNotificationProvider({ children }: Readonly<{ children: Reac
                   lastMessage: event.message.content,
                   lastMessageAt: event.message.createdAt,
                   lastSenderMembershipId: event.message.senderMembershipId,
+                  lastMessageBundleKey: event.message.bundleKey,
                 }
               : target,
           ),
@@ -262,6 +268,7 @@ export function ChatNotificationProvider({ children }: Readonly<{ children: Reac
         const mentioned = event.message.mentionedMembershipIds.includes(member.membershipId);
         // 방별 모드가 MENTION이면 직접 멘션한 메시지만 전역 알림 대상으로 처리.
         if (
+          continuesBundle ||
           event.message.type !== "TEXT" ||
           !notificationEnabled ||
           (notificationMode === "MENTION" && !mentioned) ||
