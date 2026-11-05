@@ -17,7 +17,7 @@ import { Tabs } from "@/components/common/tabs";
 
 // 두 저장소의 README 다이어그램을 그대로 보여 주는 "프로젝트 소개" 모달.
 // 그림과 설명은 각 저장소 docs/guide.json·docs/diagrams/*.svg 를 GitHub raw 주소로 읽는다.
-// README를 고치고 scripts/build-diagrams.mjs 를 돌리면 이 모달도 같이 바뀐다(원본이 하나).
+// README를 고치고 scripts/build-readme-art.mjs 를 돌려 푸시하면 이 모달도 같이 바뀐다(원본이 하나).
 
 type GuideSection = {
   id: string;
@@ -249,8 +249,7 @@ export function ProjectGuideModal({ onClose }: ProjectGuideModalProps) {
           <div>
             <h2 className="text-lg font-bold text-slate-900">프로젝트 소개</h2>
             <p className="text-xs text-slate-500">
-              두 저장소 README의 설계 다이어그램을 한 화면에서 봅니다. 왼쪽이 서버, 오른쪽이
-              화면입니다.
+              두 저장소 README의 설계 그림을 한 화면에서 봅니다. 왼쪽이 서버, 오른쪽이 화면입니다.
             </p>
           </div>
           <button
