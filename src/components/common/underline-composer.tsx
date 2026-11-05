@@ -24,6 +24,7 @@ export function UnderlineComposer({
   submitLabel = "등록",
   attachments,
   tools,
+  onPasteFiles,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -45,6 +46,8 @@ export function UnderlineComposer({
   attachments?: ReactNode;
   // 버튼 줄의 [등록]·[취소] 뒤(첨부 버튼 등)
   tools?: ReactNode;
+  // 있으면 Ctrl+V로 붙여 넣은 파일·사진(캡처 포함)을 넘김. 글자 붙여넣기는 그대로.
+  onPasteFiles?: (files: File[]) => void;
 }) {
   const ref = useRef<HTMLTextAreaElement>(null);
   const submittable = (canSubmit ?? value.trim().length > 0) && !sending;
@@ -71,6 +74,14 @@ export function UnderlineComposer({
         onChange={(event) => onChange(event.target.value)}
         onKeyDown={(event) => {
           if (event.key === "Escape" && onCancel) onCancel();
+        }}
+        onPaste={(event) => {
+          if (!onPasteFiles) return;
+          const files = Array.from(event.clipboardData.files);
+          if (files.length === 0) return;
+          // 파일이 있으면 파일만 받음(사진을 복사하면 이름 글자가 함께 들어오는 경우가 있어 막음)
+          event.preventDefault();
+          onPasteFiles(files);
         }}
         maxLength={maxLength}
         rows={1}

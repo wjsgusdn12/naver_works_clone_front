@@ -124,6 +124,8 @@ export function CommentComposer({
       placeholder={placeholder}
       label={label}
       submitLabel={submitLabel}
+      // Ctrl+V로 붙여 넣은 사진·파일(캡처 포함)도 📎로 고른 것처럼 올림
+      onPasteFiles={sending ? undefined : addFiles}
       // 글이나 다 올라간 파일이 하나라도 있으면 등록 가능
       canSubmit={!uploading && (text.trim().length > 0 || files.length > 0)}
       attachments={
