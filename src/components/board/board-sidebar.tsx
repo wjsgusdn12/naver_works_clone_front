@@ -95,6 +95,9 @@ export function BoardSidebar({
       boards.some((board) => board.type === item.type) &&
       (!query || item.label.toLowerCase().includes(query)),
   );
+  // 공통 게시판(공지·자유·문의)은 게시판 하나가 아니라 종류 화면으로 이동
+  const commonType = (board: BoardItem) =>
+    COMMON_BOARDS.find((item) => item.type === board.type)?.type;
   // 회사별: 회사는 부서 게시판을 묶는 경로(폴더)일 뿐, 실제 게시판은 그 아래 부서 게시판.
   const departmentBoards = boards.filter((board) => board.type === "DEPARTMENT");
   const companies = [
@@ -107,15 +110,24 @@ export function BoardSidebar({
       .sort((a, b) => a.name.localeCompare(b.name, "ko"))
       .filter(matches),
   }));
-  const isSelected = (board: BoardItem) => menu.kind === "board" && menu.boardId === board.id;
+  const isSelected = (board: BoardItem) => {
+    const type = commonType(board);
+    return type
+      ? menu.kind === "type" && menu.type === type
+      : menu.kind === "board" && menu.boardId === board.id;
+  };
 
-  const row = (board: BoardItem, indent = 0) => (
+  const row = (board: BoardItem, indent = 0, label?: string) => (
     <BoardRow
       key={board.id}
       board={board}
+      label={label ?? COMMON_BOARDS.find((item) => item.type === board.type)?.label}
       indent={indent}
       selected={isSelected(board)}
-      onSelect={() => onSelect({ kind: "board", boardId: board.id })}
+      onSelect={() => {
+        const type = commonType(board);
+        onSelect(type ? { kind: "type", type } : { kind: "board", boardId: board.id });
+      }}
       onToggleFavorite={() => onToggleFavorite(board)}
       onRename={() => onRename(board)}
     />
@@ -242,22 +254,8 @@ export function BoardSidebar({
               )}
             </Section>
             <Section title="전체게시판" open={!closed.all} onToggle={() => toggle("all")}>
-              {commons.map((item) => {
-                const Icon = TYPE_ICON[item.type];
-                const selected = menu.kind === "type" && menu.type === item.type;
-                return (
-                  <button
-                    key={item.type}
-                    type="button"
-                    aria-current={selected ? "page" : undefined}
-                    onClick={() => onSelect({ kind: "type", type: item.type })}
-                    className={`flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-left ${selected ? "bg-blue-50 font-semibold text-blue-700" : "text-slate-700 hover:bg-slate-100"}`}
-                  >
-                    <Icon size={15} className="shrink-0 opacity-70" aria-hidden="true" />
-                    {item.label}
-                  </button>
-                );
-              })}
+              {/* 공통 게시판도 즐겨찾기 가능(이름 변경은 불가) */}
+              {commons.map((item) => row(boards.find((board) => board.type === item.type)!))}
             </Section>
             <Section
               title="회사별게시판"
@@ -351,9 +349,10 @@ function Section({
   );
 }
 
-// 게시판 한 줄. 마우스를 올리면 즐겨찾기(☆)와 이름 변경(관리자) 버튼이 보임. 즐겨찾기한 게시판은 ★가 늘 보임.
+// 게시판 한 줄. 마우스를 올렸을 때만 즐겨찾기(☆/★)와 이름 변경(관리자) 버튼이 보임.
 function BoardRow({
   board,
+  label,
   indent,
   selected,
   onSelect,
@@ -361,6 +360,8 @@ function BoardRow({
   onRename,
 }: {
   board: BoardItem;
+  // 보여 줄 이름(없으면 게시판 이름)
+  label?: string;
   indent: number;
   selected: boolean;
   onSelect: () => void;
@@ -368,6 +369,7 @@ function BoardRow({
   onRename: () => void;
 }) {
   const Icon = TYPE_ICON[board.type];
+  const name = label ?? board.name;
   return (
     <div
       className={`group flex items-center rounded-md ${selected ? "bg-blue-50 text-blue-700" : "text-slate-700 hover:bg-slate-100"}`}
@@ -380,13 +382,13 @@ function BoardRow({
         className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 px-2 py-1.5 text-left"
       >
         <Icon size={15} className="shrink-0 opacity-70" aria-hidden="true" />
-        <span className={`truncate ${selected ? "font-semibold" : ""}`}>{board.name}</span>
+        <span className={`truncate ${selected ? "font-semibold" : ""}`}>{name}</span>
       </button>
       {board.canRename && (
         <Tooltip label="이름 변경">
           <button
             type="button"
-            aria-label={`${board.name} 이름 변경`}
+            aria-label={`${name} 이름 변경`}
             onClick={onRename}
             className="mr-0.5 hidden h-6 w-6 cursor-pointer items-center justify-center rounded text-slate-400 transition group-hover:flex hover:bg-slate-200 hover:text-slate-700"
           >
@@ -394,11 +396,11 @@ function BoardRow({
           </button>
         </Tooltip>
       )}
-      {/* 즐겨찾기한 게시판은 버튼이 늘 보이고, 아니면 마우스를 올렸을 때만 */}
-      <span className={`mr-1.5 ${board.favorite ? "flex" : "hidden group-hover:flex"}`}>
+      {/* 즐겨찾기 버튼은 마우스를 올렸을 때만(키보드로 들어오면 보이게 focus-within도) */}
+      <span className="mr-1.5 hidden group-focus-within:flex group-hover:flex">
         <FavoriteButton
           active={board.favorite}
-          label={`${board.name} ${board.favorite ? "즐겨찾기 해제" : "즐겨찾기"}`}
+          label={`${name} ${board.favorite ? "즐겨찾기 해제" : "즐겨찾기"}`}
           onClick={onToggleFavorite}
         />
       </span>
