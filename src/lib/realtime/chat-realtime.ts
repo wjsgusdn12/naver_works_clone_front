@@ -46,6 +46,31 @@ export type ChatNoticeEvent = {
   notices: ChatNotice[];
 };
 
+// 방 이름·참여자·방장이 바뀜. 내용은 싣지 않으니 받으면 방 목록·상세를 다시 조회.
+// ROOM_UPDATED: 방 주제(남은 참여자) · ROOM_JOINED(초대·새 방) / ROOM_REMOVED(내보내짐·나감): 내 전용 큐.
+export type ChatRoomChangeEvent = {
+  type: "ROOM_UPDATED" | "ROOM_JOINED" | "ROOM_REMOVED";
+  chatRoomId: number;
+};
+
+const isRoomChange = (event: { type: string }): event is ChatRoomChangeEvent =>
+  event.type === "ROOM_UPDATED" || event.type === "ROOM_JOINED" || event.type === "ROOM_REMOVED";
+
+// 아직 구독하지 않은 방(초대받은 방)·더는 구독하면 안 되는 방(내보내진 방) 소식은 내 전용 큐로 옴.
+const subscribeMyRoomChanges = (
+  client: Client,
+  onRoomChanged: (event: ChatRoomChangeEvent) => void,
+  onError: (message: string) => void,
+) =>
+  client.subscribe("/user/queue/chatRoom", (frame) => {
+    try {
+      const event = JSON.parse(frame.body) as { type: string };
+      if (isRoomChange(event)) onRoomChanged(event);
+    } catch {
+      onError("실시간 채팅방 변경 데이터를 해석하지 못했습니다.");
+    }
+  });
+
 type ChatReadEvent = {
   type: "READ_UPDATED";
   chatRoomId: number;
@@ -104,6 +129,7 @@ type ConnectChatNotificationOptions = {
   onPresenceChanged?: (event: PresenceRealtimeEvent) => void;
   onNotificationCreated?: (event: NotificationRealtimeEvent) => void;
   onProfileImageChanged?: (event: ProfileImageRealtimeEvent) => void;
+  onRoomChanged?: (event: ChatRoomChangeEvent) => void;
   // 연결(재연결 포함)될 때마다. 끊긴 동안 놓친 소식을 다시 받아 맞추는 데 씀.
   onConnected?: () => void;
   onError: (message: string) => void;
@@ -155,6 +181,7 @@ export const connectChatRoom = ({
               | ChatMessageChangeEvent
               | ChatReactionEvent
               | ChatNoticeEvent;
+            // 방 변경(ROOM_UPDATED)은 늘 켜져 있는 전역 연결(connectChatNotification)이 받아 처리.
             if (event.type === "MESSAGE_CREATED") {
               // 방 목록은 모든 참여 방의 최신 메시지를 받아 즉시 갱신.
               onRoomMessageCreated(event);
@@ -203,6 +230,7 @@ export const connectChatNotification = ({
   onMessageChanged,
   onNotificationCreated,
   onProfileImageChanged,
+  onRoomChanged,
   onConnected,
   onError,
 }: ConnectChatNotificationOptions) => {
@@ -247,7 +275,9 @@ export const connectChatNotification = ({
       [...new Set(subscribedChatRoomIds)].forEach((chatRoomId) => {
         client.subscribe(`/topic/chatRoom/${chatRoomId}`, (frame) => {
           try {
-            const event = JSON.parse(frame.body) as ChatRealtimeEvent | ChatMessageChangeEvent;
+            const event = JSON.parse(frame.body) as
+              ChatRealtimeEvent | ChatMessageChangeEvent | ChatRoomChangeEvent;
+            if (isRoomChange(event)) onRoomChanged?.(event);
             if (event.type === "MESSAGE_CREATED") onMessageCreated(event);
             if (event.type === "MESSAGE_UPDATED" || event.type === "MESSAGE_DELETED")
               onMessageChanged(event);
@@ -256,6 +286,7 @@ export const connectChatNotification = ({
           }
         });
       });
+      if (onRoomChanged) subscribeMyRoomChanges(client, onRoomChanged, onError);
       onConnected?.();
     },
     onStompError: (frame) =>

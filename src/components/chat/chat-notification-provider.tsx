@@ -4,7 +4,11 @@ import { MessageNotificationToast } from "@/components/common/message-notificati
 import { useAuth } from "@/components/auth/auth-provider";
 import { useProfileImages } from "@/components/common/profile-image-provider";
 import { chatApi, type ChatRoom } from "@/lib/api/chat-api";
-import { connectChatNotification, type PresenceRealtimeEvent } from "@/lib/realtime/chat-realtime";
+import {
+  connectChatNotification,
+  type ChatRoomChangeEvent,
+  type PresenceRealtimeEvent,
+} from "@/lib/realtime/chat-realtime";
 import { addressBookApi, type MemberStatus, type PresenceStatus } from "@/lib/api/address-book-api";
 import type { MemberStatusType } from "@/lib/status-options";
 import { notificationApi, type NotificationItem } from "@/lib/api/notification-api";
@@ -41,6 +45,8 @@ type ChatNotificationContextValue = {
   setActiveChatRoomId: (chatRoomId: number | null) => void;
   syncChatRooms: (rooms: ChatRoom[]) => void;
   refreshChatRooms: () => Promise<ChatRoom[]>;
+  // 마지막으로 받은 방 변경(이름·참여자·방장, 초대·내보내짐). seq는 같은 내용이 또 와도 화면이 알아채게 매번 +1.
+  roomChange: { seq: number; event: ChatRoomChangeEvent } | null;
 };
 
 const ChatNotificationContext = createContext<ChatNotificationContextValue | null>(null);
@@ -63,6 +69,7 @@ export function ChatNotificationProvider({ children }: Readonly<{ children: Reac
   });
   const [activeChatRoomId, setActiveChatRoomId] = useState<number | null>(null);
   const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
+  const [roomChange, setRoomChange] = useState<ChatNotificationContextValue["roomChange"]>(null);
   const [presenceByMembershipId, setPresenceByMembershipId] = useState<
     Record<number, PresenceStatus>
   >({});
@@ -311,6 +318,12 @@ export function ChatNotificationProvider({ children }: Readonly<{ children: Reac
       onProfileImageChanged: (event) =>
         applyProfileImageChange?.(event.membershipId, event.version),
       onConnected: () => reloadProfileImages?.(),
+      // 초대·내보내짐·방 이름 변경: 목록을 다시 받으면 방 ID 집합이 바뀌어 구독할 방도 새로 맞춰짐.
+      // 메시지 화면은 roomChange를 보고 열린 방 상세·멤버 목록까지 다시 받음.
+      onRoomChanged: (event) => {
+        void refreshChatRooms().catch(() => undefined);
+        setRoomChange((current) => ({ seq: (current?.seq ?? 0) + 1, event }));
+      },
       // 재연결로 같은 알림이 두 번 와도 목록에는 한 번만 남김.
       onNotificationCreated: (event) => {
         setNotifications((current) => [
@@ -356,9 +369,11 @@ export function ChatNotificationProvider({ children }: Readonly<{ children: Reac
       setActiveChatRoomId,
       syncChatRooms,
       refreshChatRooms,
+      roomChange,
     }),
     [
       activeChatRoomId,
+      roomChange,
       acknowledgeNotifications,
       markNotificationRead,
       notificationCount,
