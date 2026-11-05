@@ -14,6 +14,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 export function GroupRoomDetail({
   room,
+  refreshKey = 0,
   accessToken,
   currentMemberId,
   members,
@@ -25,6 +26,8 @@ export function GroupRoomDetail({
   showToast,
 }: {
   room: ChatRoom;
+  // 다른 사람이 초대·내보내기·방장 위임을 하면 +1 → 멤버 목록을 다시 받음
+  refreshKey?: number;
   accessToken: string;
   currentMemberId: number;
   members: AddressBookMember[];
@@ -43,6 +46,12 @@ export function GroupRoomDetail({
   // 본인 아바타 배지에 쓰는 내 상태 설정.
   const { myStatusType } = useChatNotification();
   const [name, setName] = useState(room.name ?? "");
+  // 다른 사람이 방 이름을 바꾸면 입력칸도 새 이름으로(렌더링 중 맞추기 — Effect 안 상태 변경 피함)
+  const [syncedName, setSyncedName] = useState(room.name);
+  if (syncedName !== room.name) {
+    setSyncedName(room.name);
+    setName(room.name ?? "");
+  }
   const [inviteId, setInviteId] = useState<number | null>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [participants, setParticipants] = useState<ChatMemberProfile[]>([]);
@@ -87,7 +96,7 @@ export function GroupRoomDetail({
         setParticipantsState((current) => (current === "loading" ? "failed" : current));
         showToast(error.message);
       });
-  }, [refreshParticipants, showToast]);
+  }, [refreshParticipants, refreshKey, showToast]);
 
   useEffect(() => {
     const closeOutside = (event: MouseEvent) => {

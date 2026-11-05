@@ -72,7 +72,7 @@ import {
   type AddressBookMemberDetail,
 } from "@/lib/api/address-book-api";
 import { markAuthenticationRequired } from "@/lib/auth-required-notice";
-import { connectChatRoom } from "@/lib/realtime/chat-realtime";
+import { connectChatRoom, type ChatRoomChangeEvent } from "@/lib/realtime/chat-realtime";
 import { useStableCallback } from "@/hooks/use-stable-callback";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowDown, ChevronDown, MessageCircle, Search, X } from "lucide-react";
@@ -115,6 +115,7 @@ function MessageContent() {
     presenceByMembershipId,
     memberStatusByMembershipId,
     myStatusType,
+    roomChange,
   } = useChatNotification();
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
   const [selectedRoomId, setSelectedRoomId] = useState<number | null>(null);
@@ -683,6 +684,34 @@ function MessageContent() {
         .catch((error: Error) => showToast(error.message));
     }
   }, [loadMessages, selectedRoomId, showToast]);
+
+  // 방 이름·참여자·방장이 바뀌거나 내가 초대·내보내짐: 목록을 다시 받고(구독할 방도 새로 맞춰짐),
+  // 보고 있는 방이면 상세(멘션 후보·읽음 기준)와 그룹 멤버 목록도 다시 받음. 내보내진 방은 닫음.
+  const [roomDetailVersion, setRoomDetailVersion] = useState(0);
+  const handleRoomChange = useStableCallback((event: ChatRoomChangeEvent) => {
+    void loadRooms().catch(() => undefined);
+    if (event.chatRoomId !== selectedRoomIdRef.current) return;
+    if (event.type === "ROOM_REMOVED") {
+      if (lastRoomStorageKey) window.sessionStorage.removeItem(lastRoomStorageKey);
+      setRoomManageOpen(false);
+      setSelectedRoomId(null);
+      setMessages([]);
+      setNextCursor(null);
+      router.replace("/message");
+      showToast("더 이상 참여하지 않는 채팅방입니다.");
+      return;
+    }
+    void loadReadState(event.chatRoomId).catch(() => undefined);
+    setRoomDetailVersion((version) => version + 1);
+  });
+  // 이 화면을 열기 전에 받은 변경은 이미 목록 조회에 반영돼 있으므로 건너뜀.
+  const handledRoomChangeSeqRef = useRef(roomChange?.seq ?? 0);
+  useEffect(() => {
+    if (!roomChange || roomChange.seq <= handledRoomChangeSeqRef.current) return;
+    handledRoomChangeSeqRef.current = roomChange.seq;
+    // 렌더링 직후 비동기로 처리해 Effect 안의 동기 상태 변경을 피함.
+    void Promise.resolve().then(() => handleRoomChange(roomChange.event));
+  }, [roomChange, handleRoomChange]);
 
   useEffect(() => {
     if (!accessToken || !selectedRoomId || status !== "authenticated") return;
@@ -2500,6 +2529,7 @@ function MessageContent() {
             {roomManageOpen && selectedRoom?.type === "GROUP" && accessToken && member && (
               <GroupRoomDetail
                 room={selectedRoom}
+                refreshKey={roomDetailVersion}
                 accessToken={accessToken}
                 currentMemberId={member.membershipId}
                 members={contactMembers}
