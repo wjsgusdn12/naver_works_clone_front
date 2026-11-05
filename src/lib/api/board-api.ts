@@ -128,6 +128,11 @@ export type BoardComment = {
   content: string;
   createdAt: string;
   canDelete: boolean;
+  // 쓴 사람만 고칠 수 있음. editedAt: 고친 시각(없으면 null → "수정됨" 안 보임)
+  canEdit: boolean;
+  editedAt: string | null;
+  // 댓글에 붙인 파일(최대 5개)
+  attachments: BoardAttachment[];
 };
 
 // content: 편집기 문서 JSON 문자열(서버가 허용한 형식만 남긴 것)
@@ -309,12 +314,25 @@ export const boardApi = {
     apiRequest<void>(`/api/v1/board/post/restore/${postId}`, token, { method: "POST" }),
   readers: (token: string, postId: number) =>
     apiRequest<BoardReaders>(`/api/v1/board/post/${postId}/readers`, token),
-  // parentId가 있으면 그 댓글에 답글
-  addComment: (token: string, postId: number, content: string, parentId?: number) =>
+  // parentId가 있으면 그 댓글에 답글. attachmentIds: 미리 올린 첨부(uploadAttachment). 첨부만 있어도 됨.
+  addComment: (
+    token: string,
+    postId: number,
+    content: string,
+    parentId?: number,
+    attachmentIds: number[] = [],
+  ) =>
     apiRequest<BoardPostDetail>(
       `/api/v1/board/comment/create?postId=${postId}`,
       token,
-      json({ content, parentId: parentId ?? null }),
+      json({ content, parentId: parentId ?? null, attachmentIds }),
+    ),
+  // 댓글 수정(쓴 사람만). 남길 첨부 전체를 보냄(빠진 것은 떼어짐).
+  updateComment: (token: string, commentId: number, content: string, attachmentIds: number[]) =>
+    apiRequest<BoardPostDetail>(
+      `/api/v1/board/comment/update/${commentId}`,
+      token,
+      json({ content, attachmentIds }),
     ),
   // 같은 이모지를 다시 누르면 취소, 다른 이모지면 바꿈. 바뀐 상세가 옴.
   react: (token: string, postId: number, emoji: string) =>

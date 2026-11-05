@@ -14,7 +14,7 @@ import { MeBadge } from "@/components/common/me-badge";
 import { MoreMenu } from "@/components/common/more-menu";
 import { ReadStatusModal } from "@/components/common/read-status-modal";
 import { Tooltip } from "@/components/common/tooltip";
-import { UnderlineComposer } from "@/components/common/underline-composer";
+import { CommentComposer } from "@/components/board/comment-composer";
 import {
   boardApi,
   type BoardAttachment,
@@ -61,12 +61,9 @@ export function BoardPostDetailView({
   onRestored: () => void;
   onToast: (message: string) => void;
 }) {
-  const [comment, setComment] = useState("");
-  const [sending, setSending] = useState(false);
-  // 답글 쓰는 중인 맨 위 댓글과 그 입력 내용
+  // 답글 쓰는 중인 맨 위 댓글 · 고치는 중인 댓글
   const [replyTo, setReplyTo] = useState<number | null>(null);
-  const [reply, setReply] = useState("");
-  const [replySending, setReplySending] = useState(false);
+  const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
   const [deletingCommentId, setDeletingCommentId] = useState<number | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [restoring, setRestoring] = useState(false);
@@ -82,32 +79,26 @@ export function BoardPostDetailView({
     }
   };
 
-  const submitComment = async () => {
-    const text = comment.trim();
-    if (!text || sending) return;
-    setSending(true);
+  // 댓글·답글 등록(parentId가 있으면 답글). 성공하면 true → 입력칸이 비워짐.
+  const submitComment = async (content: string, attachmentIds: number[], parentId?: number) => {
     try {
-      onChanged(await boardApi.addComment(accessToken, post.id, text));
-      setComment("");
+      onChanged(await boardApi.addComment(accessToken, post.id, content, parentId, attachmentIds));
+      if (parentId !== undefined) setReplyTo(null);
+      return true;
     } catch (error) {
       onToast(error instanceof Error ? error.message : "댓글을 등록하지 못했습니다.");
-    } finally {
-      setSending(false);
+      return false;
     }
   };
 
-  const submitReply = async (parentId: number) => {
-    const text = reply.trim();
-    if (!text || replySending) return;
-    setReplySending(true);
+  const saveCommentEdit = async (commentId: number, content: string, attachmentIds: number[]) => {
     try {
-      onChanged(await boardApi.addComment(accessToken, post.id, text, parentId));
-      setReply("");
-      setReplyTo(null);
+      onChanged(await boardApi.updateComment(accessToken, commentId, content, attachmentIds));
+      setEditingCommentId(null);
+      return true;
     } catch (error) {
-      onToast(error instanceof Error ? error.message : "답글을 등록하지 못했습니다.");
-    } finally {
-      setReplySending(false);
+      onToast(error instanceof Error ? error.message : "댓글을 수정하지 못했습니다.");
+      return false;
     }
   };
 
@@ -179,6 +170,7 @@ export function BoardPostDetailView({
             <span className="text-sm font-medium text-slate-800">{item.authorName}</span>
             {item.authorAdmin && <span className="text-violet-600">관리자</span>}
             <span>{dateTime(item.createdAt)}</span>
+            {item.editedAt && <span>수정됨</span>}
             {deletingCommentId === item.id && <Spinner size={12} />}
             <span className="ml-auto">
               <MoreMenu
@@ -187,6 +179,9 @@ export function BoardPostDetailView({
                 items={[
                   ...(post.canComment
                     ? [{ label: "답글 쓰기", icon: Reply, onClick: () => openReply(rootId) }]
+                    : []),
+                  ...(item.canEdit
+                    ? [{ label: "수정", icon: Pencil, onClick: () => setEditingCommentId(item.id) }]
                     : []),
                   ...(item.canDelete
                     ? [
@@ -203,10 +198,63 @@ export function BoardPostDetailView({
               />
             </span>
           </div>
-          <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-6 text-slate-700">
-            {item.content}
-          </p>
-          {post.canComment && (
+          {editingCommentId === item.id ? (
+            <CommentComposer
+              key={`edit-${item.id}`}
+              className="mt-1"
+              accessToken={accessToken}
+              initial={{ content: item.content, attachments: item.attachments }}
+              onSubmit={(content, attachmentIds) =>
+                saveCommentEdit(item.id, content, attachmentIds)
+              }
+              onCancel={() => setEditingCommentId(null)}
+              onToast={onToast}
+              autoFocus
+              showCount
+              submitLabel="수정"
+              placeholder="댓글을 고쳐 주세요."
+              label="댓글 수정"
+            />
+          ) : (
+            <>
+              {item.content && (
+                <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-6 text-slate-700">
+                  {item.content}
+                </p>
+              )}
+              {item.attachments.length > 0 && (
+                // 댓글 첨부: 줄 목록(누르면 내려받기)
+                <ul className="mt-1.5 flex flex-col gap-1">
+                  {item.attachments.map((file) => {
+                    const { Icon, className } = fileIconOf(file.name);
+                    return (
+                      <li key={file.id}>
+                        <button
+                          type="button"
+                          onClick={() => void download(file)}
+                          className="group flex max-w-full cursor-pointer items-center gap-1.5 text-left text-xs"
+                        >
+                          <Icon size={14} className={className} aria-hidden="true" />
+                          <span className="min-w-0 truncate text-slate-700 group-hover:text-slate-950 group-hover:underline">
+                            {file.name}
+                          </span>
+                          <span className="shrink-0 text-slate-400">
+                            {formatFileSize(file.size)}
+                          </span>
+                          <Download
+                            size={13}
+                            aria-label={`${file.name} 내려받기`}
+                            className="shrink-0 text-slate-300 transition group-hover:text-slate-700"
+                          />
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </>
+          )}
+          {post.canComment && editingCommentId !== item.id && (
             <button
               type="button"
               onClick={() => openReply(rootId)}
@@ -219,9 +267,8 @@ export function BoardPostDetailView({
       </div>
     );
 
-  // 답글 입력 열기(같은 댓글이면 닫기). 다른 댓글로 옮기면 쓰던 내용은 비움.
+  // 답글 입력 열기(같은 댓글이면 닫기). 다른 댓글로 옮기면 입력칸이 새로 그려져 쓰던 내용은 비워짐.
   const openReply = (rootId: number) => {
-    setReply("");
     setReplyTo((current) => (current === rootId ? null : rootId));
   };
 
@@ -437,13 +484,15 @@ export function BoardPostDetailView({
                     ))}
                     {replyTo === root.id && (
                       <li>
-                        <UnderlineComposer
+                        <CommentComposer
+                          key={`reply-${root.id}`}
                           className="mt-1"
-                          value={reply}
-                          onChange={setReply}
-                          onSubmit={() => void submitReply(root.id)}
+                          accessToken={accessToken}
+                          onSubmit={(content, attachmentIds) =>
+                            submitComment(content, attachmentIds, root.id)
+                          }
                           onCancel={() => setReplyTo(null)}
-                          sending={replySending}
+                          onToast={onToast}
                           autoFocus
                           placeholder="답글을 남겨 주세요."
                           label="답글"
@@ -462,12 +511,11 @@ export function BoardPostDetailView({
           </p>
         )}
         {post.canComment && (
-          <UnderlineComposer
+          <CommentComposer
             className="mt-2"
-            value={comment}
-            onChange={setComment}
-            onSubmit={() => void submitComment()}
-            sending={sending}
+            accessToken={accessToken}
+            onSubmit={(content, attachmentIds) => submitComment(content, attachmentIds)}
+            onToast={onToast}
             showCount
             placeholder={
               post.board.type === "INQUIRY"
