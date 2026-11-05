@@ -254,7 +254,8 @@ export function MarketRanks({ attrs }: { attrs: Attrs }) {
   if (groups.length === 0) return null;
   return (
     <div
-      className={`grid grid-cols-1 gap-x-8 gap-y-6 ${groups.length >= 3 ? "md:grid-cols-3" : "md:grid-cols-2"}`}
+      // 4칸(상승률·하락률·거래량·거래대금): 중간 폭은 2×2, 넓은 화면은 한 줄. 예전 글(3칸)은 그대로 3칸.
+      className={`grid grid-cols-1 gap-x-8 gap-y-6 ${groups.length >= 4 ? "md:grid-cols-2 xl:grid-cols-4" : groups.length === 3 ? "md:grid-cols-3" : "md:grid-cols-2"}`}
     >
       {groups.map((group, index) => (
         <div key={index} className="min-w-0">
