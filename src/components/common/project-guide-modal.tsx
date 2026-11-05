@@ -34,8 +34,8 @@ type GuideSource = {
 };
 
 const sources: GuideSource[] = [
-  { key: "backend", label: "백엔드", repo: "naverworks_clone_api", icon: Server },
-  { key: "frontend", label: "프론트", repo: "naverworks_clone_front", icon: MonitorSmartphone },
+  { key: "backend", label: "백엔드", repo: "naver_works_clone_api", icon: Server },
+  { key: "frontend", label: "프론트", repo: "naver_works_clone_front", icon: MonitorSmartphone },
 ];
 
 const rawBase = (repo: string) => `https://raw.githubusercontent.com/wjsgusdn12/${repo}/main/`;
