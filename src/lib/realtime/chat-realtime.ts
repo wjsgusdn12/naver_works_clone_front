@@ -1,4 +1,4 @@
-import { Client } from "@stomp/stompjs";
+import { Client, TickerStrategy } from "@stomp/stompjs";
 import type { ChatMessage, ChatNotice } from "@/lib/api/chat-api";
 import type { NotificationItem } from "@/lib/api/notification-api";
 import type { MemberStatusType } from "@/lib/status-options";
@@ -139,6 +139,9 @@ export const connectChatRoom = ({
     // 서버와 10초마다 "살아 있음" 신호를 주고받아, 끊긴 연결을 서버가 빨리 알아채게 함(접속 상태 정확도).
     heartbeatIncoming: 10_000,
     heartbeatOutgoing: 10_000,
+    // 안 보는 탭은 브라우저가 타이머를 1분에 한 번으로 늦춰, 신호가 끊긴 줄 안 서버가 연결을 닫음
+    // (→ 재연결마다 사진 목록 다시 받기 · 온라인 깜빡임). Web Worker로 보내면 늦춰지지 않음.
+    heartbeatStrategy: TickerStrategy.Worker,
     debug: () => undefined,
     onConnect: () => {
       // 참여 중인 모든 방을 구독해, 다른 방의 입력 상태도 목록에서 즉시 표시.
@@ -210,6 +213,9 @@ export const connectChatNotification = ({
     // 서버와 10초마다 "살아 있음" 신호를 주고받아, 끊긴 연결을 서버가 빨리 알아채게 함(접속 상태 정확도).
     heartbeatIncoming: 10_000,
     heartbeatOutgoing: 10_000,
+    // 안 보는 탭은 브라우저가 타이머를 1분에 한 번으로 늦춰, 신호가 끊긴 줄 안 서버가 연결을 닫음
+    // (→ 재연결마다 사진 목록 다시 받기 · 온라인 깜빡임). Web Worker로 보내면 늦춰지지 않음.
+    heartbeatStrategy: TickerStrategy.Worker,
     debug: () => undefined,
     onConnect: () => {
       client.subscribe("/topic/presence", (frame) => {
