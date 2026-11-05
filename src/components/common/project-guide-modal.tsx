@@ -346,6 +346,8 @@ export function ProjectGuideModal({ onClose }: ProjectGuideModalProps) {
             onPointerDown={(event) => {
               if (event.button !== 0) return;
               if (event.target === event.currentTarget) {
+                // 여기서 닫으면 뒤따르는 mousedown이 아래 소개 모달 배경에 떨어져 모달까지 닫힘 → 막음
+                event.preventDefault();
                 openZoom(null);
                 return;
               }
