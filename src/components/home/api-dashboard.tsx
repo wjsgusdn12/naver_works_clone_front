@@ -603,15 +603,16 @@ function TrendSection({
   // 요청이 없던 구간의 응답 시간은 0이 아니라 "기록 없음". 응답 시간 선은 그 칸을 건너뛰고 앞뒤 점을 바로 이음.
   const responseValue = (point: ApiDashboardTrendPoint, value: number) =>
     isFuture(point) || isMerged(point) || point.requests === 0 ? null : value < 0 ? 5000 : value;
-  // 요청 수를 영역별(메시지·주소록·게시판…) 실선으로. 전체 요청 수는 툴팁 합계 줄.
-  // (오류는 오른쪽 오류율 그래프로)
-  const requestSeries: LineSeries[] = domains.map((domain, index) => ({
+  // 요청 수를 주요 영역 4개(메시지·주소록·게시판·알림) 실선으로. 마지막 "기타"는 그리지 않고 표에만.
+  // 전체 요청 수(기타 포함)는 툴팁 합계 줄. (오류는 오른쪽 오류율 그래프로)
+  const requestSeries: LineSeries[] = domains.slice(0, -1).map((domain, index) => ({
     key: `domain-${index}`,
     label: domain,
     color: domainColor(index, domains.length),
     connectGaps: true,
     values: points.map((point) => countValue(point, point.domainRequests?.[index] ?? 0)),
   }));
+  const requestTotals = points.map((point) => countValue(point, point.requests));
   // 오류율(%): 5xx(서버 잘못)와 4xx(요청 쪽 문제)를 나눔. 요청이 적은 칸은 비율이 크게 출렁여 비움.
   // 비운 칸은 건너뛰고 앞뒤 점을 바로 이어 선으로 보이게 함(안 그러면 요청이 드문 때 점만 흩어짐).
   const rateValue = (point: ApiDashboardTrendPoint, errors: number) =>
@@ -749,6 +750,7 @@ function TrendSection({
                 tooltipTitles={titles}
                 series={requestSeries}
                 totalLabel="전체 요청"
+                totalValues={requestTotals}
                 formatValue={(value) => `${formatNumber(Math.round(value))}`}
                 labelEvery={1}
                 ariaLabel={`${config.name} 영역별 요청 수 추이`}

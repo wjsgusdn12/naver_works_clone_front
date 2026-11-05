@@ -52,6 +52,7 @@ export function LineChart({
   ariaLabel,
   showMarkers = false,
   totalLabel,
+  totalValues,
 }: {
   // 아래쪽 시간 글자(점마다 하나)
   labels: string[];
@@ -66,6 +67,8 @@ export function LineChart({
   showMarkers?: boolean;
   // 있으면 툴팁 맨 아래에 계열 값을 더한 합계 줄(예: 영역별 요청 수의 "전체 요청")
   totalLabel?: string;
+  // 있으면 합계 줄에 계열 합 대신 이 값을 씀(그리지 않은 "기타"까지 포함한 전체 값)
+  totalValues?: (number | null)[];
 }) {
   const { ref, width } = useElementWidth();
   const [hovered, setHovered] = useState<number | null>(null);
@@ -234,9 +237,9 @@ export function LineChart({
           ))}
           {totalLabel &&
             (() => {
-              const present = series
-                .map((item) => item.values[hovered])
-                .filter((value): value is number => value !== null);
+              const present = (
+                totalValues ? [totalValues[hovered] ?? null] : series.map((item) => item.values[hovered])
+              ).filter((value): value is number => value !== null);
               return (
                 <p className="mt-1 flex items-center gap-2 border-t border-slate-100 pt-1 text-slate-600">
                   <span className="w-4 shrink-0" aria-hidden="true" />
