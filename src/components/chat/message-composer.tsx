@@ -57,6 +57,8 @@ export function MessageComposer({
   onAddFiles,
   onRemoveAttachment,
   onClearAttachments,
+  bundleImages,
+  onToggleBundle,
 }: {
   composerRef: RefObject<HTMLFormElement | null>;
   inputRef: RefObject<HTMLTextAreaElement | null>;
@@ -86,6 +88,8 @@ export function MessageComposer({
   onAddFiles: (files: File[]) => void;
   onRemoveAttachment: (key: string) => void;
   onClearAttachments: () => void;
+  bundleImages: boolean;
+  onToggleBundle: () => void;
 }) {
   // 본인 아바타 배지에 쓰는 내 상태 설정.
   const { myStatusType } = useChatNotification();
@@ -157,6 +161,8 @@ export function MessageComposer({
           onRemove={onRemoveAttachment}
           onClear={onClearAttachments}
           onSend={() => void onSubmit()}
+          bundleImages={bundleImages}
+          onToggleBundle={onToggleBundle}
         />
       )}
       {replyTarget && (

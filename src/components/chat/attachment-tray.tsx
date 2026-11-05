@@ -1,10 +1,12 @@
 "use client";
 
+import { CustomCheckbox } from "@/components/common/custom-checkbox";
 import { Spinner } from "@/components/common/loading";
 import { Tooltip } from "@/components/common/tooltip";
 import {
   fileIconOf,
   formatFileSize,
+  isPreviewableImage,
   MAX_ATTACHMENT_COUNT,
   MAX_ATTACHMENT_SIZE,
 } from "@/lib/attachment-files";
@@ -27,14 +29,20 @@ export function AttachmentTray({
   onRemove,
   onClear,
   onSend,
+  bundleImages,
+  onToggleBundle,
 }: {
   items: PendingAttachment[];
   sending: boolean;
   onRemove: (key: string) => void;
   onClear: () => void;
   onSend: () => void;
+  // 사진이 2장 이상이면 한 말풍선으로 묶어 보낼지(기본 켬). 파일은 늘 한 개씩.
+  bundleImages: boolean;
+  onToggleBundle: () => void;
 }) {
   const totalSize = items.reduce((sum, item) => sum + item.file.size, 0);
+  const imageCount = items.filter((item) => isPreviewableImage(item.file)).length;
   return (
     <div className="rounded-t-2xl border border-slate-200 bg-white px-4 pb-3 pt-2.5">
       <div className="mb-2 flex items-center gap-2 text-xs text-slate-500">
@@ -46,6 +54,16 @@ export function AttachmentTray({
           </span>
         </span>
         <span className="ml-auto flex items-center gap-1">
+          {imageCount >= 2 && (
+            <CustomCheckbox
+              label="사진 묶어 보내기"
+              checked={bundleImages}
+              onChange={onToggleBundle}
+              disabled={sending}
+              text={<span className="text-xs">사진 {imageCount}장 묶어 보내기</span>}
+              className="mr-1"
+            />
+          )}
           <button
             type="button"
             disabled={sending}

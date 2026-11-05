@@ -27,6 +27,8 @@ export type ChatRoom = {
   lastMessageMentioned: boolean;
   lastMessageId: number | null;
   lastMessageVersion: number;
+  // 화면에서만 채움: 실시간으로 받은 마지막 메시지의 사진 묶음 번호(묶음 두 번째 장부터 안 읽은 수·알림을 다시 세지 않게)
+  lastMessageBundleKey?: string | null;
 };
 
 export type ChatMessage = {
@@ -50,6 +52,8 @@ export type ChatMessage = {
   forwarded: boolean;
   // 사진·파일 메시지의 첨부. 일반 메시지·삭제된 메시지는 null.
   attachment: ChatAttachment | null;
+  // 사진 묶어 보내기의 묶음 번호. 같은 번호의 사진들은 한 말풍선(격자)으로 보여 줌. 묶지 않았으면 null.
+  bundleKey: string | null;
 };
 
 // 첨부 정보. IMAGE는 말풍선에 바로 보여 주고, FILE은 내려받기 카드로 보여 줌.
@@ -239,11 +243,13 @@ const uploadAttachment = (
   file: File,
   replyToMessageId: number | undefined,
   onProgress: (percent: number) => void,
+  // 사진 묶어 보내기면 묶음 안 사진마다 같은 UUID
+  bundleKey?: string,
 ) =>
   new Promise<ChatMessage>((resolve, reject) => {
     const form = new FormData();
     form.append("file", file);
-    const query = `chatRoomId=${roomId}${replyToMessageId ? `&replyToMessageId=${replyToMessageId}` : ""}`;
+    const query = `chatRoomId=${roomId}${replyToMessageId ? `&replyToMessageId=${replyToMessageId}` : ""}${bundleKey ? `&bundleKey=${bundleKey}` : ""}`;
     const xhr = new XMLHttpRequest();
     xhr.open("POST", `${apiBaseUrl()}/api/v1/chatRoom/message/attachment/create?${query}`);
     xhr.withCredentials = true;
