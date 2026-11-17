@@ -497,7 +497,7 @@ const roadmap = () => {
     zone({ x: 480, y: 36, w: 450, h: 290, label: "다음 계획", tone: "slate", iconName: "CircleDashed" }),
   ];
   const plans = [
-    ["Rocket", "Vercel 배포", "API는 Oracle VM · 주소 2개(DuckDNS)"],
+    ["Rocket", "Vercel 배포", "API는 AWS EC2 · 주소 2개(DuckDNS)"],
     ["CalendarClock", "캘린더 화면", "지금은 '준비 중' 안내만"],
     ["Link", "말풍선 링크 카드", "서버가 모은 제목 · 그림을 대화에 표시"],
     ["Users", "조직 · 그룹 검색 탭", "검색 화면의 '준비 중' 탭 채우기"],
